@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'screens/add_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/items_screen.dart';
+import 'screens/settings_screen.dart';
 import 'screens/today_screen.dart';
 
 void main() {
@@ -142,31 +143,6 @@ class _MainShellState extends State<MainShell> {
           ),
         ],
       ),
-    );
-  }
-}
-
-class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: const [
-        SectionHeader(title: '設定', subtitle: '提醒時間、安全界線與資料管理。'),
-        SizedBox(height: 12),
-        InfoCard(
-          title: '預設提醒時間',
-          content: '上午 9:00',
-          icon: Icons.notifications_active_outlined,
-        ),
-        InfoCard(
-          title: '安全界線',
-          content: '涉及電力、瓦斯、煞車、冷媒、結構等高風險項目，App 不提供自行維修步驟，請尋求合格專業人員協助。',
-          icon: Icons.health_and_safety_outlined,
-        ),
-      ],
     );
   }
 }
