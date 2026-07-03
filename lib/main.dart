@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'screens/add_screen.dart';
+import 'screens/history_screen.dart';
 import 'screens/items_screen.dart';
 import 'screens/today_screen.dart';
 
@@ -141,35 +142,6 @@ class _MainShellState extends State<MainShell> {
           ),
         ],
       ),
-    );
-  }
-}
-
-class HistoryScreen extends StatelessWidget {
-  const HistoryScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final records = [
-      const HistoryRecord(
-        date: '2026/07/03',
-        title: '建立物品：客廳冷氣',
-        note: '已建立保養提醒。',
-      ),
-      const HistoryRecord(
-        date: '2026/07/03',
-        title: '建立物品：機車',
-        note: '已建立每週胎壓檢查提醒。',
-      ),
-    ];
-
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        const SectionHeader(title: '完成紀錄', subtitle: '做過什麼、修過什麼、換過什麼，都留在這裡。'),
-        const SizedBox(height: 12),
-        for (final record in records) HistoryCard(record: record),
-      ],
     );
   }
 }
