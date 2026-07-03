@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'screens/today_screen.dart';
+
 void main() {
   runApp(const LifeMaintenanceApp());
 }
@@ -14,9 +16,63 @@ class LifeMaintenanceApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF89A8D8),
+          seedColor: const Color(0xFF6F8FAF),
+          brightness: Brightness.light,
+          surface: const Color(0xFFF7F3EA),
+          primary: const Color(0xFF5D7893),
+          secondary: const Color(0xFF8FA4B8),
         ),
+        scaffoldBackgroundColor: const Color(0xFFF7F3EA),
         useMaterial3: true,
+        appBarTheme: const AppBarTheme(
+          centerTitle: true,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          backgroundColor: Color(0xFFF7F3EA),
+          foregroundColor: Color(0xFF263746),
+          titleTextStyle: TextStyle(
+            color: Color(0xFF263746),
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        cardTheme: CardThemeData(
+          elevation: 0,
+          color: Colors.white,
+          margin: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(color: Color(0xFFE4E0D8)),
+          ),
+        ),
+        navigationBarTheme: NavigationBarThemeData(
+          backgroundColor: const Color(0xFFFFFCF6),
+          indicatorColor: const Color(0xFFDCE8F2),
+          labelTextStyle: WidgetStateProperty.resolveWith(
+            (states) => TextStyle(
+              color: states.contains(WidgetState.selected)
+                  ? const Color(0xFF263746)
+                  : const Color(0xFF687887),
+              fontWeight: states.contains(WidgetState.selected)
+                  ? FontWeight.w700
+                  : FontWeight.w500,
+            ),
+          ),
+          iconTheme: WidgetStateProperty.resolveWith(
+            (states) => IconThemeData(
+              color: states.contains(WidgetState.selected)
+                  ? const Color(0xFF5D7893)
+                  : const Color(0xFF7C8995),
+            ),
+          ),
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: const Color(0xFF5D7893),
+            foregroundColor: Colors.white,
+            textStyle: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+        ),
       ),
       home: const MainShell(),
     );
@@ -40,20 +96,12 @@ class _MainShellState extends State<MainShell> {
     SettingsScreen(),
   ];
 
-  final List<String> _titles = const [
-    '今日',
-    '物品',
-    '履歷',
-    '設定',
-  ];
+  final List<String> _titles = const ['今日', '物品', '履歷', '設定'];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_titles[_currentIndex]),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: Text(_titles[_currentIndex]), centerTitle: true),
       body: _pages[_currentIndex],
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
@@ -89,67 +137,20 @@ class _MainShellState extends State<MainShell> {
   }
 }
 
-class TodayScreen extends StatelessWidget {
-  const TodayScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final tasks = [
-      const TaskItem(
-        itemName: '客廳冷氣',
-        taskName: '清洗濾網',
-        cycle: '每月',
-        estimatedTime: '20 分鐘',
-        riskLabel: '低風險',
-      ),
-      const TaskItem(
-        itemName: '機車',
-        taskName: '胎壓檢查',
-        cycle: '每週',
-        estimatedTime: '5 分鐘',
-        riskLabel: '低風險',
-      ),
-    ];
-
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        const SectionHeader(
-          title: '今天要處理',
-          subtitle: '先把重要的保養事項接住，不讓它漏掉。',
-        ),
-        const SizedBox(height: 12),
-        for (final task in tasks) TaskCard(task: task),
-      ],
-    );
-  }
-}
-
 class ItemsScreen extends StatelessWidget {
   const ItemsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final items = [
-      const ItemInfo(
-        name: '客廳冷氣',
-        category: '家電',
-        nextTask: '下次提醒：清洗濾網',
-      ),
-      const ItemInfo(
-        name: '機車',
-        category: '車輛',
-        nextTask: '下次提醒：胎壓檢查',
-      ),
+      const ItemInfo(name: '客廳冷氣', category: '家電', nextTask: '下次提醒：清洗濾網'),
+      const ItemInfo(name: '機車', category: '車輛', nextTask: '下次提醒：胎壓檢查'),
     ];
 
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        const SectionHeader(
-          title: '物品履歷',
-          subtitle: '一個物品，一組提醒，一份長期紀錄。',
-        ),
+        const SectionHeader(title: '物品履歷', subtitle: '一個物品，一組提醒，一份長期紀錄。'),
         const SizedBox(height: 12),
         for (final item in items) ItemCard(item: item),
       ],
@@ -178,10 +179,7 @@ class HistoryScreen extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        const SectionHeader(
-          title: '完成紀錄',
-          subtitle: '做過什麼、修過什麼、換過什麼，都留在這裡。',
-        ),
+        const SectionHeader(title: '完成紀錄', subtitle: '做過什麼、修過什麼、換過什麼，都留在這裡。'),
         const SizedBox(height: 12),
         for (final record in records) HistoryCard(record: record),
       ],
@@ -197,10 +195,7 @@ class SettingsScreen extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: const [
-        SectionHeader(
-          title: '設定',
-          subtitle: '提醒時間、安全界線與資料管理。',
-        ),
+        SectionHeader(title: '設定', subtitle: '提醒時間、安全界線與資料管理。'),
         SizedBox(height: 12),
         InfoCard(
           title: '預設提醒時間',
@@ -209,8 +204,7 @@ class SettingsScreen extends StatelessWidget {
         ),
         InfoCard(
           title: '安全界線',
-          content:
-              '涉及電力、瓦斯、煞車、冷媒、結構等高風險項目，App 不提供自行維修步驟，請尋求合格專業人員協助。',
+          content: '涉及電力、瓦斯、煞車、冷媒、結構等高風險項目，App 不提供自行維修步驟，請尋求合格專業人員協助。',
           icon: Icons.health_and_safety_outlined,
         ),
       ],
@@ -262,19 +256,15 @@ class SectionHeader extends StatelessWidget {
   final String title;
   final String subtitle;
 
-  const SectionHeader({
-    super.key,
-    required this.title,
-    required this.subtitle,
-  });
+  const SectionHeader({super.key, required this.title, required this.subtitle});
 
   @override
   Widget build(BuildContext context) {
     return Card(
       elevation: 0,
-      color: Theme.of(context).colorScheme.primaryContainer.withValues(
-            alpha: 0.45,
-          ),
+      color: Theme.of(
+        context,
+      ).colorScheme.primaryContainer.withValues(alpha: 0.45),
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(
@@ -282,15 +272,12 @@ class SectionHeader extends StatelessWidget {
           children: [
             Text(
               title,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
-            Text(
-              subtitle,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
+            Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
           ],
         ),
       ),
@@ -301,25 +288,19 @@ class SectionHeader extends StatelessWidget {
 class TaskCard extends StatelessWidget {
   final TaskItem task;
 
-  const TaskCard({
-    super.key,
-    required this.task,
-  });
+  const TaskCard({super.key, required this.task});
 
   @override
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
-        leading: const CircleAvatar(
-          child: Icon(Icons.build_outlined),
-        ),
+        leading: const CircleAvatar(child: Icon(Icons.build_outlined)),
         title: Text('${task.itemName}｜${task.taskName}'),
-        subtitle: Text('${task.cycle}｜預估 ${task.estimatedTime}｜${task.riskLabel}'),
-        trailing: FilledButton(
-          onPressed: () {},
-          child: const Text('完成'),
+        subtitle: Text(
+          '${task.cycle}｜預估 ${task.estimatedTime}｜${task.riskLabel}',
         ),
+        trailing: FilledButton(onPressed: () {}, child: const Text('完成')),
       ),
     );
   }
@@ -328,19 +309,14 @@ class TaskCard extends StatelessWidget {
 class ItemCard extends StatelessWidget {
   final ItemInfo item;
 
-  const ItemCard({
-    super.key,
-    required this.item,
-  });
+  const ItemCard({super.key, required this.item});
 
   @override
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
-        leading: const CircleAvatar(
-          child: Icon(Icons.inventory_2_outlined),
-        ),
+        leading: const CircleAvatar(child: Icon(Icons.inventory_2_outlined)),
         title: Text(item.name),
         subtitle: Text('${item.category}｜${item.nextTask}'),
         trailing: const Icon(Icons.chevron_right),
@@ -352,19 +328,14 @@ class ItemCard extends StatelessWidget {
 class HistoryCard extends StatelessWidget {
   final HistoryRecord record;
 
-  const HistoryCard({
-    super.key,
-    required this.record,
-  });
+  const HistoryCard({super.key, required this.record});
 
   @override
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
-        leading: const CircleAvatar(
-          child: Icon(Icons.event_note_outlined),
-        ),
+        leading: const CircleAvatar(child: Icon(Icons.event_note_outlined)),
         title: Text(record.title),
         subtitle: Text('${record.date}\n${record.note}'),
         isThreeLine: true,
@@ -390,9 +361,7 @@ class InfoCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
-        leading: CircleAvatar(
-          child: Icon(icon),
-        ),
+        leading: CircleAvatar(child: Icon(icon)),
         title: Text(title),
         subtitle: Text(content),
       ),
