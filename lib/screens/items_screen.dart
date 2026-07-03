@@ -1,39 +1,18 @@
 import 'package:flutter/material.dart';
 
+import '../data/mock_data.dart';
+import '../models/enums.dart';
+import '../models/item.dart';
+
 class ItemsScreen extends StatelessWidget {
   const ItemsScreen({super.key});
 
   static const _categories = ['全部', '家電', '車輛', '房屋', '保固證件', '其他'];
 
-  static const _items = [
-    _ItemCardData(
-      name: '客廳冷氣',
-      category: '家電',
-      nextTask: '下次提醒：清洗濾網',
-      lastRecord: '最近紀錄：2026/07/03 建立保養提醒',
-      status: '正常追蹤',
-      icon: Icons.ac_unit_outlined,
-    ),
-    _ItemCardData(
-      name: '機車',
-      category: '車輛',
-      nextTask: '下次提醒：胎壓檢查',
-      lastRecord: '最近紀錄：2026/07/03 建立每週提醒',
-      status: '本週到期',
-      icon: Icons.two_wheeler_outlined,
-    ),
-    _ItemCardData(
-      name: '租屋合約',
-      category: '保固證件',
-      nextTask: '下次提醒：合約到期前 30 天',
-      lastRecord: '最近紀錄：2026/07/03 建立到期提醒',
-      status: '到期追蹤',
-      icon: Icons.description_outlined,
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final items = MockData.items;
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
@@ -41,7 +20,10 @@ class ItemsScreen extends StatelessWidget {
         const SizedBox(height: 18),
         const _CategoryChips(categories: _categories),
         const SizedBox(height: 18),
-        for (final item in _items) _ProductItemCard(item: item),
+        if (items.isEmpty)
+          const _EmptyItemsState()
+        else
+          for (final item in items) _ProductItemCard(item: item),
       ],
     );
   }
@@ -136,7 +118,7 @@ class _CategoryChip extends StatelessWidget {
 }
 
 class _ProductItemCard extends StatelessWidget {
-  final _ItemCardData item;
+  final Item item;
 
   const _ProductItemCard({required this.item});
 
@@ -159,7 +141,10 @@ class _ProductItemCard extends StatelessWidget {
                     color: const Color(0xFFE8F0F6),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Icon(item.icon, color: const Color(0xFF5D7893)),
+                  child: Icon(
+                    _iconForCategory(item.category),
+                    color: const Color(0xFF5D7893),
+                  ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -176,20 +161,23 @@ class _ProductItemCard extends StatelessWidget {
                             ),
                       ),
                       const SizedBox(height: 7),
-                      _InfoPill(label: item.category),
+                      _InfoPill(label: _labelForCategory(item.category)),
                     ],
                   ),
                 ),
-                _StatusTag(label: item.status),
+                _StatusTag(label: _labelForStatus(item.status)),
               ],
             ),
             const SizedBox(height: 16),
             _ItemInfoRow(
-              icon: Icons.notifications_active_outlined,
-              text: item.nextTask,
+              icon: Icons.place_outlined,
+              text: '位置：${item.location ?? '未設定'}',
             ),
             const SizedBox(height: 10),
-            _ItemInfoRow(icon: Icons.history_outlined, text: item.lastRecord),
+            _ItemInfoRow(
+              icon: Icons.event_available_outlined,
+              text: _dateLineForItem(item),
+            ),
           ],
         ),
       ),
@@ -274,20 +262,68 @@ class _ItemInfoRow extends StatelessWidget {
   }
 }
 
-class _ItemCardData {
-  final String name;
-  final String category;
-  final String nextTask;
-  final String lastRecord;
-  final String status;
-  final IconData icon;
+class _EmptyItemsState extends StatelessWidget {
+  const _EmptyItemsState();
 
-  const _ItemCardData({
-    required this.name,
-    required this.category,
-    required this.nextTask,
-    required this.lastRecord,
-    required this.status,
-    required this.icon,
-  });
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFCF6),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE4E0D8)),
+      ),
+      child: Text(
+        '目前還沒有物品。',
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: const Color(0xFF687887),
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+IconData _iconForCategory(ItemCategory category) {
+  return switch (category) {
+    ItemCategory.appliance => Icons.ac_unit_outlined,
+    ItemCategory.vehicle => Icons.two_wheeler_outlined,
+    ItemCategory.house => Icons.home_work_outlined,
+    ItemCategory.warrantyDocument => Icons.description_outlined,
+    ItemCategory.other => Icons.inventory_2_outlined,
+  };
+}
+
+String _labelForCategory(ItemCategory category) {
+  return switch (category) {
+    ItemCategory.appliance => '家電',
+    ItemCategory.vehicle => '車輛',
+    ItemCategory.house => '房屋',
+    ItemCategory.warrantyDocument => '保固證件',
+    ItemCategory.other => '其他',
+  };
+}
+
+String _labelForStatus(ItemStatus status) {
+  return switch (status) {
+    ItemStatus.active => '正常追蹤',
+    ItemStatus.paused => '暫停',
+    ItemStatus.archived => '已封存',
+  };
+}
+
+String _dateLineForItem(Item item) {
+  final warrantyEndDate = item.warrantyEndDate;
+  if (warrantyEndDate != null) {
+    return '保固到期：${_formatDate(warrantyEndDate)}';
+  }
+
+  return '建立日期：${_formatDate(item.createdAt)}';
+}
+
+String _formatDate(DateTime date) {
+  final month = date.month.toString().padLeft(2, '0');
+  final day = date.day.toString().padLeft(2, '0');
+  return '${date.year}/$month/$day';
 }
