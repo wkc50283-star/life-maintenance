@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'screens/add_screen.dart';
 import 'screens/today_screen.dart';
 
 void main() {
@@ -92,11 +93,12 @@ class _MainShellState extends State<MainShell> {
   final List<Widget> _pages = const [
     TodayScreen(),
     ItemsScreen(),
+    AddScreen(),
     HistoryScreen(),
     SettingsScreen(),
   ];
 
-  final List<String> _titles = const ['今日', '物品', '履歷', '設定'];
+  final List<String> _titles = const ['今日', '物品', '新增', '履歷', '設定'];
 
   @override
   Widget build(BuildContext context) {
@@ -120,6 +122,11 @@ class _MainShellState extends State<MainShell> {
             icon: Icon(Icons.inventory_2_outlined),
             selectedIcon: Icon(Icons.inventory_2),
             label: '物品',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.add_circle_outline),
+            selectedIcon: Icon(Icons.add_circle),
+            label: '新增',
           ),
           NavigationDestination(
             icon: Icon(Icons.history_outlined),
