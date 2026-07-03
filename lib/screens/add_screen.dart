@@ -181,7 +181,7 @@ class _AddItemPreviewForm extends StatelessWidget {
           const SizedBox(height: 18),
           const _PreviewTextField(label: '物品名稱'),
           const SizedBox(height: 12),
-          const _PreviewTextField(label: '分類'),
+          const _PreviewCategoryDropdown(),
           const SizedBox(height: 12),
           const _PreviewTextField(label: '放置位置'),
           const SizedBox(height: 12),
@@ -223,6 +223,32 @@ class _AddItemPreviewForm extends StatelessWidget {
   }
 }
 
+class _PreviewCategoryDropdown extends StatelessWidget {
+  const _PreviewCategoryDropdown();
+
+  static const List<String> _categories = ['家電', '車輛', '房屋', '保固證件', '其他'];
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<String>(
+      decoration: _previewInputDecoration('分類'),
+      hint: const Text('請選擇分類'),
+      dropdownColor: const Color(0xFFFFFCF6),
+      borderRadius: BorderRadius.circular(16),
+      iconEnabledColor: const Color(0xFF5D7893),
+      items: _categories
+          .map(
+            (category) => DropdownMenuItem<String>(
+              value: category,
+              child: Text(category),
+            ),
+          )
+          .toList(),
+      onChanged: (_) {},
+    );
+  }
+}
+
 class _PreviewTextField extends StatelessWidget {
   final String label;
   final int maxLines;
@@ -233,20 +259,24 @@ class _PreviewTextField extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextField(
       maxLines: maxLines,
-      decoration: InputDecoration(
-        labelText: label,
-        filled: true,
-        fillColor: const Color(0xFFFFFCF6),
-        labelStyle: const TextStyle(color: Color(0xFF687887)),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFFE4E0D8)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFF8FA4B8), width: 1.4),
-        ),
-      ),
+      decoration: _previewInputDecoration(label),
     );
   }
+}
+
+InputDecoration _previewInputDecoration(String label) {
+  return InputDecoration(
+    labelText: label,
+    filled: true,
+    fillColor: const Color(0xFFFFFCF6),
+    labelStyle: const TextStyle(color: Color(0xFF687887)),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: const BorderSide(color: Color(0xFFE4E0D8)),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: const BorderSide(color: Color(0xFF8FA4B8), width: 1.4),
+    ),
+  );
 }
