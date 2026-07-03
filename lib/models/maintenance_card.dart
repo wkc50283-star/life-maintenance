@@ -1,0 +1,105 @@
+import 'enums.dart';
+
+class MaintenanceCard {
+  final String id;
+  final String itemId;
+  final String title;
+  final MaintenanceType type;
+  final RiskLevel riskLevel;
+  final CycleType cycleType;
+  final int estimatedMinutes;
+  final List<MaintenanceStep> steps;
+  final bool requiredPhotos;
+  final bool requiredNote;
+  final String? safetyNotice;
+  final DateTime createdAt;
+
+  const MaintenanceCard({
+    required this.id,
+    required this.itemId,
+    required this.title,
+    required this.type,
+    required this.riskLevel,
+    required this.cycleType,
+    required this.estimatedMinutes,
+    required this.steps,
+    required this.createdAt,
+    this.requiredPhotos = false,
+    this.requiredNote = false,
+    this.safetyNotice,
+  });
+
+  MaintenanceCard copyWith({
+    String? id,
+    String? itemId,
+    String? title,
+    MaintenanceType? type,
+    RiskLevel? riskLevel,
+    CycleType? cycleType,
+    int? estimatedMinutes,
+    List<MaintenanceStep>? steps,
+    bool? requiredPhotos,
+    bool? requiredNote,
+    String? safetyNotice,
+    DateTime? createdAt,
+  }) {
+    return MaintenanceCard(
+      id: id ?? this.id,
+      itemId: itemId ?? this.itemId,
+      title: title ?? this.title,
+      type: type ?? this.type,
+      riskLevel: riskLevel ?? this.riskLevel,
+      cycleType: cycleType ?? this.cycleType,
+      estimatedMinutes: estimatedMinutes ?? this.estimatedMinutes,
+      steps: steps ?? this.steps,
+      requiredPhotos: requiredPhotos ?? this.requiredPhotos,
+      requiredNote: requiredNote ?? this.requiredNote,
+      safetyNotice: safetyNotice ?? this.safetyNotice,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+}
+
+class MaintenanceStep {
+  final String id;
+  final String cardId;
+  final int order;
+  final String title;
+  final String description;
+  final bool isRequired;
+  final bool photoRequired;
+  final bool noteRequired;
+
+  const MaintenanceStep({
+    required this.id,
+    required this.cardId,
+    required this.order,
+    required this.title,
+    required this.description,
+    this.isRequired = true,
+    this.photoRequired = false,
+    this.noteRequired = false,
+  });
+
+  MaintenanceStep copyWith({
+    String? id,
+    String? cardId,
+    int? order,
+    String? title,
+    String? description,
+    bool? isRequired,
+    bool? photoRequired,
+    bool? noteRequired,
+  }) {
+    return MaintenanceStep(
+      id: id ?? this.id,
+      cardId: cardId ?? this.cardId,
+      order: order ?? this.order,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      isRequired: isRequired ?? this.isRequired,
+      photoRequired: photoRequired ?? this.photoRequired,
+      noteRequired: noteRequired ?? this.noteRequired,
+    );
+  }
+}
