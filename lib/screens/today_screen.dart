@@ -6,6 +6,7 @@ import '../models/item.dart';
 import '../models/maintenance_card.dart';
 import '../models/task.dart' as maintenance_task;
 import '../widgets/task_card.dart';
+import '../widgets/task_section_header.dart';
 import '../widgets/today_hero.dart';
 
 class TodayScreen extends StatelessWidget {
@@ -20,7 +21,7 @@ class TodayScreen extends StatelessWidget {
       children: [
         TodayHero(taskCount: tasks.length),
         const SizedBox(height: 20),
-        const _TaskSectionHeader(),
+        const TaskSectionHeader(),
         const SizedBox(height: 12),
         if (tasks.isEmpty)
           const _EmptyTasksState()
@@ -425,37 +426,4 @@ String _formatDate(DateTime date) {
   final month = date.month.toString().padLeft(2, '0');
   final day = date.day.toString().padLeft(2, '0');
   return '${date.year}/$month/$day';
-}
-
-class _TaskSectionHeader extends StatelessWidget {
-  const _TaskSectionHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '今天要處理',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: const Color(0xFF263746),
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '先把重要的保養事項接住，不讓它漏掉。',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFF687887),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
 }
