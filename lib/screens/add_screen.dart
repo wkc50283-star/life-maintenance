@@ -7,9 +7,9 @@ class AddScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-      children: const [
-        SizedBox(height: 8),
-        Text(
+      children: [
+        const SizedBox(height: 8),
+        const Text(
           '你想記住什麼？',
           style: TextStyle(
             color: Color(0xFF263746),
@@ -18,23 +18,24 @@ class AddScreen extends StatelessWidget {
             height: 1.15,
           ),
         ),
-        SizedBox(height: 8),
-        Text(
+        const SizedBox(height: 8),
+        const Text(
           '先把生活裡需要維護的事建立入口，下一版再接上實際新增流程。',
           style: TextStyle(color: Color(0xFF687887), fontSize: 15, height: 1.5),
         ),
-        SizedBox(height: 20),
+        const SizedBox(height: 20),
         _AddEntryCard(
           icon: Icons.add_a_photo_outlined,
           title: '新增物品',
           description: '拍照建立物品，設定保養提醒。',
+          onTap: () => _showAddItemPreviewSheet(context),
         ),
-        _AddEntryCard(
+        const _AddEntryCard(
           icon: Icons.construction_outlined,
           title: '新增保養/維修紀錄',
           description: '記下修過什麼、換過什麼、花多少錢。',
         ),
-        _AddEntryCard(
+        const _AddEntryCard(
           icon: Icons.event_available_outlined,
           title: '新增到期提醒',
           description: '保固、證件、保險、合約到期前提醒。',
@@ -48,11 +49,13 @@ class _AddEntryCard extends StatelessWidget {
   final IconData icon;
   final String title;
   final String description;
+  final VoidCallback? onTap;
 
   const _AddEntryCard({
     required this.icon,
     required this.title,
     required this.description,
+    this.onTap,
   });
 
   @override
@@ -61,14 +64,16 @@ class _AddEntryCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('此功能下一版開放'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        },
+        onTap:
+            onTap ??
+            () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('此功能下一版開放'),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
         child: Padding(
           padding: const EdgeInsets.all(18),
           child: Row(
@@ -109,6 +114,137 @@ class _AddEntryCard extends StatelessWidget {
               const Icon(Icons.chevron_right, color: Color(0xFF8FA4B8)),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+void _showAddItemPreviewSheet(BuildContext context) {
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: const Color(0xFFF7F3EA),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    ),
+    builder: (sheetContext) {
+      return Padding(
+        padding: EdgeInsets.fromLTRB(
+          16,
+          12,
+          16,
+          MediaQuery.of(sheetContext).viewInsets.bottom + 24,
+        ),
+        child: const _AddItemPreviewForm(),
+      );
+    },
+  );
+}
+
+class _AddItemPreviewForm extends StatelessWidget {
+  const _AddItemPreviewForm();
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 42,
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFFB8CBDC),
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            '新增物品預覽',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: const Color(0xFF263746),
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '先試填基本資料，這一步不會儲存。',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: const Color(0xFF687887),
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 18),
+          const _PreviewTextField(label: '物品名稱'),
+          const SizedBox(height: 12),
+          const _PreviewTextField(label: '分類'),
+          const SizedBox(height: 12),
+          const _PreviewTextField(label: '放置位置'),
+          const SizedBox(height: 12),
+          const _PreviewTextField(label: '備註', maxLines: 3),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF5D7893),
+                    side: const BorderSide(color: Color(0xFFB8CBDC)),
+                    textStyle: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  child: const Text('取消'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('這是預覽流程，尚未儲存資料'),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
+                  child: const Text('預覽完成'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PreviewTextField extends StatelessWidget {
+  final String label;
+  final int maxLines;
+
+  const _PreviewTextField({required this.label, this.maxLines = 1});
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      maxLines: maxLines,
+      decoration: InputDecoration(
+        labelText: label,
+        filled: true,
+        fillColor: const Color(0xFFFFFCF6),
+        labelStyle: const TextStyle(color: Color(0xFF687887)),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFFE4E0D8)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFF8FA4B8), width: 1.4),
         ),
       ),
     );
