@@ -186,6 +186,8 @@ class _AddItemPreviewForm extends StatelessWidget {
           const _PreviewTextField(label: '放置位置'),
           const SizedBox(height: 12),
           const _PreviewTextField(label: '備註', maxLines: 3),
+          const SizedBox(height: 14),
+          const _SafetyNoteCard(),
           const SizedBox(height: 20),
           Row(
             children: [
@@ -216,6 +218,51 @@ class _AddItemPreviewForm extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SafetyNoteCard extends StatelessWidget {
+  const _SafetyNoteCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8F0F6),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFD6E2EC)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF7F3EA),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.shield_outlined,
+              size: 18,
+              color: Color(0xFF5D7893),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              '涉及電力、瓦斯、煞車、冷媒、結構等高風險項目，App 不提供自行維修步驟，請尋求合格專業人員協助。',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: const Color(0xFF506272),
+                height: 1.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
