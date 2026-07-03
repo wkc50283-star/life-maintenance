@@ -30,7 +30,7 @@ class SettingsScreen extends StatelessWidget {
     ),
     _SettingCardData(
       title: '版本資訊',
-      content: '生活維護管家 v0.1',
+      content: 'v0.1 展示版',
       icon: Icons.info_outline,
       highlighted: false,
     ),
