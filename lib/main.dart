@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'screens/add_screen.dart';
+import 'screens/items_screen.dart';
 import 'screens/today_screen.dart';
 
 void main() {
@@ -140,27 +141,6 @@ class _MainShellState extends State<MainShell> {
           ),
         ],
       ),
-    );
-  }
-}
-
-class ItemsScreen extends StatelessWidget {
-  const ItemsScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final items = [
-      const ItemInfo(name: '客廳冷氣', category: '家電', nextTask: '下次提醒：清洗濾網'),
-      const ItemInfo(name: '機車', category: '車輛', nextTask: '下次提醒：胎壓檢查'),
-    ];
-
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        const SectionHeader(title: '物品履歷', subtitle: '一個物品，一組提醒，一份長期紀錄。'),
-        const SizedBox(height: 12),
-        for (final item in items) ItemCard(item: item),
-      ],
     );
   }
 }
