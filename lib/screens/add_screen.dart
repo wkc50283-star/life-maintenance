@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../data/mock_data.dart';
 import '../widgets/add_entry_card.dart';
+import '../widgets/preview_form_fields.dart';
 
 class AddScreen extends StatelessWidget {
   const AddScreen({super.key});
@@ -153,13 +153,13 @@ class _AddItemPreviewForm extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 18),
-          const _PreviewTextField(label: '物品名稱'),
+          const PreviewTextField(label: '物品名稱'),
           const SizedBox(height: 12),
-          const _PreviewCategoryDropdown(),
+          const PreviewCategoryDropdown(),
           const SizedBox(height: 12),
-          const _PreviewTextField(label: '放置位置'),
+          const PreviewTextField(label: '放置位置'),
           const SizedBox(height: 12),
-          const _PreviewTextField(label: '備註', maxLines: 3),
+          const PreviewTextField(label: '備註', maxLines: 3),
           const SizedBox(height: 14),
           const _SafetyNoteCard(),
           const SizedBox(height: 20),
@@ -236,15 +236,15 @@ class _MaintenanceRecordPreviewForm extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 18),
-          const _PreviewItemDropdown(),
+          const PreviewItemDropdown(),
           const SizedBox(height: 12),
-          const _PreviewRecordTypeDropdown(),
+          const PreviewRecordTypeDropdown(),
           const SizedBox(height: 12),
-          const _PreviewTextField(label: '處理內容', maxLines: 3),
+          const PreviewTextField(label: '處理內容', maxLines: 3),
           const SizedBox(height: 12),
-          const _PreviewTextField(label: '費用'),
+          const PreviewTextField(label: '費用'),
           const SizedBox(height: 12),
-          const _PreviewTextField(label: '備註', maxLines: 3),
+          const PreviewTextField(label: '備註', maxLines: 3),
           const SizedBox(height: 20),
           Row(
             children: [
@@ -319,15 +319,15 @@ class _ExpiryReminderPreviewForm extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 18),
-          const _PreviewItemDropdown(),
+          const PreviewItemDropdown(),
           const SizedBox(height: 12),
-          const _PreviewTextField(label: '提醒名稱'),
+          const PreviewTextField(label: '提醒名稱'),
           const SizedBox(height: 12),
-          const _PreviewTextField(label: '到期日期'),
+          const PreviewTextField(label: '到期日期'),
           const SizedBox(height: 12),
-          const _PreviewAdvanceReminderDropdown(),
+          const PreviewAdvanceReminderDropdown(),
           const SizedBox(height: 12),
-          const _PreviewTextField(label: '備註', maxLines: 3),
+          const PreviewTextField(label: '備註', maxLines: 3),
           const SizedBox(height: 20),
           Row(
             children: [
@@ -408,143 +408,4 @@ class _SafetyNoteCard extends StatelessWidget {
       ),
     );
   }
-}
-
-class _PreviewAdvanceReminderDropdown extends StatelessWidget {
-  const _PreviewAdvanceReminderDropdown();
-
-  static const List<String> _advanceOptions = [
-    '當天',
-    '提前 3 天',
-    '提前 7 天',
-    '提前 30 天',
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return DropdownButtonFormField<String>(
-      decoration: _previewInputDecoration('提前提醒'),
-      hint: const Text('請選擇提前提醒'),
-      dropdownColor: const Color(0xFFFFFCF6),
-      borderRadius: BorderRadius.circular(16),
-      iconEnabledColor: const Color(0xFF5D7893),
-      items: _advanceOptions
-          .map(
-            (advanceOption) => DropdownMenuItem<String>(
-              value: advanceOption,
-              child: Text(advanceOption),
-            ),
-          )
-          .toList(),
-      onChanged: (_) {},
-    );
-  }
-}
-
-class _PreviewItemDropdown extends StatelessWidget {
-  const _PreviewItemDropdown();
-
-  @override
-  Widget build(BuildContext context) {
-    return DropdownButtonFormField<String>(
-      decoration: _previewInputDecoration('選擇物品'),
-      hint: const Text('請選擇物品'),
-      dropdownColor: const Color(0xFFFFFCF6),
-      borderRadius: BorderRadius.circular(16),
-      iconEnabledColor: const Color(0xFF5D7893),
-      items: MockData.items
-          .map(
-            (item) => DropdownMenuItem<String>(
-              value: item.id,
-              child: Text(item.name),
-            ),
-          )
-          .toList(),
-      onChanged: (_) {},
-    );
-  }
-}
-
-class _PreviewRecordTypeDropdown extends StatelessWidget {
-  const _PreviewRecordTypeDropdown();
-
-  static const List<String> _recordTypes = ['保養', '維修', '更換', '到期提醒'];
-
-  @override
-  Widget build(BuildContext context) {
-    return DropdownButtonFormField<String>(
-      decoration: _previewInputDecoration('紀錄類型'),
-      hint: const Text('請選擇紀錄類型'),
-      dropdownColor: const Color(0xFFFFFCF6),
-      borderRadius: BorderRadius.circular(16),
-      iconEnabledColor: const Color(0xFF5D7893),
-      items: _recordTypes
-          .map(
-            (recordType) => DropdownMenuItem<String>(
-              value: recordType,
-              child: Text(recordType),
-            ),
-          )
-          .toList(),
-      onChanged: (_) {},
-    );
-  }
-}
-
-class _PreviewCategoryDropdown extends StatelessWidget {
-  const _PreviewCategoryDropdown();
-
-  static const List<String> _categories = ['家電', '車輛', '房屋', '保固證件', '其他'];
-
-  @override
-  Widget build(BuildContext context) {
-    return DropdownButtonFormField<String>(
-      decoration: _previewInputDecoration('分類'),
-      hint: const Text('請選擇分類'),
-      dropdownColor: const Color(0xFFFFFCF6),
-      borderRadius: BorderRadius.circular(16),
-      iconEnabledColor: const Color(0xFF5D7893),
-      items: _categories
-          .map(
-            (category) => DropdownMenuItem<String>(
-              value: category,
-              child: Text(category),
-            ),
-          )
-          .toList(),
-      onChanged: (_) {},
-    );
-  }
-}
-
-class _PreviewTextField extends StatelessWidget {
-  final String label;
-  final int maxLines;
-
-  const _PreviewTextField({required this.label, this.maxLines = 1});
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      maxLines: maxLines,
-      decoration: _previewInputDecoration(label),
-    );
-  }
-}
-
-InputDecoration _previewInputDecoration(String label) {
-  return InputDecoration(
-    labelText: label,
-    filled: true,
-    fillColor: const Color(0xFFFFFCF6),
-    labelStyle: const TextStyle(color: Color(0xFF687887)),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(16),
-      borderSide: const BorderSide(color: Color(0xFFE4E0D8)),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(16),
-      borderSide: const BorderSide(color: Color(0xFF8FA4B8), width: 1.4),
-    ),
-  );
 }
