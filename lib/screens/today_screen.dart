@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../data/mock_data.dart';
+import '../models/enums.dart';
+import '../models/item.dart';
+import '../models/maintenance_card.dart';
+import '../models/task.dart' as maintenance_task;
 import '../widgets/task_card.dart';
 
 class TodayScreen extends StatelessWidget {
@@ -7,38 +12,28 @@ class TodayScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const tasks = [
-      TaskCardData(
-        itemName: '客廳冷氣',
-        taskName: '清洗濾網',
-        cycle: '每月',
-        estimatedTime: '20 分鐘',
-        riskLabel: '低風險',
-      ),
-      TaskCardData(
-        itemName: '機車',
-        taskName: '胎壓檢查',
-        cycle: '每週',
-        estimatedTime: '5 分鐘',
-        riskLabel: '低風險',
-      ),
-    ];
+    final tasks = MockData.tasks;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
-        const _TodayHero(),
+        _TodayHero(taskCount: tasks.length),
         const SizedBox(height: 20),
         const _TaskSectionHeader(),
         const SizedBox(height: 12),
-        for (final task in tasks) TaskCard(task: task),
+        if (tasks.isEmpty)
+          const _EmptyTasksState()
+        else
+          for (final task in tasks) TaskCard(task: _taskCardDataFor(task)),
       ],
     );
   }
 }
 
 class _TodayHero extends StatelessWidget {
-  const _TodayHero();
+  final int taskCount;
+
+  const _TodayHero({required this.taskCount});
 
   @override
   Widget build(BuildContext context) {
@@ -126,14 +121,14 @@ class _TodayHero extends StatelessWidget {
               borderRadius: BorderRadius.circular(18),
               border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
             ),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.today_outlined, color: Colors.white, size: 20),
-                SizedBox(width: 8),
+                const Icon(Icons.today_outlined, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
                 Text(
-                  '今日 2 件待處理',
-                  style: TextStyle(
+                  '今日 $taskCount 件待處理',
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
@@ -146,6 +141,78 @@ class _TodayHero extends StatelessWidget {
       ),
     );
   }
+}
+
+class _EmptyTasksState extends StatelessWidget {
+  const _EmptyTasksState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFCF6),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE4E0D8)),
+      ),
+      child: Text(
+        '目前沒有待處理任務。',
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: const Color(0xFF687887),
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+TaskCardData _taskCardDataFor(maintenance_task.Task task) {
+  final item = _itemForTask(task);
+  final card = _cardForTask(task);
+
+  return TaskCardData(
+    itemName: item?.name ?? '未命名物品',
+    taskName: task.title,
+    cycle: '到期 ${_formatDate(task.dueDate)}',
+    estimatedTime: '${card?.estimatedMinutes ?? 0} 分鐘',
+    riskLabel: _labelForStatus(task.status),
+  );
+}
+
+Item? _itemForTask(maintenance_task.Task task) {
+  for (final item in MockData.items) {
+    if (item.id == task.itemId) {
+      return item;
+    }
+  }
+
+  return null;
+}
+
+MaintenanceCard? _cardForTask(maintenance_task.Task task) {
+  for (final card in MockData.maintenanceCards) {
+    if (card.id == task.cardId) {
+      return card;
+    }
+  }
+
+  return null;
+}
+
+String _labelForStatus(TaskStatus status) {
+  return switch (status) {
+    TaskStatus.pending => '待處理',
+    TaskStatus.completed => '已完成',
+    TaskStatus.overdue => '已逾期',
+    TaskStatus.postponed => '稍後提醒',
+    TaskStatus.canceled => '已取消',
+  };
+}
+
+String _formatDate(DateTime date) {
+  final month = date.month.toString().padLeft(2, '0');
+  final day = date.day.toString().padLeft(2, '0');
+  return '${date.year}/$month/$day';
 }
 
 class _TaskSectionHeader extends StatelessWidget {
