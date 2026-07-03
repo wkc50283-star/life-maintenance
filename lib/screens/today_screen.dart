@@ -5,6 +5,7 @@ import '../models/enums.dart';
 import '../models/item.dart';
 import '../models/maintenance_card.dart';
 import '../models/task.dart' as maintenance_task;
+import '../widgets/empty_tasks_state.dart';
 import '../widgets/task_card.dart';
 import '../widgets/task_section_header.dart';
 import '../widgets/today_hero.dart';
@@ -24,7 +25,7 @@ class TodayScreen extends StatelessWidget {
         const TaskSectionHeader(),
         const SizedBox(height: 12),
         if (tasks.isEmpty)
-          const _EmptyTasksState()
+          const EmptyTasksState()
         else
           for (final task in tasks)
             GestureDetector(
@@ -32,29 +33,6 @@ class TodayScreen extends StatelessWidget {
               child: TaskCard(task: _taskCardDataFor(task)),
             ),
       ],
-    );
-  }
-}
-
-class _EmptyTasksState extends StatelessWidget {
-  const _EmptyTasksState();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFCF6),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE4E0D8)),
-      ),
-      child: Text(
-        '目前沒有待處理任務。',
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: const Color(0xFF687887),
-          fontWeight: FontWeight.w600,
-        ),
-      ),
     );
   }
 }
