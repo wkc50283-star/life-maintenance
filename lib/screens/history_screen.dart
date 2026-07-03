@@ -1,65 +1,19 @@
 import 'package:flutter/material.dart';
 
+import '../data/mock_data.dart';
+import '../models/enums.dart';
+import '../models/item.dart';
+import '../models/maintenance_record.dart';
+
 class HistoryScreen extends StatelessWidget {
   const HistoryScreen({super.key});
 
   static const _categories = ['全部', '保養', '維修', '更換', '到期提醒'];
 
-  static const _sections = [
-    _HistoryMonthSection(
-      month: '2026 年 7 月',
-      records: [
-        _HistoryEntryData(
-          date: '07/03',
-          itemName: '客廳冷氣',
-          recordType: '保養',
-          description: '建立清洗濾網提醒，確認每月保養週期。',
-          result: '正常',
-          costLabel: null,
-          photoLabel: '照片 1 張',
-          icon: Icons.ac_unit_outlined,
-        ),
-        _HistoryEntryData(
-          date: '07/03',
-          itemName: '機車',
-          recordType: '保養',
-          description: '建立胎壓檢查提醒，排入每週維護。',
-          result: '已排程',
-          costLabel: null,
-          photoLabel: null,
-          icon: Icons.two_wheeler_outlined,
-        ),
-      ],
-    ),
-    _HistoryMonthSection(
-      month: '2026 年 6 月',
-      records: [
-        _HistoryEntryData(
-          date: '06/18',
-          itemName: '浴室門鎖',
-          recordType: '更換',
-          description: '更換門鎖內芯，保留零件與保固資訊。',
-          result: '已完成',
-          costLabel: 'NT\$ 850',
-          photoLabel: '照片 2 張',
-          icon: Icons.door_front_door_outlined,
-        ),
-        _HistoryEntryData(
-          date: '06/02',
-          itemName: '租屋合約',
-          recordType: '到期提醒',
-          description: '建立合約到期前 30 天提醒。',
-          result: '追蹤中',
-          costLabel: null,
-          photoLabel: null,
-          icon: Icons.description_outlined,
-        ),
-      ],
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final sections = _historySectionsFrom(MockData.maintenanceRecords);
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
@@ -67,7 +21,10 @@ class HistoryScreen extends StatelessWidget {
         const SizedBox(height: 18),
         const _HistoryCategoryChips(categories: _categories),
         const SizedBox(height: 20),
-        for (final section in _sections) _MonthSection(section: section),
+        if (sections.isEmpty)
+          const _EmptyHistoryState()
+        else
+          for (final section in sections) _MonthSection(section: section),
       ],
     );
   }
@@ -224,7 +181,7 @@ class _HistoryRecordCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        record.itemName,
+                        record.title,
                         style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(
                               color: const Color(0xFF263746),
@@ -239,6 +196,7 @@ class _HistoryRecordCard extends StatelessWidget {
                         children: [
                           _SoftTag(label: record.date),
                           _SoftTag(label: record.recordType),
+                          _SoftTag(label: record.itemName),
                         ],
                       ),
                     ],
@@ -256,26 +214,46 @@ class _HistoryRecordCard extends StatelessWidget {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            if (record.costLabel != null || record.photoLabel != null) ...[
-              const SizedBox(height: 14),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  if (record.costLabel != null)
-                    _MetaTag(
-                      icon: Icons.payments_outlined,
-                      label: record.costLabel!,
-                    ),
-                  if (record.photoLabel != null)
-                    _MetaTag(
-                      icon: Icons.photo_library_outlined,
-                      label: record.photoLabel!,
-                    ),
-                ],
-              ),
-            ],
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _MetaTag(
+                  icon: Icons.payments_outlined,
+                  label: record.costLabel,
+                ),
+                if (record.photoLabel != null)
+                  _MetaTag(
+                    icon: Icons.photo_library_outlined,
+                    label: record.photoLabel!,
+                  ),
+              ],
+            ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyHistoryState extends StatelessWidget {
+  const _EmptyHistoryState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFCF6),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE4E0D8)),
+      ),
+      child: Text(
+        '目前還沒有履歷紀錄。',
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: const Color(0xFF687887),
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
@@ -373,16 +351,18 @@ class _HistoryMonthSection {
 
 class _HistoryEntryData {
   final String date;
+  final String title;
   final String itemName;
   final String recordType;
   final String description;
   final String result;
-  final String? costLabel;
+  final String costLabel;
   final String? photoLabel;
   final IconData icon;
 
   const _HistoryEntryData({
     required this.date,
+    required this.title,
     required this.itemName,
     required this.recordType,
     required this.description,
@@ -391,4 +371,81 @@ class _HistoryEntryData {
     required this.photoLabel,
     required this.icon,
   });
+}
+
+List<_HistoryMonthSection> _historySectionsFrom(
+  List<MaintenanceRecord> records,
+) {
+  final groupedRecords = <String, List<_HistoryEntryData>>{};
+  final sortedRecords = [...records]..sort((a, b) => b.date.compareTo(a.date));
+
+  for (final record in sortedRecords) {
+    final month = '${record.date.year} 年 ${record.date.month} 月';
+    groupedRecords.putIfAbsent(month, () => []);
+    groupedRecords[month]!.add(_historyEntryFor(record));
+  }
+
+  return [
+    for (final entry in groupedRecords.entries)
+      _HistoryMonthSection(month: entry.key, records: entry.value),
+  ];
+}
+
+_HistoryEntryData _historyEntryFor(MaintenanceRecord record) {
+  final item = _itemForRecord(record);
+  final result = record.result ?? record.note ?? '已記錄';
+
+  return _HistoryEntryData(
+    date: _formatShortDate(record.date),
+    title: record.title,
+    itemName: item?.name ?? '未命名物品',
+    recordType: _labelForRecordType(record.recordType),
+    description:
+        record.workDescription ??
+        record.issueDescription ??
+        record.note ??
+        '已留下保養維修紀錄。',
+    result: result,
+    costLabel: record.cost == null ? '未記錄費用' : 'NT\$ ${record.cost}',
+    photoLabel: record.photos.isEmpty ? null : '照片 ${record.photos.length} 張',
+    icon: _iconForItem(item),
+  );
+}
+
+Item? _itemForRecord(MaintenanceRecord record) {
+  for (final item in MockData.items) {
+    if (item.id == record.itemId) {
+      return item;
+    }
+  }
+
+  return null;
+}
+
+IconData _iconForItem(Item? item) {
+  return switch (item?.category) {
+    ItemCategory.appliance => Icons.ac_unit_outlined,
+    ItemCategory.vehicle => Icons.two_wheeler_outlined,
+    ItemCategory.house => Icons.home_work_outlined,
+    ItemCategory.warrantyDocument => Icons.description_outlined,
+    ItemCategory.other || null => Icons.inventory_2_outlined,
+  };
+}
+
+String _labelForRecordType(RecordType type) {
+  return switch (type) {
+    RecordType.regularMaintenance => '保養',
+    RecordType.failure => '故障',
+    RecordType.repair => '維修',
+    RecordType.partsReplacement => '更換',
+    RecordType.expiryHandled => '到期提醒',
+    RecordType.construction => '施工',
+    RecordType.other => '其他',
+  };
+}
+
+String _formatShortDate(DateTime date) {
+  final month = date.month.toString().padLeft(2, '0');
+  final day = date.day.toString().padLeft(2, '0');
+  return '$month/$day';
 }
