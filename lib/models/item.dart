@@ -27,6 +27,42 @@ class Item {
     this.status = ItemStatus.active,
   });
 
+  factory Item.fromJson(Map<String, dynamic> json) {
+    return Item(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      category: ItemCategory.values.byName(json['category'] as String),
+      photoPath: json['photoPath'] as String?,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      purchaseDate: json['purchaseDate'] == null
+          ? null
+          : DateTime.parse(json['purchaseDate'] as String),
+      warrantyEndDate: json['warrantyEndDate'] == null
+          ? null
+          : DateTime.parse(json['warrantyEndDate'] as String),
+      expectedLifeYears: json['expectedLifeYears'] as int?,
+      location: json['location'] as String?,
+      note: json['note'] as String?,
+      status: ItemStatus.values.byName(json['status'] as String),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'category': category.name,
+      'photoPath': photoPath,
+      'createdAt': createdAt.toIso8601String(),
+      'purchaseDate': purchaseDate?.toIso8601String(),
+      'warrantyEndDate': warrantyEndDate?.toIso8601String(),
+      'expectedLifeYears': expectedLifeYears,
+      'location': location,
+      'note': note,
+      'status': status.name,
+    };
+  }
+
   Item copyWith({
     String? id,
     String? name,
