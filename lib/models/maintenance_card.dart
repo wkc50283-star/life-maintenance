@@ -29,6 +29,42 @@ class MaintenanceCard {
     this.safetyNotice,
   });
 
+  factory MaintenanceCard.fromJson(Map<String, dynamic> json) {
+    return MaintenanceCard(
+      id: json['id'] as String,
+      itemId: json['itemId'] as String,
+      title: json['title'] as String,
+      type: MaintenanceType.values.byName(json['type'] as String),
+      riskLevel: RiskLevel.values.byName(json['riskLevel'] as String),
+      cycleType: CycleType.values.byName(json['cycleType'] as String),
+      estimatedMinutes: json['estimatedMinutes'] as int,
+      steps: (json['steps'] as List<dynamic>)
+          .map((step) => MaintenanceStep.fromJson(step as Map<String, dynamic>))
+          .toList(),
+      requiredPhotos: json['requiredPhotos'] as bool,
+      requiredNote: json['requiredNote'] as bool,
+      safetyNotice: json['safetyNotice'] as String?,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'itemId': itemId,
+      'title': title,
+      'type': type.name,
+      'riskLevel': riskLevel.name,
+      'cycleType': cycleType.name,
+      'estimatedMinutes': estimatedMinutes,
+      'steps': steps.map((step) => step.toJson()).toList(),
+      'requiredPhotos': requiredPhotos,
+      'requiredNote': requiredNote,
+      'safetyNotice': safetyNotice,
+      'createdAt': createdAt.toIso8601String(),
+    };
+  }
+
   MaintenanceCard copyWith({
     String? id,
     String? itemId,
