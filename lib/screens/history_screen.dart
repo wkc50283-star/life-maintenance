@@ -7,6 +7,7 @@ import '../models/maintenance_record.dart';
 import '../widgets/empty_history_state.dart';
 import '../widgets/history_category_chips.dart';
 import '../widgets/history_header.dart';
+import '../widgets/history_month_section.dart';
 
 class HistoryScreen extends StatelessWidget {
   const HistoryScreen({super.key});
@@ -27,39 +28,15 @@ class HistoryScreen extends StatelessWidget {
         if (sections.isEmpty)
           const EmptyHistoryState()
         else
-          for (final section in sections) _MonthSection(section: section),
-      ],
-    );
-  }
-}
-
-class _MonthSection extends StatelessWidget {
-  final _HistoryMonthSection section;
-
-  const _MonthSection({required this.section});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 2, bottom: 10),
-            child: Text(
-              section.month,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: const Color(0xFF263746),
-                fontWeight: FontWeight.w800,
-              ),
+          for (final section in sections)
+            HistoryMonthSection(
+              month: section.month,
+              children: [
+                for (final record in section.records)
+                  _HistoryRecordCard(record: record),
+              ],
             ),
-          ),
-          for (final record in section.records)
-            _HistoryRecordCard(record: record),
-          const SizedBox(height: 10),
-        ],
-      ),
+      ],
     );
   }
 }
