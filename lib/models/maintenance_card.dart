@@ -81,6 +81,32 @@ class MaintenanceStep {
     this.noteRequired = false,
   });
 
+  factory MaintenanceStep.fromJson(Map<String, dynamic> json) {
+    return MaintenanceStep(
+      id: json['id'] as String,
+      cardId: json['cardId'] as String,
+      order: json['order'] as int,
+      title: json['title'] as String,
+      description: json['description'] as String,
+      isRequired: json['isRequired'] as bool,
+      photoRequired: json['photoRequired'] as bool,
+      noteRequired: json['noteRequired'] as bool,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'cardId': cardId,
+      'order': order,
+      'title': title,
+      'description': description,
+      'isRequired': isRequired,
+      'photoRequired': photoRequired,
+      'noteRequired': noteRequired,
+    };
+  }
+
   MaintenanceStep copyWith({
     String? id,
     String? cardId,
