@@ -25,6 +25,40 @@ class Task {
     this.overdue = false,
   });
 
+  factory Task.fromJson(Map<String, dynamic> json) {
+    return Task(
+      id: json['id'] as String,
+      itemId: json['itemId'] as String,
+      cardId: json['cardId'] as String,
+      scheduleId: json['scheduleId'] as String,
+      title: json['title'] as String,
+      dueDate: DateTime.parse(json['dueDate'] as String),
+      status: TaskStatus.values.byName(json['status'] as String),
+      completedAt: json['completedAt'] == null
+          ? null
+          : DateTime.parse(json['completedAt'] as String),
+      postponedAt: json['postponedAt'] == null
+          ? null
+          : DateTime.parse(json['postponedAt'] as String),
+      overdue: json['overdue'] as bool,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'itemId': itemId,
+      'cardId': cardId,
+      'scheduleId': scheduleId,
+      'title': title,
+      'dueDate': dueDate.toIso8601String(),
+      'status': status.name,
+      'completedAt': completedAt?.toIso8601String(),
+      'postponedAt': postponedAt?.toIso8601String(),
+      'overdue': overdue,
+    };
+  }
+
   Task copyWith({
     String? id,
     String? itemId,
