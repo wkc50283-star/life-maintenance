@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/mock_data.dart';
 import '../models/enums.dart';
 import '../models/item.dart';
+import '../widgets/items_header.dart';
 
 class ItemsScreen extends StatelessWidget {
   const ItemsScreen({super.key});
@@ -16,7 +17,7 @@ class ItemsScreen extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
-        const _ItemsHeader(),
+        const ItemsHeader(),
         const SizedBox(height: 18),
         const _CategoryChips(categories: _categories),
         const SizedBox(height: 18),
@@ -25,45 +26,6 @@ class ItemsScreen extends StatelessWidget {
         else
           for (final item in items) _ProductItemCard(item: item),
       ],
-    );
-  }
-}
-
-class _ItemsHeader extends StatelessWidget {
-  const _ItemsHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFCF6),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE4E0D8)),
-      ),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '我的物品',
-            style: TextStyle(
-              color: Color(0xFF263746),
-              fontSize: 28,
-              fontWeight: FontWeight.w800,
-              height: 1.15,
-            ),
-          ),
-          SizedBox(height: 8),
-          Text(
-            '一個物品，一組提醒，一份長期紀錄。',
-            style: TextStyle(
-              color: Color(0xFF687887),
-              fontSize: 15,
-              height: 1.5,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
