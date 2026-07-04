@@ -4,6 +4,7 @@ import '../data/mock_data.dart';
 import '../models/enums.dart';
 import '../models/item.dart';
 import '../models/maintenance_record.dart';
+import '../widgets/history_header.dart';
 
 class HistoryScreen extends StatelessWidget {
   const HistoryScreen({super.key});
@@ -17,7 +18,7 @@ class HistoryScreen extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
-        const _HistoryHeader(),
+        const HistoryHeader(),
         const SizedBox(height: 18),
         const _HistoryCategoryChips(categories: _categories),
         const SizedBox(height: 20),
@@ -26,45 +27,6 @@ class HistoryScreen extends StatelessWidget {
         else
           for (final section in sections) _MonthSection(section: section),
       ],
-    );
-  }
-}
-
-class _HistoryHeader extends StatelessWidget {
-  const _HistoryHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFCF6),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE4E0D8)),
-      ),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '保養履歷',
-            style: TextStyle(
-              color: Color(0xFF263746),
-              fontSize: 28,
-              fontWeight: FontWeight.w800,
-              height: 1.15,
-            ),
-          ),
-          SizedBox(height: 8),
-          Text(
-            '修過什麼、換過什麼、花多少錢，都留在這裡。',
-            style: TextStyle(
-              color: Color(0xFF687887),
-              fontSize: 15,
-              height: 1.5,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
