@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/settings_header.dart';
+
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
@@ -41,51 +43,12 @@ class SettingsScreen extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
-        const _SettingsHeader(),
+        const SettingsHeader(),
         const SizedBox(height: 12),
         const _DemoDataNotice(),
         const SizedBox(height: 18),
         for (final setting in _settings) _SettingCard(setting: setting),
       ],
-    );
-  }
-}
-
-class _SettingsHeader extends StatelessWidget {
-  const _SettingsHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFCF6),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE4E0D8)),
-      ),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '設定',
-            style: TextStyle(
-              color: Color(0xFF263746),
-              fontSize: 28,
-              fontWeight: FontWeight.w800,
-              height: 1.15,
-            ),
-          ),
-          SizedBox(height: 8),
-          Text(
-            '提醒時間、安全界線與資料管理。',
-            style: TextStyle(
-              color: Color(0xFF687887),
-              fontSize: 15,
-              height: 1.5,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
