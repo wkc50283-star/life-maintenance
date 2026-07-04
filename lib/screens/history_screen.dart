@@ -4,6 +4,7 @@ import '../data/mock_data.dart';
 import '../models/enums.dart';
 import '../models/item.dart';
 import '../models/maintenance_record.dart';
+import '../widgets/empty_history_state.dart';
 import '../widgets/history_category_chips.dart';
 import '../widgets/history_header.dart';
 
@@ -24,7 +25,7 @@ class HistoryScreen extends StatelessWidget {
         const HistoryCategoryChips(categories: _categories),
         const SizedBox(height: 20),
         if (sections.isEmpty)
-          const _EmptyHistoryState()
+          const EmptyHistoryState()
         else
           for (final section in sections) _MonthSection(section: section),
       ],
@@ -145,29 +146,6 @@ class _HistoryRecordCard extends StatelessWidget {
               ],
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyHistoryState extends StatelessWidget {
-  const _EmptyHistoryState();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFCF6),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE4E0D8)),
-      ),
-      child: Text(
-        '目前還沒有履歷紀錄。',
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: const Color(0xFF687887),
-          fontWeight: FontWeight.w600,
         ),
       ),
     );
