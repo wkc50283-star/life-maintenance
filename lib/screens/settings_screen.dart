@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../widgets/demo_data_notice.dart';
+import '../widgets/setting_card.dart';
 import '../widgets/settings_header.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -48,107 +49,14 @@ class SettingsScreen extends StatelessWidget {
         const SizedBox(height: 12),
         const DemoDataNotice(),
         const SizedBox(height: 18),
-        for (final setting in _settings) _SettingCard(setting: setting),
+        for (final setting in _settings)
+          SettingCard(
+            title: setting.title,
+            content: setting.content,
+            icon: setting.icon,
+            highlighted: setting.highlighted,
+          ),
       ],
-    );
-  }
-}
-
-class _SettingCard extends StatelessWidget {
-  final _SettingCardData setting;
-
-  const _SettingCard({required this.setting});
-
-  @override
-  Widget build(BuildContext context) {
-    final iconColor = setting.highlighted
-        ? const Color(0xFF7A6338)
-        : const Color(0xFF5D7893);
-    final iconBackground = setting.highlighted
-        ? const Color(0xFFFFF7E6)
-        : const Color(0xFFE8F0F6);
-    final borderColor = setting.highlighted
-        ? const Color(0xFFEAD9B8)
-        : const Color(0xFFE4E0D8);
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: borderColor),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: iconBackground,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Icon(setting.icon, color: iconColor),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          setting.title,
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(
-                                color: const Color(0xFF263746),
-                                fontWeight: FontWeight.w800,
-                              ),
-                        ),
-                      ),
-                      if (setting.highlighted) const _SafetyBadge(),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    setting.content,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xFF4D5D6B),
-                      height: 1.4,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SafetyBadge extends StatelessWidget {
-  const _SafetyBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF7E6),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFEAD9B8)),
-      ),
-      child: Text(
-        '重要',
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: const Color(0xFF7A6338),
-          fontWeight: FontWeight.w800,
-        ),
-      ),
     );
   }
 }
