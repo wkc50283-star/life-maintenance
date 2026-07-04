@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/demo_data_notice.dart';
 import '../widgets/settings_header.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -45,55 +46,10 @@ class SettingsScreen extends StatelessWidget {
       children: [
         const SettingsHeader(),
         const SizedBox(height: 12),
-        const _DemoDataNotice(),
+        const DemoDataNotice(),
         const SizedBox(height: 18),
         for (final setting in _settings) _SettingCard(setting: setting),
       ],
-    );
-  }
-}
-
-class _DemoDataNotice extends StatelessWidget {
-  const _DemoDataNotice();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFE8F0F6),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFD6E2EC)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFFCF6),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(
-              Icons.inventory_2_outlined,
-              color: Color(0xFF5D7893),
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              '目前版本使用展示資料，尚未儲存到手機或雲端。正式儲存功能會在後續版本加入。',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: const Color(0xFF4D5D6B),
-                height: 1.45,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
