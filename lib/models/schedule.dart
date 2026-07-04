@@ -25,6 +25,36 @@ class Schedule {
     this.strictPeriodMode = false,
   });
 
+  factory Schedule.fromJson(Map<String, dynamic> json) {
+    return Schedule(
+      id: json['id'] as String,
+      itemId: json['itemId'] as String,
+      cardId: json['cardId'] as String,
+      cycleType: CycleType.values.byName(json['cycleType'] as String),
+      interval: json['interval'] as int,
+      startDate: DateTime.parse(json['startDate'] as String),
+      nextDueDate: DateTime.parse(json['nextDueDate'] as String),
+      reminderTime: json['reminderTime'] as String?,
+      enabled: json['enabled'] as bool,
+      strictPeriodMode: json['strictPeriodMode'] as bool,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'itemId': itemId,
+      'cardId': cardId,
+      'cycleType': cycleType.name,
+      'interval': interval,
+      'startDate': startDate.toIso8601String(),
+      'nextDueDate': nextDueDate.toIso8601String(),
+      'reminderTime': reminderTime,
+      'enabled': enabled,
+      'strictPeriodMode': strictPeriodMode,
+    };
+  }
+
   Schedule copyWith({
     String? id,
     String? itemId,
