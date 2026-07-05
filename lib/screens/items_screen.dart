@@ -3,25 +3,57 @@ import 'package:flutter/material.dart';
 import '../data/mock_data.dart';
 import '../models/enums.dart';
 import '../models/item.dart';
+import '../repositories/item_local_repository.dart';
+import '../services/local_storage_service.dart';
 import '../widgets/items_category_chips.dart';
 import '../widgets/items_header.dart';
 import '../widgets/product_item_card.dart';
 
-class ItemsScreen extends StatelessWidget {
+class ItemsScreen extends StatefulWidget {
   const ItemsScreen({super.key});
 
   static const _categories = ['全部', '家電', '車輛', '房屋', '保固證件', '其他'];
 
   @override
+  State<ItemsScreen> createState() => _ItemsScreenState();
+}
+
+class _ItemsScreenState extends State<ItemsScreen> {
+  final ItemLocalRepository _repository = ItemLocalRepository(
+    LocalStorageService(),
+  );
+  List<Item>? _localItems;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadItems();
+  }
+
+  Future<void> _loadItems() async {
+    final items = await _repository.loadItems();
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _localItems = items;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final items = MockData.items;
+    final localItems = _localItems;
+    final items = localItems == null || localItems.isEmpty
+        ? MockData.items
+        : localItems;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
         const ItemsHeader(),
         const SizedBox(height: 18),
-        const ItemsCategoryChips(categories: _categories),
+        const ItemsCategoryChips(categories: ItemsScreen._categories),
         const SizedBox(height: 18),
         if (items.isEmpty)
           const _EmptyItemsState()
