@@ -50,12 +50,23 @@ class _AddItemPreviewFormState extends State<_AddItemPreviewForm> {
   }
 
   Future<void> _saveItem(BuildContext context) async {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('請輸入物品名稱'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     final now = DateTime.now();
     final repository = ItemLocalRepository(LocalStorageService());
     final items = await repository.loadItems();
     final item = Item(
       id: now.millisecondsSinceEpoch.toString(),
-      name: _nameController.text,
+      name: name,
       category: _categoryForLabel(_category),
       createdAt: now,
       location: _locationController.text,
