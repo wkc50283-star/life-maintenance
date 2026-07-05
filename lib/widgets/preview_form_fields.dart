@@ -84,13 +84,17 @@ class PreviewRecordTypeDropdown extends StatelessWidget {
 }
 
 class PreviewCategoryDropdown extends StatelessWidget {
-  const PreviewCategoryDropdown({super.key});
+  const PreviewCategoryDropdown({super.key, this.value, this.onChanged});
 
   static const List<String> _categories = ['家電', '車輛', '房屋', '保固證件', '其他'];
+
+  final String? value;
+  final ValueChanged<String?>? onChanged;
 
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<String>(
+      initialValue: value,
       decoration: _previewInputDecoration('分類'),
       hint: const Text('請選擇分類'),
       dropdownColor: const Color(0xFFFFFCF6),
@@ -104,7 +108,7 @@ class PreviewCategoryDropdown extends StatelessWidget {
             ),
           )
           .toList(),
-      onChanged: (_) {},
+      onChanged: onChanged ?? (_) {},
     );
   }
 }
@@ -112,12 +116,19 @@ class PreviewCategoryDropdown extends StatelessWidget {
 class PreviewTextField extends StatelessWidget {
   final String label;
   final int maxLines;
+  final TextEditingController? controller;
 
-  const PreviewTextField({super.key, required this.label, this.maxLines = 1});
+  const PreviewTextField({
+    super.key,
+    required this.label,
+    this.maxLines = 1,
+    this.controller,
+  });
 
   @override
   Widget build(BuildContext context) {
     return TextField(
+      controller: controller,
       maxLines: maxLines,
       decoration: _previewInputDecoration(label),
     );

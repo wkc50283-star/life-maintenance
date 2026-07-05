@@ -4,6 +4,7 @@ import '../models/enums.dart';
 import '../models/item.dart';
 import '../repositories/item_local_repository.dart';
 import '../services/local_storage_service.dart';
+import 'preview_form_fields.dart';
 
 void showAddItemPreviewSheet(BuildContext context) {
   showModalBottomSheet<void>(
@@ -120,58 +121,10 @@ class _AddItemPreviewFormState extends State<_AddItemPreviewForm> {
             ),
           ),
           const SizedBox(height: 18),
-          TextField(
-            controller: _nameController,
-            decoration: InputDecoration(
-              labelText: '物品名稱',
-              filled: true,
-              fillColor: const Color(0xFFFFFCF6),
-              labelStyle: const TextStyle(color: Color(0xFF687887)),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: Color(0xFFE4E0D8)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(
-                  color: Color(0xFF8FA4B8),
-                  width: 1.4,
-                ),
-              ),
-            ),
-          ),
+          PreviewTextField(label: '物品名稱', controller: _nameController),
           const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: _category,
-            decoration: InputDecoration(
-              labelText: '分類',
-              filled: true,
-              fillColor: const Color(0xFFFFFCF6),
-              labelStyle: const TextStyle(color: Color(0xFF687887)),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: Color(0xFFE4E0D8)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(
-                  color: Color(0xFF8FA4B8),
-                  width: 1.4,
-                ),
-              ),
-            ),
-            hint: const Text('請選擇分類'),
-            dropdownColor: const Color(0xFFFFFCF6),
-            borderRadius: BorderRadius.circular(16),
-            iconEnabledColor: const Color(0xFF5D7893),
-            items: const ['家電', '車輛', '房屋', '保固證件', '其他']
-                .map(
-                  (category) => DropdownMenuItem<String>(
-                    value: category,
-                    child: Text(category),
-                  ),
-                )
-                .toList(),
+          PreviewCategoryDropdown(
+            value: _category,
             onChanged: (category) {
               setState(() {
                 _category = category;
@@ -179,47 +132,12 @@ class _AddItemPreviewFormState extends State<_AddItemPreviewForm> {
             },
           ),
           const SizedBox(height: 12),
-          TextField(
-            controller: _locationController,
-            decoration: InputDecoration(
-              labelText: '放置位置',
-              filled: true,
-              fillColor: const Color(0xFFFFFCF6),
-              labelStyle: const TextStyle(color: Color(0xFF687887)),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: Color(0xFFE4E0D8)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(
-                  color: Color(0xFF8FA4B8),
-                  width: 1.4,
-                ),
-              ),
-            ),
-          ),
+          PreviewTextField(label: '放置位置', controller: _locationController),
           const SizedBox(height: 12),
-          TextField(
+          PreviewTextField(
+            label: '備註',
             controller: _noteController,
             maxLines: 3,
-            decoration: InputDecoration(
-              labelText: '備註',
-              filled: true,
-              fillColor: const Color(0xFFFFFCF6),
-              labelStyle: const TextStyle(color: Color(0xFF687887)),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: Color(0xFFE4E0D8)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(
-                  color: Color(0xFF8FA4B8),
-                  width: 1.4,
-                ),
-              ),
-            ),
           ),
           const SizedBox(height: 14),
           const _SafetyNoteCard(),
