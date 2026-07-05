@@ -4,6 +4,7 @@ import '../data/mock_data.dart';
 import '../models/enums.dart';
 import '../models/item.dart';
 import '../models/maintenance_record.dart';
+import '../repositories/item_local_repository.dart';
 import '../repositories/maintenance_record_local_repository.dart';
 import '../services/local_storage_service.dart';
 import '../widgets/empty_history_state.dart';
@@ -22,24 +23,30 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
-  final MaintenanceRecordLocalRepository _repository =
+  final MaintenanceRecordLocalRepository _recordRepository =
       MaintenanceRecordLocalRepository(LocalStorageService());
+  final ItemLocalRepository _itemRepository = ItemLocalRepository(
+    LocalStorageService(),
+  );
   List<MaintenanceRecord>? _localRecords;
+  List<Item>? _localItems;
 
   @override
   void initState() {
     super.initState();
-    _loadRecords();
+    _loadLocalData();
   }
 
-  Future<void> _loadRecords() async {
-    final records = await _repository.loadRecords();
+  Future<void> _loadLocalData() async {
+    final records = await _recordRepository.loadRecords();
+    final items = await _itemRepository.loadItems();
     if (!mounted) {
       return;
     }
 
     setState(() {
       _localRecords = records;
+      _localItems = items;
     });
   }
 
@@ -49,7 +56,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final records = localRecords == null || localRecords.isEmpty
         ? MockData.maintenanceRecords
         : localRecords;
-    final sections = _historySectionsFrom(records);
+    final localItems = _localItems;
+    final items = localItems == null || localItems.isEmpty
+        ? MockData.items
+        : [...localItems, ...MockData.items];
+    final sections = _historySectionsFrom(records, items);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -117,6 +128,7 @@ class _HistoryEntryData {
 
 List<_HistoryMonthSection> _historySectionsFrom(
   List<MaintenanceRecord> records,
+  List<Item> items,
 ) {
   final groupedRecords = <String, List<_HistoryEntryData>>{};
   final sortedRecords = [...records]..sort((a, b) => b.date.compareTo(a.date));
@@ -124,7 +136,7 @@ List<_HistoryMonthSection> _historySectionsFrom(
   for (final record in sortedRecords) {
     final month = '${record.date.year} 年 ${record.date.month} 月';
     groupedRecords.putIfAbsent(month, () => []);
-    groupedRecords[month]!.add(_historyEntryFor(record));
+    groupedRecords[month]!.add(_historyEntryFor(record, items));
   }
 
   return [
@@ -133,8 +145,8 @@ List<_HistoryMonthSection> _historySectionsFrom(
   ];
 }
 
-_HistoryEntryData _historyEntryFor(MaintenanceRecord record) {
-  final item = _itemForRecord(record);
+_HistoryEntryData _historyEntryFor(MaintenanceRecord record, List<Item> items) {
+  final item = _itemForRecord(record, items);
   final result = record.result ?? record.note ?? '已記錄';
 
   return _HistoryEntryData(
@@ -154,8 +166,8 @@ _HistoryEntryData _historyEntryFor(MaintenanceRecord record) {
   );
 }
 
-Item? _itemForRecord(MaintenanceRecord record) {
-  for (final item in MockData.items) {
+Item? _itemForRecord(MaintenanceRecord record, List<Item> items) {
+  for (final item in items) {
     if (item.id == record.itemId) {
       return item;
     }
