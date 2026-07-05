@@ -120,10 +120,58 @@ class _AddItemPreviewFormState extends State<_AddItemPreviewForm> {
             ),
           ),
           const SizedBox(height: 18),
-          _AddItemTextField(label: '物品名稱', controller: _nameController),
+          TextField(
+            controller: _nameController,
+            decoration: InputDecoration(
+              labelText: '物品名稱',
+              filled: true,
+              fillColor: const Color(0xFFFFFCF6),
+              labelStyle: const TextStyle(color: Color(0xFF687887)),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(color: Color(0xFFE4E0D8)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(
+                  color: Color(0xFF8FA4B8),
+                  width: 1.4,
+                ),
+              ),
+            ),
+          ),
           const SizedBox(height: 12),
-          _AddItemCategoryDropdown(
-            value: _category,
+          DropdownButtonFormField<String>(
+            initialValue: _category,
+            decoration: InputDecoration(
+              labelText: '分類',
+              filled: true,
+              fillColor: const Color(0xFFFFFCF6),
+              labelStyle: const TextStyle(color: Color(0xFF687887)),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(color: Color(0xFFE4E0D8)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(
+                  color: Color(0xFF8FA4B8),
+                  width: 1.4,
+                ),
+              ),
+            ),
+            hint: const Text('請選擇分類'),
+            dropdownColor: const Color(0xFFFFFCF6),
+            borderRadius: BorderRadius.circular(16),
+            iconEnabledColor: const Color(0xFF5D7893),
+            items: const ['家電', '車輛', '房屋', '保固證件', '其他']
+                .map(
+                  (category) => DropdownMenuItem<String>(
+                    value: category,
+                    child: Text(category),
+                  ),
+                )
+                .toList(),
             onChanged: (category) {
               setState(() {
                 _category = category;
@@ -131,12 +179,47 @@ class _AddItemPreviewFormState extends State<_AddItemPreviewForm> {
             },
           ),
           const SizedBox(height: 12),
-          _AddItemTextField(label: '放置位置', controller: _locationController),
+          TextField(
+            controller: _locationController,
+            decoration: InputDecoration(
+              labelText: '放置位置',
+              filled: true,
+              fillColor: const Color(0xFFFFFCF6),
+              labelStyle: const TextStyle(color: Color(0xFF687887)),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(color: Color(0xFFE4E0D8)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(
+                  color: Color(0xFF8FA4B8),
+                  width: 1.4,
+                ),
+              ),
+            ),
+          ),
           const SizedBox(height: 12),
-          _AddItemTextField(
-            label: '備註',
+          TextField(
             controller: _noteController,
             maxLines: 3,
+            decoration: InputDecoration(
+              labelText: '備註',
+              filled: true,
+              fillColor: const Color(0xFFFFFCF6),
+              labelStyle: const TextStyle(color: Color(0xFF687887)),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(color: Color(0xFFE4E0D8)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(
+                  color: Color(0xFF8FA4B8),
+                  width: 1.4,
+                ),
+              ),
+            ),
           ),
           const SizedBox(height: 14),
           const _SafetyNoteCard(),
@@ -167,77 +250,6 @@ class _AddItemPreviewFormState extends State<_AddItemPreviewForm> {
       ),
     );
   }
-}
-
-class _AddItemCategoryDropdown extends StatelessWidget {
-  const _AddItemCategoryDropdown({
-    required this.value,
-    required this.onChanged,
-  });
-
-  static const List<String> _categories = ['家電', '車輛', '房屋', '保固證件', '其他'];
-
-  final String? value;
-  final ValueChanged<String?> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return DropdownButtonFormField<String>(
-      initialValue: value,
-      decoration: _addItemInputDecoration('分類'),
-      hint: const Text('請選擇分類'),
-      dropdownColor: const Color(0xFFFFFCF6),
-      borderRadius: BorderRadius.circular(16),
-      iconEnabledColor: const Color(0xFF5D7893),
-      items: _categories
-          .map(
-            (category) => DropdownMenuItem<String>(
-              value: category,
-              child: Text(category),
-            ),
-          )
-          .toList(),
-      onChanged: onChanged,
-    );
-  }
-}
-
-class _AddItemTextField extends StatelessWidget {
-  const _AddItemTextField({
-    required this.label,
-    required this.controller,
-    this.maxLines = 1,
-  });
-
-  final String label;
-  final TextEditingController controller;
-  final int maxLines;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      maxLines: maxLines,
-      decoration: _addItemInputDecoration(label),
-    );
-  }
-}
-
-InputDecoration _addItemInputDecoration(String label) {
-  return InputDecoration(
-    labelText: label,
-    filled: true,
-    fillColor: const Color(0xFFFFFCF6),
-    labelStyle: const TextStyle(color: Color(0xFF687887)),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(16),
-      borderSide: const BorderSide(color: Color(0xFFE4E0D8)),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(16),
-      borderSide: const BorderSide(color: Color(0xFF8FA4B8), width: 1.4),
-    ),
-  );
 }
 
 class _SafetyNoteCard extends StatelessWidget {
