@@ -122,7 +122,7 @@ class _MaintenanceRecordPreviewFormState
           ),
           const SizedBox(height: 6),
           Text(
-            '先記下處理內容與費用，這一步不會儲存。',
+            '記下處理內容與費用後，按下預覽完成會儲存到本機。',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: const Color(0xFF687887),
               height: 1.4,

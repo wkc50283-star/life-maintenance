@@ -125,7 +125,7 @@ class _AddItemPreviewFormState extends State<_AddItemPreviewForm> {
           ),
           const SizedBox(height: 6),
           Text(
-            '先試填基本資料，這一步不會儲存。',
+            '填寫基本資料後，按下預覽完成會儲存到本機。',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: const Color(0xFF687887),
               height: 1.4,
