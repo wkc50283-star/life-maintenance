@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../data/mock_data.dart';
+import '../models/item.dart';
+import '../repositories/item_local_repository.dart';
+import '../services/local_storage_service.dart';
 
 class PreviewAdvanceReminderDropdown extends StatelessWidget {
   const PreviewAdvanceReminderDropdown({super.key});
@@ -33,22 +36,57 @@ class PreviewAdvanceReminderDropdown extends StatelessWidget {
   }
 }
 
-class PreviewItemDropdown extends StatelessWidget {
+class PreviewItemDropdown extends StatefulWidget {
   const PreviewItemDropdown({super.key, this.value, this.onChanged});
 
   final String? value;
   final ValueChanged<String?>? onChanged;
 
   @override
+  State<PreviewItemDropdown> createState() => _PreviewItemDropdownState();
+}
+
+class _PreviewItemDropdownState extends State<PreviewItemDropdown> {
+  final ItemLocalRepository _repository = ItemLocalRepository(
+    LocalStorageService(),
+  );
+  List<Item>? _localItems;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadItems();
+  }
+
+  Future<void> _loadItems() async {
+    final items = await _repository.loadItems();
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _localItems = items;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final localItems = _localItems;
+    final items = localItems == null || localItems.isEmpty
+        ? MockData.items
+        : localItems;
+    final selectedValue = items.any((item) => item.id == widget.value)
+        ? widget.value
+        : null;
+
     return DropdownButtonFormField<String>(
-      initialValue: value,
+      initialValue: selectedValue,
       decoration: _previewInputDecoration('選擇物品'),
       hint: const Text('請選擇物品'),
       dropdownColor: const Color(0xFFFFFCF6),
       borderRadius: BorderRadius.circular(16),
       iconEnabledColor: const Color(0xFF5D7893),
-      items: MockData.items
+      items: items
           .map(
             (item) => DropdownMenuItem<String>(
               value: item.id,
@@ -56,7 +94,7 @@ class PreviewItemDropdown extends StatelessWidget {
             ),
           )
           .toList(),
-      onChanged: onChanged ?? (_) {},
+      onChanged: widget.onChanged ?? (_) {},
     );
   }
 }
