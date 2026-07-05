@@ -31,7 +31,7 @@ class DemoDataNotice extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              '目前版本使用展示資料，尚未儲存到手機或雲端。正式儲存功能會在後續版本加入。',
+              '物品與保養維修紀錄已可儲存到本機；目前尚未支援雲端同步。',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: const Color(0xFF4D5D6B),
                 height: 1.45,
