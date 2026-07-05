@@ -30,6 +30,12 @@ class _ItemsScreenState extends State<ItemsScreen> {
     _loadItems();
   }
 
+  @override
+  void activate() {
+    super.activate();
+    _loadItems();
+  }
+
   Future<void> _loadItems() async {
     final items = await _repository.loadItems();
     if (!mounted) {
