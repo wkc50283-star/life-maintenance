@@ -34,11 +34,15 @@ class PreviewAdvanceReminderDropdown extends StatelessWidget {
 }
 
 class PreviewItemDropdown extends StatelessWidget {
-  const PreviewItemDropdown({super.key});
+  const PreviewItemDropdown({super.key, this.value, this.onChanged});
+
+  final String? value;
+  final ValueChanged<String?>? onChanged;
 
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<String>(
+      initialValue: value,
       decoration: _previewInputDecoration('選擇物品'),
       hint: const Text('請選擇物品'),
       dropdownColor: const Color(0xFFFFFCF6),
@@ -52,19 +56,23 @@ class PreviewItemDropdown extends StatelessWidget {
             ),
           )
           .toList(),
-      onChanged: (_) {},
+      onChanged: onChanged ?? (_) {},
     );
   }
 }
 
 class PreviewRecordTypeDropdown extends StatelessWidget {
-  const PreviewRecordTypeDropdown({super.key});
+  const PreviewRecordTypeDropdown({super.key, this.value, this.onChanged});
 
   static const List<String> _recordTypes = ['保養', '維修', '更換', '到期提醒'];
+
+  final String? value;
+  final ValueChanged<String?>? onChanged;
 
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<String>(
+      initialValue: value,
       decoration: _previewInputDecoration('紀錄類型'),
       hint: const Text('請選擇紀錄類型'),
       dropdownColor: const Color(0xFFFFFCF6),
@@ -78,7 +86,7 @@ class PreviewRecordTypeDropdown extends StatelessWidget {
             ),
           )
           .toList(),
-      onChanged: (_) {},
+      onChanged: onChanged ?? (_) {},
     );
   }
 }

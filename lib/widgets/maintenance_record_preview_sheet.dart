@@ -129,21 +129,8 @@ class _MaintenanceRecordPreviewFormState
             ),
           ),
           const SizedBox(height: 18),
-          DropdownButtonFormField<String>(
-            initialValue: _itemId,
-            decoration: _previewSheetInputDecoration('選擇物品'),
-            hint: const Text('請選擇物品'),
-            dropdownColor: const Color(0xFFFFFCF6),
-            borderRadius: BorderRadius.circular(16),
-            iconEnabledColor: const Color(0xFF5D7893),
-            items: MockData.items
-                .map(
-                  (item) => DropdownMenuItem<String>(
-                    value: item.id,
-                    child: Text(item.name),
-                  ),
-                )
-                .toList(),
+          PreviewItemDropdown(
+            value: _itemId,
             onChanged: (itemId) {
               setState(() {
                 _itemId = itemId;
@@ -151,21 +138,8 @@ class _MaintenanceRecordPreviewFormState
             },
           ),
           const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: _recordType,
-            decoration: _previewSheetInputDecoration('紀錄類型'),
-            hint: const Text('請選擇紀錄類型'),
-            dropdownColor: const Color(0xFFFFFCF6),
-            borderRadius: BorderRadius.circular(16),
-            iconEnabledColor: const Color(0xFF5D7893),
-            items: const ['保養', '維修', '更換', '到期提醒']
-                .map(
-                  (recordType) => DropdownMenuItem<String>(
-                    value: recordType,
-                    child: Text(recordType),
-                  ),
-                )
-                .toList(),
+          PreviewRecordTypeDropdown(
+            value: _recordType,
             onChanged: (recordType) {
               setState(() {
                 _recordType = recordType;
@@ -213,21 +187,4 @@ class _MaintenanceRecordPreviewFormState
       ),
     );
   }
-}
-
-InputDecoration _previewSheetInputDecoration(String label) {
-  return InputDecoration(
-    labelText: label,
-    filled: true,
-    fillColor: const Color(0xFFFFFCF6),
-    labelStyle: const TextStyle(color: Color(0xFF687887)),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(16),
-      borderSide: const BorderSide(color: Color(0xFFE4E0D8)),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(16),
-      borderSide: const BorderSide(color: Color(0xFF8FA4B8), width: 1.4),
-    ),
-  );
 }
