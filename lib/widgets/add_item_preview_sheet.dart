@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../models/enums.dart';
+import '../models/item.dart';
+import '../repositories/item_local_repository.dart';
+import '../services/local_storage_service.dart';
 import 'preview_form_fields.dart';
 
 void showAddItemPreviewSheet(BuildContext context) {
@@ -24,8 +28,64 @@ void showAddItemPreviewSheet(BuildContext context) {
   );
 }
 
-class _AddItemPreviewForm extends StatelessWidget {
+class _AddItemPreviewForm extends StatefulWidget {
   const _AddItemPreviewForm();
+
+  @override
+  State<_AddItemPreviewForm> createState() => _AddItemPreviewFormState();
+}
+
+class _AddItemPreviewFormState extends State<_AddItemPreviewForm> {
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _locationController = TextEditingController();
+  final TextEditingController _noteController = TextEditingController();
+  String? _category;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _locationController.dispose();
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveItem(BuildContext context) async {
+    final now = DateTime.now();
+    final repository = ItemLocalRepository(LocalStorageService());
+    final items = await repository.loadItems();
+    final item = Item(
+      id: now.millisecondsSinceEpoch.toString(),
+      name: _nameController.text,
+      category: _categoryForLabel(_category),
+      createdAt: now,
+      location: _locationController.text,
+      note: _noteController.text,
+    );
+
+    await repository.saveItems([...items, item]);
+
+    if (!context.mounted) {
+      return;
+    }
+
+    Navigator.of(context).pop();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('物品已儲存'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  ItemCategory _categoryForLabel(String? label) {
+    return switch (label) {
+      '家電' => ItemCategory.appliance,
+      '車輛' => ItemCategory.vehicle,
+      '房屋' => ItemCategory.house,
+      '保固證件' => ItemCategory.warrantyDocument,
+      _ => ItemCategory.other,
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,13 +121,24 @@ class _AddItemPreviewForm extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 18),
-          const PreviewTextField(label: '物品名稱'),
+          PreviewTextField(label: '物品名稱', controller: _nameController),
           const SizedBox(height: 12),
-          const PreviewCategoryDropdown(),
+          PreviewCategoryDropdown(
+            value: _category,
+            onChanged: (category) {
+              setState(() {
+                _category = category;
+              });
+            },
+          ),
           const SizedBox(height: 12),
-          const PreviewTextField(label: '放置位置'),
+          PreviewTextField(label: '放置位置', controller: _locationController),
           const SizedBox(height: 12),
-          const PreviewTextField(label: '備註', maxLines: 3),
+          PreviewTextField(
+            label: '備註',
+            controller: _noteController,
+            maxLines: 3,
+          ),
           const SizedBox(height: 14),
           const _SafetyNoteCard(),
           const SizedBox(height: 20),
@@ -87,15 +158,7 @@ class _AddItemPreviewForm extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: FilledButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('這是預覽流程，尚未儲存資料'),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
+                  onPressed: () => _saveItem(context),
                   child: const Text('預覽完成'),
                 ),
               ),
