@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
-import 'preview_form_fields.dart';
+import '../models/enums.dart';
+import '../models/item.dart';
+import '../repositories/item_local_repository.dart';
+import '../services/local_storage_service.dart';
 
 void showAddItemPreviewSheet(BuildContext context) {
   showModalBottomSheet<void>(
@@ -24,8 +27,64 @@ void showAddItemPreviewSheet(BuildContext context) {
   );
 }
 
-class _AddItemPreviewForm extends StatelessWidget {
+class _AddItemPreviewForm extends StatefulWidget {
   const _AddItemPreviewForm();
+
+  @override
+  State<_AddItemPreviewForm> createState() => _AddItemPreviewFormState();
+}
+
+class _AddItemPreviewFormState extends State<_AddItemPreviewForm> {
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _locationController = TextEditingController();
+  final TextEditingController _noteController = TextEditingController();
+  String? _category;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _locationController.dispose();
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveItem(BuildContext context) async {
+    final now = DateTime.now();
+    final repository = ItemLocalRepository(LocalStorageService());
+    final items = await repository.loadItems();
+    final item = Item(
+      id: now.millisecondsSinceEpoch.toString(),
+      name: _nameController.text,
+      category: _categoryForLabel(_category),
+      createdAt: now,
+      location: _locationController.text,
+      note: _noteController.text,
+    );
+
+    await repository.saveItems([...items, item]);
+
+    if (!context.mounted) {
+      return;
+    }
+
+    Navigator.of(context).pop();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('物品已儲存'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  ItemCategory _categoryForLabel(String? label) {
+    return switch (label) {
+      '家電' => ItemCategory.appliance,
+      '車輛' => ItemCategory.vehicle,
+      '房屋' => ItemCategory.house,
+      '保固證件' => ItemCategory.warrantyDocument,
+      _ => ItemCategory.other,
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,13 +120,24 @@ class _AddItemPreviewForm extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 18),
-          const PreviewTextField(label: '物品名稱'),
+          _AddItemTextField(label: '物品名稱', controller: _nameController),
           const SizedBox(height: 12),
-          const PreviewCategoryDropdown(),
+          _AddItemCategoryDropdown(
+            value: _category,
+            onChanged: (category) {
+              setState(() {
+                _category = category;
+              });
+            },
+          ),
           const SizedBox(height: 12),
-          const PreviewTextField(label: '放置位置'),
+          _AddItemTextField(label: '放置位置', controller: _locationController),
           const SizedBox(height: 12),
-          const PreviewTextField(label: '備註', maxLines: 3),
+          _AddItemTextField(
+            label: '備註',
+            controller: _noteController,
+            maxLines: 3,
+          ),
           const SizedBox(height: 14),
           const _SafetyNoteCard(),
           const SizedBox(height: 20),
@@ -87,15 +157,7 @@ class _AddItemPreviewForm extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: FilledButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('這是預覽流程，尚未儲存資料'),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
+                  onPressed: () => _saveItem(context),
                   child: const Text('預覽完成'),
                 ),
               ),
@@ -105,6 +167,77 @@ class _AddItemPreviewForm extends StatelessWidget {
       ),
     );
   }
+}
+
+class _AddItemCategoryDropdown extends StatelessWidget {
+  const _AddItemCategoryDropdown({
+    required this.value,
+    required this.onChanged,
+  });
+
+  static const List<String> _categories = ['家電', '車輛', '房屋', '保固證件', '其他'];
+
+  final String? value;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<String>(
+      initialValue: value,
+      decoration: _addItemInputDecoration('分類'),
+      hint: const Text('請選擇分類'),
+      dropdownColor: const Color(0xFFFFFCF6),
+      borderRadius: BorderRadius.circular(16),
+      iconEnabledColor: const Color(0xFF5D7893),
+      items: _categories
+          .map(
+            (category) => DropdownMenuItem<String>(
+              value: category,
+              child: Text(category),
+            ),
+          )
+          .toList(),
+      onChanged: onChanged,
+    );
+  }
+}
+
+class _AddItemTextField extends StatelessWidget {
+  const _AddItemTextField({
+    required this.label,
+    required this.controller,
+    this.maxLines = 1,
+  });
+
+  final String label;
+  final TextEditingController controller;
+  final int maxLines;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      maxLines: maxLines,
+      decoration: _addItemInputDecoration(label),
+    );
+  }
+}
+
+InputDecoration _addItemInputDecoration(String label) {
+  return InputDecoration(
+    labelText: label,
+    filled: true,
+    fillColor: const Color(0xFFFFFCF6),
+    labelStyle: const TextStyle(color: Color(0xFF687887)),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: const BorderSide(color: Color(0xFFE4E0D8)),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: const BorderSide(color: Color(0xFF8FA4B8), width: 1.4),
+    ),
+  );
 }
 
 class _SafetyNoteCard extends StatelessWidget {
