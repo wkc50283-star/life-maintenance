@@ -4,27 +4,59 @@ import '../data/mock_data.dart';
 import '../models/enums.dart';
 import '../models/item.dart';
 import '../models/maintenance_record.dart';
+import '../repositories/maintenance_record_local_repository.dart';
+import '../services/local_storage_service.dart';
 import '../widgets/empty_history_state.dart';
 import '../widgets/history_category_chips.dart';
 import '../widgets/history_header.dart';
 import '../widgets/history_month_section.dart';
 import '../widgets/history_record_card.dart';
 
-class HistoryScreen extends StatelessWidget {
+class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
 
   static const _categories = ['全部', '保養', '維修', '更換', '到期提醒'];
 
   @override
+  State<HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends State<HistoryScreen> {
+  final MaintenanceRecordLocalRepository _repository =
+      MaintenanceRecordLocalRepository(LocalStorageService());
+  List<MaintenanceRecord>? _localRecords;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRecords();
+  }
+
+  Future<void> _loadRecords() async {
+    final records = await _repository.loadRecords();
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _localRecords = records;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final sections = _historySectionsFrom(MockData.maintenanceRecords);
+    final localRecords = _localRecords;
+    final records = localRecords == null || localRecords.isEmpty
+        ? MockData.maintenanceRecords
+        : localRecords;
+    final sections = _historySectionsFrom(records);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
         const HistoryHeader(),
         const SizedBox(height: 18),
-        const HistoryCategoryChips(categories: _categories),
+        const HistoryCategoryChips(categories: HistoryScreen._categories),
         const SizedBox(height: 20),
         if (sections.isEmpty)
           const EmptyHistoryState()
