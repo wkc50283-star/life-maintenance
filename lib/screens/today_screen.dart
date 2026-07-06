@@ -5,18 +5,50 @@ import '../models/enums.dart';
 import '../models/item.dart';
 import '../models/maintenance_card.dart';
 import '../models/task.dart' as maintenance_task;
+import '../repositories/task_local_repository.dart';
+import '../services/local_storage_service.dart';
 import '../widgets/empty_tasks_state.dart';
 import '../widgets/maintenance_card_preview_sheet.dart';
 import '../widgets/task_card.dart';
 import '../widgets/task_section_header.dart';
 import '../widgets/today_hero.dart';
 
-class TodayScreen extends StatelessWidget {
+class TodayScreen extends StatefulWidget {
   const TodayScreen({super.key});
 
   @override
+  State<TodayScreen> createState() => _TodayScreenState();
+}
+
+class _TodayScreenState extends State<TodayScreen> {
+  final TaskLocalRepository _repository = TaskLocalRepository(
+    LocalStorageService(),
+  );
+  List<maintenance_task.Task>? _localTasks;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTasks();
+  }
+
+  Future<void> _loadTasks() async {
+    final tasks = await _repository.loadTasks();
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _localTasks = tasks;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final tasks = MockData.tasks;
+    final localTasks = _localTasks;
+    final tasks = localTasks == null || localTasks.isEmpty
+        ? MockData.tasks
+        : localTasks;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
