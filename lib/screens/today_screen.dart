@@ -38,6 +38,7 @@ class _TodayScreenState extends State<TodayScreen> {
     _storageService,
   );
   final MaintenanceTaskService _taskService = MaintenanceTaskService();
+  final Set<String> _completingTaskIds = <String>{};
   List<Item>? _localItems;
   List<maintenance_task.Task>? _localTasks;
   bool _hasLocalScheduleOrTaskData = false;
@@ -143,56 +144,96 @@ class _TodayScreenState extends State<TodayScreen> {
       return;
     }
 
-    final localTasks = _localTasks;
-    if (localTasks == null) {
+    if (_completingTaskIds.contains(task.id)) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('此任務正在完成')));
       return;
     }
 
-    final taskIndex = localTasks.indexWhere(
-      (localTask) => localTask.id == task.id,
-    );
-    if (taskIndex == -1) {
-      return;
+    _completingTaskIds.add(task.id);
+
+    try {
+      final localTasks = _localTasks;
+      if (localTasks == null) {
+        return;
+      }
+
+      final taskIndex = localTasks.indexWhere(
+        (localTask) => localTask.id == task.id,
+      );
+      if (taskIndex == -1) {
+        return;
+      }
+
+      final currentTask = localTasks[taskIndex];
+      if (currentTask.status == TaskStatus.completed) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('此任務已完成')));
+        return;
+      }
+
+      final now = DateTime.now();
+      final updatedTasks = <maintenance_task.Task>[...localTasks];
+      updatedTasks[taskIndex] = currentTask.copyWith(
+        status: TaskStatus.completed,
+        completedAt: now,
+        overdue: false,
+      );
+
+      await _taskRepository.saveTasks(updatedTasks);
+      final records = await _recordRepository.loadRecords();
+      final hasExistingRecord = records.any(
+        (record) => record.taskId == task.id,
+      );
+      if (hasExistingRecord) {
+        if (!mounted) {
+          return;
+        }
+
+        setState(() {
+          _localTasks = updatedTasks;
+          _hasLocalScheduleOrTaskData = true;
+        });
+
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('此任務已完成')));
+        return;
+      }
+
+      final updatedRecords = <MaintenanceRecord>[
+        ...records,
+        MaintenanceRecord(
+          id: now.millisecondsSinceEpoch.toString(),
+          itemId: task.itemId,
+          taskId: task.id,
+          recordType: _recordTypeForTask(task),
+          date: now,
+          title: task.title,
+          createdAt: now,
+          result: '已完成',
+          note: _recordNoteForTask(task),
+        ),
+      ];
+      await _recordRepository.saveRecords(updatedRecords);
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _localTasks = updatedTasks;
+        _hasLocalScheduleOrTaskData = true;
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('已完成任務並建立紀錄')));
+    } finally {
+      _completingTaskIds.remove(task.id);
     }
-
-    final now = DateTime.now();
-    final updatedTasks = <maintenance_task.Task>[...localTasks];
-    updatedTasks[taskIndex] = task.copyWith(
-      status: TaskStatus.completed,
-      completedAt: now,
-      overdue: false,
-    );
-
-    await _taskRepository.saveTasks(updatedTasks);
-    final records = await _recordRepository.loadRecords();
-    final updatedRecords = <MaintenanceRecord>[
-      ...records,
-      MaintenanceRecord(
-        id: now.millisecondsSinceEpoch.toString(),
-        itemId: task.itemId,
-        taskId: task.id,
-        recordType: _recordTypeForTask(task),
-        date: now,
-        title: task.title,
-        createdAt: now,
-        result: '已完成',
-        note: _recordNoteForTask(task),
-      ),
-    ];
-    await _recordRepository.saveRecords(updatedRecords);
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _localTasks = updatedTasks;
-      _hasLocalScheduleOrTaskData = true;
-    });
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('已完成任務並建立紀錄')));
   }
 }
 
