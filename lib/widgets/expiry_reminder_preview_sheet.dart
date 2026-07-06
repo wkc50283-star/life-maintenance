@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../data/mock_data.dart';
 import '../models/enums.dart';
 import '../models/schedule.dart';
 import '../repositories/schedule_local_repository.dart';
@@ -53,13 +52,34 @@ class _ExpiryReminderPreviewFormState
   }
 
   Future<void> _saveSchedule(BuildContext context) async {
+    final itemId = _itemId;
+    if (itemId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('請選擇物品'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final dueDate = DateTime.tryParse(_dueDateController.text.trim());
+    if (dueDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('請輸入正確到期日期'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     final now = DateTime.now();
-    final dueDate = DateTime.tryParse(_dueDateController.text.trim()) ?? now;
     final repository = ScheduleLocalRepository(LocalStorageService());
     final schedules = await repository.loadSchedules();
     final schedule = Schedule(
       id: now.millisecondsSinceEpoch.toString(),
-      itemId: _itemId ?? MockData.items.first.id,
+      itemId: itemId,
       cardId: 'manual-expiry-reminder',
       cycleType: CycleType.custom,
       interval: 1,
