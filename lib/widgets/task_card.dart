@@ -18,8 +18,9 @@ class TaskCardData {
 
 class TaskCard extends StatelessWidget {
   final TaskCardData task;
+  final VoidCallback? onComplete;
 
-  const TaskCard({super.key, required this.task});
+  const TaskCard({super.key, required this.task, this.onComplete});
 
   @override
   Widget build(BuildContext context) {
@@ -92,7 +93,7 @@ class TaskCard extends StatelessWidget {
             Align(
               alignment: Alignment.centerRight,
               child: FilledButton.icon(
-                onPressed: () {},
+                onPressed: onComplete,
                 icon: const Icon(Icons.check_rounded, size: 18),
                 label: const Text('完成'),
               ),

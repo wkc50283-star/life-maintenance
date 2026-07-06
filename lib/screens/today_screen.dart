@@ -77,11 +77,10 @@ class _TodayScreenState extends State<TodayScreen> {
   Widget build(BuildContext context) {
     final localItems = _localItems ?? const <Item>[];
     final localTasks = _localTasks;
-    final tasks =
+    final isUsingMockTasks =
         localTasks == null ||
-            (!_hasLocalScheduleOrTaskData && localTasks.isEmpty)
-        ? MockData.tasks
-        : localTasks;
+        (!_hasLocalScheduleOrTaskData && localTasks.isEmpty);
+    final tasks = isUsingMockTasks ? MockData.tasks : localTasks;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -120,10 +119,59 @@ class _TodayScreenState extends State<TodayScreen> {
               },
               child: TaskCard(
                 task: _taskCardDataFor(task, localItems: localItems),
+                onComplete: () {
+                  _completeTask(task, isUsingMockTasks: isUsingMockTasks);
+                },
               ),
             ),
       ],
     );
+  }
+
+  Future<void> _completeTask(
+    maintenance_task.Task task, {
+    required bool isUsingMockTasks,
+  }) async {
+    if (isUsingMockTasks) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('展示任務無法完成')));
+      return;
+    }
+
+    final localTasks = _localTasks;
+    if (localTasks == null) {
+      return;
+    }
+
+    final taskIndex = localTasks.indexWhere(
+      (localTask) => localTask.id == task.id,
+    );
+    if (taskIndex == -1) {
+      return;
+    }
+
+    final updatedTasks = <maintenance_task.Task>[...localTasks];
+    updatedTasks[taskIndex] = task.copyWith(
+      status: TaskStatus.completed,
+      completedAt: DateTime.now(),
+      overdue: false,
+    );
+
+    await _taskRepository.saveTasks(updatedTasks);
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _localTasks = updatedTasks;
+      _hasLocalScheduleOrTaskData = true;
+    });
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('已完成任務')));
   }
 }
 
