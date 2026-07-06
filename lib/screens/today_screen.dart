@@ -96,6 +96,13 @@ class _TodayScreenState extends State<TodayScreen> {
           for (final task in tasks)
             GestureDetector(
               onTap: () {
+                if (_isManualExpiryReminderTask(task)) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('這是到期提醒，請確認後再記錄處理結果')),
+                  );
+                  return;
+                }
+
                 final item = _itemForTask(task, localItems: localItems);
                 final card = _cardForTask(task);
 
@@ -126,14 +133,21 @@ TaskCardData _taskCardDataFor(
 }) {
   final item = _itemForTask(task, localItems: localItems);
   final card = _cardForTask(task);
+  final isManualExpiryReminder = _isManualExpiryReminderTask(task);
 
   return TaskCardData(
     itemName: item?.name ?? '未命名物品',
     taskName: task.title,
     cycle: '到期 ${_formatDate(task.dueDate)}',
-    estimatedTime: '${card?.estimatedMinutes ?? 0} 分鐘',
-    riskLabel: _labelForStatus(task.status),
+    estimatedTime: isManualExpiryReminder
+        ? '請確認'
+        : '${card?.estimatedMinutes ?? 0} 分鐘',
+    riskLabel: isManualExpiryReminder ? '到期提醒' : _labelForStatus(task.status),
   );
+}
+
+bool _isManualExpiryReminderTask(maintenance_task.Task task) {
+  return task.cardId == 'manual-expiry-reminder';
 }
 
 Item? _itemForTask(
