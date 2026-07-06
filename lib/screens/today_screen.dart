@@ -5,8 +5,10 @@ import '../models/enums.dart';
 import '../models/item.dart';
 import '../models/maintenance_card.dart';
 import '../models/task.dart' as maintenance_task;
+import '../repositories/schedule_local_repository.dart';
 import '../repositories/task_local_repository.dart';
 import '../services/local_storage_service.dart';
+import '../services/maintenance_task_service.dart';
 import '../widgets/empty_tasks_state.dart';
 import '../widgets/maintenance_card_preview_sheet.dart';
 import '../widgets/task_card.dart';
@@ -21,10 +23,15 @@ class TodayScreen extends StatefulWidget {
 }
 
 class _TodayScreenState extends State<TodayScreen> {
-  final TaskLocalRepository _repository = TaskLocalRepository(
-    LocalStorageService(),
+  final LocalStorageService _storageService = LocalStorageService();
+  late final ScheduleLocalRepository _scheduleRepository =
+      ScheduleLocalRepository(_storageService);
+  late final TaskLocalRepository _taskRepository = TaskLocalRepository(
+    _storageService,
   );
+  final MaintenanceTaskService _taskService = MaintenanceTaskService();
   List<maintenance_task.Task>? _localTasks;
+  bool _hasLocalScheduleOrTaskData = false;
 
   @override
   void initState() {
@@ -33,20 +40,38 @@ class _TodayScreenState extends State<TodayScreen> {
   }
 
   Future<void> _loadTasks() async {
-    final tasks = await _repository.loadTasks();
+    final schedules = await _scheduleRepository.loadSchedules();
+    final tasks = await _taskRepository.loadTasks();
+    final generatedTasks = _taskService.generateDueTasks(
+      schedules: schedules,
+      existingTasks: tasks,
+      today: DateTime.now(),
+    );
+    final updatedTasks = generatedTasks.isEmpty
+        ? tasks
+        : <maintenance_task.Task>[...tasks, ...generatedTasks];
+
+    if (generatedTasks.isNotEmpty) {
+      await _taskRepository.saveTasks(updatedTasks);
+    }
+
     if (!mounted) {
       return;
     }
 
     setState(() {
-      _localTasks = tasks;
+      _localTasks = updatedTasks;
+      _hasLocalScheduleOrTaskData =
+          schedules.isNotEmpty || updatedTasks.isNotEmpty;
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final localTasks = _localTasks;
-    final tasks = localTasks == null || localTasks.isEmpty
+    final tasks =
+        localTasks == null ||
+            (!_hasLocalScheduleOrTaskData && localTasks.isEmpty)
         ? MockData.tasks
         : localTasks;
 
