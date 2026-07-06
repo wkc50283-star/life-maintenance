@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../data/mock_data.dart';
+import '../models/enums.dart';
+import '../models/schedule.dart';
+import '../repositories/schedule_local_repository.dart';
+import '../services/local_storage_service.dart';
 import 'preview_form_fields.dart';
 
 void showExpiryReminderPreviewSheet(BuildContext context) {
@@ -24,8 +29,59 @@ void showExpiryReminderPreviewSheet(BuildContext context) {
   );
 }
 
-class _ExpiryReminderPreviewForm extends StatelessWidget {
+class _ExpiryReminderPreviewForm extends StatefulWidget {
   const _ExpiryReminderPreviewForm();
+
+  @override
+  State<_ExpiryReminderPreviewForm> createState() =>
+      _ExpiryReminderPreviewFormState();
+}
+
+class _ExpiryReminderPreviewFormState
+    extends State<_ExpiryReminderPreviewForm> {
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _dueDateController = TextEditingController();
+  final TextEditingController _noteController = TextEditingController();
+  String? _itemId;
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _dueDateController.dispose();
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveSchedule(BuildContext context) async {
+    final now = DateTime.now();
+    final dueDate = DateTime.tryParse(_dueDateController.text.trim()) ?? now;
+    final repository = ScheduleLocalRepository(LocalStorageService());
+    final schedules = await repository.loadSchedules();
+    final schedule = Schedule(
+      id: now.millisecondsSinceEpoch.toString(),
+      itemId: _itemId ?? MockData.items.first.id,
+      cardId: 'manual-expiry-reminder',
+      cycleType: CycleType.custom,
+      interval: 1,
+      startDate: now,
+      nextDueDate: dueDate,
+    );
+
+    await repository.saveSchedules([...schedules, schedule]);
+
+    if (!context.mounted) {
+      return;
+    }
+
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.of(context).pop();
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text('到期提醒已儲存'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,22 +110,33 @@ class _ExpiryReminderPreviewForm extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            '先試填到期資訊，這一步不會儲存。',
+            '填寫到期資訊後，按下預覽完成會儲存到本機。',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: const Color(0xFF687887),
               height: 1.4,
             ),
           ),
           const SizedBox(height: 18),
-          const PreviewItemDropdown(),
+          PreviewItemDropdown(
+            value: _itemId,
+            onChanged: (itemId) {
+              setState(() {
+                _itemId = itemId;
+              });
+            },
+          ),
           const SizedBox(height: 12),
-          const PreviewTextField(label: '提醒名稱'),
+          PreviewTextField(label: '提醒名稱', controller: _titleController),
           const SizedBox(height: 12),
-          const PreviewTextField(label: '到期日期'),
+          PreviewTextField(label: '到期日期', controller: _dueDateController),
           const SizedBox(height: 12),
           const PreviewAdvanceReminderDropdown(),
           const SizedBox(height: 12),
-          const PreviewTextField(label: '備註', maxLines: 3),
+          PreviewTextField(
+            label: '備註',
+            controller: _noteController,
+            maxLines: 3,
+          ),
           const SizedBox(height: 20),
           Row(
             children: [
@@ -87,15 +154,7 @@ class _ExpiryReminderPreviewForm extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: FilledButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('這是預覽流程，尚未儲存資料'),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
+                  onPressed: () => _saveSchedule(context),
                   child: const Text('預覽完成'),
                 ),
               ),
