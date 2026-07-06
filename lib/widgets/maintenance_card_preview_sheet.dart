@@ -10,6 +10,7 @@ void showMaintenanceCardPreview(
   required Item? item,
   required String maintenanceTypeLabel,
   required String riskLevelLabel,
+  VoidCallback? onCompleteSteps,
 }) {
   if (card == null) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -41,6 +42,7 @@ void showMaintenanceCardPreview(
           item: item,
           maintenanceTypeLabel: maintenanceTypeLabel,
           riskLevelLabel: riskLevelLabel,
+          onCompleteSteps: onCompleteSteps,
         ),
       );
     },
@@ -52,12 +54,14 @@ class _MaintenanceCardPreviewSheet extends StatefulWidget {
   final Item? item;
   final String maintenanceTypeLabel;
   final String riskLevelLabel;
+  final VoidCallback? onCompleteSteps;
 
   const _MaintenanceCardPreviewSheet({
     required this.card,
     required this.item,
     required this.maintenanceTypeLabel,
     required this.riskLevelLabel,
+    required this.onCompleteSteps,
   });
 
   @override
@@ -78,6 +82,12 @@ class _MaintenanceCardPreviewSheetState
     return widget.card.riskLevel == RiskLevel.low && !_shouldHideSteps;
   }
 
+  bool get _canCompleteSteps {
+    return _canCheckSteps &&
+        widget.card.steps.isNotEmpty &&
+        widget.card.steps.every((step) => _checkedStepIds.contains(step.id));
+  }
+
   void _toggleStep(String stepId, bool checked) {
     setState(() {
       if (checked) {
@@ -86,6 +96,11 @@ class _MaintenanceCardPreviewSheetState
         _checkedStepIds.remove(stepId);
       }
     });
+  }
+
+  void _completeSteps() {
+    widget.onCompleteSteps?.call();
+    Navigator.of(context).pop();
   }
 
   @override
@@ -175,6 +190,17 @@ class _MaintenanceCardPreviewSheetState
             if (widget.card.safetyNotice != null) ...[
               const SizedBox(height: 12),
               _SafetyNotice(text: widget.card.safetyNotice!),
+            ],
+            if (_canCheckSteps && widget.card.steps.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: _canCompleteSteps ? _completeSteps : null,
+                  icon: const Icon(Icons.check_rounded, size: 18),
+                  label: Text(_canCompleteSteps ? '完成步驟' : '請先完成所有步驟'),
+                ),
+              ),
             ],
           ],
         ],
