@@ -4,8 +4,10 @@ import '../data/mock_data.dart';
 import '../models/enums.dart';
 import '../models/item.dart';
 import '../models/maintenance_card.dart';
+import '../models/maintenance_record.dart';
 import '../models/task.dart' as maintenance_task;
 import '../repositories/item_local_repository.dart';
+import '../repositories/maintenance_record_local_repository.dart';
 import '../repositories/schedule_local_repository.dart';
 import '../repositories/task_local_repository.dart';
 import '../services/local_storage_service.dart';
@@ -28,6 +30,8 @@ class _TodayScreenState extends State<TodayScreen> {
   late final ItemLocalRepository _itemRepository = ItemLocalRepository(
     _storageService,
   );
+  late final MaintenanceRecordLocalRepository _recordRepository =
+      MaintenanceRecordLocalRepository(_storageService);
   late final ScheduleLocalRepository _scheduleRepository =
       ScheduleLocalRepository(_storageService);
   late final TaskLocalRepository _taskRepository = TaskLocalRepository(
@@ -151,14 +155,31 @@ class _TodayScreenState extends State<TodayScreen> {
       return;
     }
 
+    final now = DateTime.now();
     final updatedTasks = <maintenance_task.Task>[...localTasks];
     updatedTasks[taskIndex] = task.copyWith(
       status: TaskStatus.completed,
-      completedAt: DateTime.now(),
+      completedAt: now,
       overdue: false,
     );
 
     await _taskRepository.saveTasks(updatedTasks);
+    final records = await _recordRepository.loadRecords();
+    final updatedRecords = <MaintenanceRecord>[
+      ...records,
+      MaintenanceRecord(
+        id: now.millisecondsSinceEpoch.toString(),
+        itemId: task.itemId,
+        taskId: task.id,
+        recordType: _recordTypeForTask(task),
+        date: now,
+        title: task.title,
+        createdAt: now,
+        result: '已完成',
+        note: _recordNoteForTask(task),
+      ),
+    ];
+    await _recordRepository.saveRecords(updatedRecords);
 
     if (!mounted) {
       return;
@@ -171,7 +192,7 @@ class _TodayScreenState extends State<TodayScreen> {
 
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('已完成任務')));
+    ).showSnackBar(const SnackBar(content: Text('已完成任務並建立紀錄')));
   }
 }
 
@@ -196,6 +217,16 @@ TaskCardData _taskCardDataFor(
 
 bool _isManualExpiryReminderTask(maintenance_task.Task task) {
   return task.cardId == 'manual-expiry-reminder';
+}
+
+RecordType _recordTypeForTask(maintenance_task.Task task) {
+  return _isManualExpiryReminderTask(task)
+      ? RecordType.expiryHandled
+      : RecordType.regularMaintenance;
+}
+
+String _recordNoteForTask(maintenance_task.Task task) {
+  return _isManualExpiryReminderTask(task) ? '由到期提醒任務完成後自動建立' : '由保養任務完成後自動建立';
 }
 
 Item? _itemForTask(
