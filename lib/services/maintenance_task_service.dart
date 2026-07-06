@@ -9,23 +9,25 @@ class MaintenanceTaskService {
     required DateTime today,
   }) {
     final generatedTasks = <Task>[];
+    final todayDate = _dateOnly(today);
 
     for (final schedule in schedules) {
-      if (!schedule.enabled || schedule.nextDueDate.isAfter(today)) {
+      final dueDate = _dateOnly(schedule.nextDueDate);
+      if (!schedule.enabled || dueDate.isAfter(todayDate)) {
         continue;
       }
 
       final hasExistingTask = existingTasks.any(
         (task) =>
             task.scheduleId == schedule.id &&
-            task.dueDate.isAtSameMomentAs(schedule.nextDueDate),
+            _isSameDay(task.dueDate, schedule.nextDueDate),
       );
 
       if (hasExistingTask) {
         continue;
       }
 
-      final overdue = schedule.nextDueDate.isBefore(today);
+      final overdue = dueDate.isBefore(todayDate);
 
       generatedTasks.add(
         Task(
@@ -42,5 +44,13 @@ class MaintenanceTaskService {
     }
 
     return generatedTasks;
+  }
+
+  DateTime _dateOnly(DateTime date) {
+    return DateTime(date.year, date.month, date.day);
+  }
+
+  bool _isSameDay(DateTime firstDate, DateTime secondDate) {
+    return _dateOnly(firstDate) == _dateOnly(secondDate);
   }
 }
