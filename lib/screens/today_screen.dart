@@ -155,9 +155,17 @@ class _TodayScreenState extends State<TodayScreen> {
       return;
     }
 
+    final currentTask = localTasks[taskIndex];
+    if (currentTask.status == TaskStatus.completed) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('此任務已完成')));
+      return;
+    }
+
     final now = DateTime.now();
     final updatedTasks = <maintenance_task.Task>[...localTasks];
-    updatedTasks[taskIndex] = task.copyWith(
+    updatedTasks[taskIndex] = currentTask.copyWith(
       status: TaskStatus.completed,
       completedAt: now,
       overdue: false,
@@ -165,6 +173,23 @@ class _TodayScreenState extends State<TodayScreen> {
 
     await _taskRepository.saveTasks(updatedTasks);
     final records = await _recordRepository.loadRecords();
+    final hasExistingRecord = records.any((record) => record.taskId == task.id);
+    if (hasExistingRecord) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _localTasks = updatedTasks;
+        _hasLocalScheduleOrTaskData = true;
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('此任務已完成')));
+      return;
+    }
+
     final updatedRecords = <MaintenanceRecord>[
       ...records,
       MaintenanceRecord(
