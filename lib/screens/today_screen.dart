@@ -5,6 +5,7 @@ import '../models/enums.dart';
 import '../models/item.dart';
 import '../models/maintenance_card.dart';
 import '../models/task.dart' as maintenance_task;
+import '../repositories/item_local_repository.dart';
 import '../repositories/schedule_local_repository.dart';
 import '../repositories/task_local_repository.dart';
 import '../services/local_storage_service.dart';
@@ -24,12 +25,16 @@ class TodayScreen extends StatefulWidget {
 
 class _TodayScreenState extends State<TodayScreen> {
   final LocalStorageService _storageService = LocalStorageService();
+  late final ItemLocalRepository _itemRepository = ItemLocalRepository(
+    _storageService,
+  );
   late final ScheduleLocalRepository _scheduleRepository =
       ScheduleLocalRepository(_storageService);
   late final TaskLocalRepository _taskRepository = TaskLocalRepository(
     _storageService,
   );
   final MaintenanceTaskService _taskService = MaintenanceTaskService();
+  List<Item>? _localItems;
   List<maintenance_task.Task>? _localTasks;
   bool _hasLocalScheduleOrTaskData = false;
 
@@ -40,6 +45,7 @@ class _TodayScreenState extends State<TodayScreen> {
   }
 
   Future<void> _loadTasks() async {
+    final items = await _itemRepository.loadItems();
     final schedules = await _scheduleRepository.loadSchedules();
     final tasks = await _taskRepository.loadTasks();
     final generatedTasks = _taskService.generateDueTasks(
@@ -60,6 +66,7 @@ class _TodayScreenState extends State<TodayScreen> {
     }
 
     setState(() {
+      _localItems = items;
       _localTasks = updatedTasks;
       _hasLocalScheduleOrTaskData =
           schedules.isNotEmpty || updatedTasks.isNotEmpty;
@@ -68,6 +75,7 @@ class _TodayScreenState extends State<TodayScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final localItems = _localItems ?? const <Item>[];
     final localTasks = _localTasks;
     final tasks =
         localTasks == null ||
@@ -88,7 +96,7 @@ class _TodayScreenState extends State<TodayScreen> {
           for (final task in tasks)
             GestureDetector(
               onTap: () {
-                final item = _itemForTask(task);
+                final item = _itemForTask(task, localItems: localItems);
                 final card = _cardForTask(task);
 
                 showMaintenanceCardPreview(
@@ -103,15 +111,20 @@ class _TodayScreenState extends State<TodayScreen> {
                       : _labelForRiskLevel(card.riskLevel),
                 );
               },
-              child: TaskCard(task: _taskCardDataFor(task)),
+              child: TaskCard(
+                task: _taskCardDataFor(task, localItems: localItems),
+              ),
             ),
       ],
     );
   }
 }
 
-TaskCardData _taskCardDataFor(maintenance_task.Task task) {
-  final item = _itemForTask(task);
+TaskCardData _taskCardDataFor(
+  maintenance_task.Task task, {
+  required List<Item> localItems,
+}) {
+  final item = _itemForTask(task, localItems: localItems);
   final card = _cardForTask(task);
 
   return TaskCardData(
@@ -123,7 +136,16 @@ TaskCardData _taskCardDataFor(maintenance_task.Task task) {
   );
 }
 
-Item? _itemForTask(maintenance_task.Task task) {
+Item? _itemForTask(
+  maintenance_task.Task task, {
+  required List<Item> localItems,
+}) {
+  for (final item in localItems) {
+    if (item.id == task.itemId) {
+      return item;
+    }
+  }
+
   for (final item in MockData.items) {
     if (item.id == task.itemId) {
       return item;
