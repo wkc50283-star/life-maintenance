@@ -158,22 +158,25 @@ _HistoryEntryData _historyEntryFor(MaintenanceRecord record, List<Item> items) {
       .where((part) => part.isNotEmpty)
       .toList();
   final note = _nullableText(record.note);
+  final issueDescription = _nullableText(record.issueDescription);
+  final description =
+      workDescription ?? issueDescription ?? note ?? '已留下保養維修紀錄。';
+  final descriptionUsesWorkDescription =
+      workDescription != null && description == workDescription;
+  final descriptionUsesNote = note != null && description == note;
 
   return _HistoryEntryData(
     date: _formatShortDate(record.date),
     title: record.title,
     itemName: item?.name ?? '未命名物品',
     recordType: _labelForRecordType(record.recordType),
-    description:
-        workDescription ??
-        _nullableText(record.issueDescription) ??
-        note ??
-        '已留下保養維修紀錄。',
+    description: description,
     detailLines: [
-      if (workDescription != null) '處理內容：$workDescription',
+      if (workDescription != null && !descriptionUsesWorkDescription)
+        '處理內容：$workDescription',
       if (vendorName != null) '店家：$vendorName',
       if (partsChanged.isNotEmpty) '更換零件：${partsChanged.join('、')}',
-      if (note != null) '備註：$note',
+      if (note != null && !descriptionUsesNote) '備註：$note',
     ],
     result: result,
     costLabel: record.cost == null ? null : '費用：${record.cost}',
