@@ -6,8 +6,9 @@ class HistoryRecordCard extends StatelessWidget {
   final String itemName;
   final String recordType;
   final String description;
+  final List<String> detailLines;
   final String result;
-  final String costLabel;
+  final String? costLabel;
   final String? photoLabel;
   final IconData icon;
 
@@ -18,6 +19,7 @@ class HistoryRecordCard extends StatelessWidget {
     required this.itemName,
     required this.recordType,
     required this.description,
+    this.detailLines = const [],
     required this.result,
     required this.costLabel,
     required this.photoLabel,
@@ -84,23 +86,51 @@ class HistoryRecordCard extends StatelessWidget {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 14),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _MetaTag(
-                  icon: Icons.payments_outlined,
-                  label: costLabel,
-                ),
-                if (photoLabel != null)
-                  _MetaTag(
-                    icon: Icons.photo_library_outlined,
-                    label: photoLabel!,
-                  ),
-              ],
-            ),
+            if (detailLines.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              for (final line in detailLines) _DetailLine(text: line),
+            ],
+            if (costLabel != null || photoLabel != null) ...[
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  if (costLabel != null)
+                    _MetaTag(
+                      icon: Icons.payments_outlined,
+                      label: costLabel!,
+                    ),
+                  if (photoLabel != null)
+                    _MetaTag(
+                      icon: Icons.photo_library_outlined,
+                      label: photoLabel!,
+                    ),
+                ],
+              ),
+            ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DetailLine extends StatelessWidget {
+  final String text;
+
+  const _DetailLine({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Text(
+        text,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: const Color(0xFF687887),
+          height: 1.4,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );

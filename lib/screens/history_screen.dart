@@ -83,6 +83,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     itemName: record.itemName,
                     recordType: record.recordType,
                     description: record.description,
+                    detailLines: record.detailLines,
                     result: record.result,
                     costLabel: record.costLabel,
                     photoLabel: record.photoLabel,
@@ -108,8 +109,9 @@ class _HistoryEntryData {
   final String itemName;
   final String recordType;
   final String description;
+  final List<String> detailLines;
   final String result;
-  final String costLabel;
+  final String? costLabel;
   final String? photoLabel;
   final IconData icon;
 
@@ -119,6 +121,7 @@ class _HistoryEntryData {
     required this.itemName,
     required this.recordType,
     required this.description,
+    required this.detailLines,
     required this.result,
     required this.costLabel,
     required this.photoLabel,
@@ -147,20 +150,36 @@ List<_HistoryMonthSection> _historySectionsFrom(
 
 _HistoryEntryData _historyEntryFor(MaintenanceRecord record, List<Item> items) {
   final item = _itemForRecord(record, items);
-  final result = record.result ?? record.note ?? '已記錄';
+  final result = _nullableText(record.result) ?? '已記錄';
+  final workDescription = _nullableText(record.workDescription);
+  final vendorName = _nullableText(record.vendorName);
+  final partsChanged = record.partsChanged
+      .map((part) => part.trim())
+      .where((part) => part.isNotEmpty)
+      .toList();
+  final note = _nullableText(record.note);
+  final issueDescription = _nullableText(record.issueDescription);
+  final description =
+      workDescription ?? issueDescription ?? note ?? '已留下保養維修紀錄。';
+  final descriptionUsesWorkDescription =
+      workDescription != null && description == workDescription;
+  final descriptionUsesNote = note != null && description == note;
 
   return _HistoryEntryData(
     date: _formatShortDate(record.date),
     title: record.title,
     itemName: item?.name ?? '未命名物品',
     recordType: _labelForRecordType(record.recordType),
-    description:
-        record.workDescription ??
-        record.issueDescription ??
-        record.note ??
-        '已留下保養維修紀錄。',
+    description: description,
+    detailLines: [
+      if (workDescription != null && !descriptionUsesWorkDescription)
+        '處理內容：$workDescription',
+      if (vendorName != null) '店家：$vendorName',
+      if (partsChanged.isNotEmpty) '更換零件：${partsChanged.join('、')}',
+      if (note != null && !descriptionUsesNote) '備註：$note',
+    ],
     result: result,
-    costLabel: record.cost == null ? '未記錄費用' : 'NT\$ ${record.cost}',
+    costLabel: record.cost == null ? null : '費用：${record.cost}',
     photoLabel: record.photos.isEmpty ? null : '照片 ${record.photos.length} 張',
     icon: _iconForItem(item),
   );
@@ -196,6 +215,15 @@ String _labelForRecordType(RecordType type) {
     RecordType.construction => '施工',
     RecordType.other => '其他',
   };
+}
+
+String? _nullableText(String? value) {
+  final trimmed = value?.trim();
+  if (trimmed == null || trimmed.isEmpty) {
+    return null;
+  }
+
+  return trimmed;
 }
 
 String _formatShortDate(DateTime date) {
