@@ -121,19 +121,172 @@ class _TodayScreenState extends State<TodayScreen> {
                       ? ''
                       : _labelForRiskLevel(card.riskLevel),
                   onCompleteSteps: () {
-                    _completeTask(task, isUsingMockTasks: isUsingMockTasks);
+                    Future<void>.delayed(Duration.zero, () {
+                      if (!mounted) {
+                        return;
+                      }
+
+                      _showCompleteRecordSheet(
+                        task,
+                        isUsingMockTasks: isUsingMockTasks,
+                      );
+                    });
                   },
                 );
               },
               child: TaskCard(
                 task: _taskCardDataFor(task, localItems: localItems),
                 onComplete: () {
-                  _completeTask(task, isUsingMockTasks: isUsingMockTasks);
+                  _showCompleteRecordSheet(
+                    task,
+                    isUsingMockTasks: isUsingMockTasks,
+                  );
                 },
               ),
             ),
       ],
     );
+  }
+
+  Future<void> _showCompleteRecordSheet(
+    maintenance_task.Task task, {
+    required bool isUsingMockTasks,
+  }) async {
+    if (isUsingMockTasks) {
+      await _completeTask(task, isUsingMockTasks: true);
+      return;
+    }
+
+    final workDescriptionController = TextEditingController();
+    final costController = TextEditingController();
+    final vendorNameController = TextEditingController();
+    final partsChangedController = TextEditingController();
+    final noteController = TextEditingController();
+    final resultController = TextEditingController(text: '已完成');
+
+    final shouldComplete = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFFF7F3EA),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (sheetContext) {
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+            16,
+            12,
+            16,
+            MediaQuery.of(sheetContext).viewInsets.bottom + 24,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 42,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFB8CBDC),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  '補充保養維修紀錄',
+                  style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
+                    color: const Color(0xFF263746),
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '本次完成後會先建立基本紀錄，補充欄位將於下一步接入儲存。',
+                  style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFF687887),
+                    height: 1.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                TextField(
+                  controller: workDescriptionController,
+                  maxLines: 3,
+                  decoration: _completeRecordInputDecoration('處理內容'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: costController,
+                  keyboardType: TextInputType.number,
+                  decoration: _completeRecordInputDecoration('費用'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: vendorNameController,
+                  decoration: _completeRecordInputDecoration('店家'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: partsChangedController,
+                  decoration: _completeRecordInputDecoration('更換零件'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: noteController,
+                  maxLines: 3,
+                  decoration: _completeRecordInputDecoration('備註'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: resultController,
+                  decoration: _completeRecordInputDecoration('結果'),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.of(sheetContext).pop(false);
+                        },
+                        child: const Text('取消'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: () {
+                          Navigator.of(sheetContext).pop(true);
+                        },
+                        child: const Text('完成'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    workDescriptionController.dispose();
+    costController.dispose();
+    vendorNameController.dispose();
+    partsChangedController.dispose();
+    noteController.dispose();
+    resultController.dispose();
+
+    if (shouldComplete == true) {
+      if (!mounted) {
+        return;
+      }
+
+      await _completeTask(task, isUsingMockTasks: isUsingMockTasks);
+    }
   }
 
   Future<void> _completeTask(
@@ -330,6 +483,26 @@ String _labelForRiskLevel(RiskLevel riskLevel) {
     RiskLevel.high => '高風險',
     RiskLevel.unknown => '未知風險',
   };
+}
+
+InputDecoration _completeRecordInputDecoration(String label) {
+  return InputDecoration(
+    labelText: label,
+    filled: true,
+    fillColor: const Color(0xFFFFFCF6),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: const BorderSide(color: Color(0xFFE4E0D8)),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: const BorderSide(color: Color(0xFFE4E0D8)),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: const BorderSide(color: Color(0xFF5D7893)),
+    ),
+  );
 }
 
 String _formatDate(DateTime date) {
