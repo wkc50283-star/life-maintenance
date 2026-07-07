@@ -281,6 +281,10 @@ class _TodayScreenState extends State<TodayScreen> {
     resultController.dispose();
 
     if (shouldComplete == true) {
+      if (!mounted) {
+        return;
+      }
+
       await _completeTask(task, isUsingMockTasks: isUsingMockTasks);
     }
   }
