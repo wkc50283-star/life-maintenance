@@ -34,7 +34,7 @@ class SettingsScreen extends StatelessWidget {
     ),
     _SettingCardData(
       title: '版本資訊',
-      content: 'v0.4.0 保養步驟執行版',
+      content: 'v0.5.0 保養紀錄擴充版',
       icon: Icons.info_outline,
       highlighted: false,
     ),
