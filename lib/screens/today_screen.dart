@@ -204,7 +204,7 @@ class _TodayScreenState extends State<TodayScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '本次完成後會先建立基本紀錄，補充欄位將於下一步接入儲存。',
+                  '完成後會建立保養維修紀錄，並保存本次補充欄位。',
                   style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
                     color: const Color(0xFF687887),
                     height: 1.5,
@@ -273,6 +273,15 @@ class _TodayScreenState extends State<TodayScreen> {
       },
     );
 
+    final workDescription = _nullableTrimmedText(
+      workDescriptionController.text,
+    );
+    final cost = _parseOptionalCost(costController.text);
+    final vendorName = _nullableTrimmedText(vendorNameController.text);
+    final partsChanged = _partsChangedFrom(partsChangedController.text);
+    final note = _nullableTrimmedText(noteController.text);
+    final result = _nullableTrimmedText(resultController.text);
+
     workDescriptionController.dispose();
     costController.dispose();
     vendorNameController.dispose();
@@ -285,13 +294,28 @@ class _TodayScreenState extends State<TodayScreen> {
         return;
       }
 
-      await _completeTask(task, isUsingMockTasks: isUsingMockTasks);
+      await _completeTask(
+        task,
+        isUsingMockTasks: isUsingMockTasks,
+        workDescription: workDescription,
+        cost: cost,
+        vendorName: vendorName,
+        partsChanged: partsChanged,
+        note: note,
+        result: result,
+      );
     }
   }
 
   Future<void> _completeTask(
     maintenance_task.Task task, {
     required bool isUsingMockTasks,
+    String? workDescription,
+    int? cost,
+    String? vendorName,
+    List<String> partsChanged = const [],
+    String? note,
+    String? result,
   }) async {
     if (isUsingMockTasks) {
       ScaffoldMessenger.of(
@@ -369,8 +393,12 @@ class _TodayScreenState extends State<TodayScreen> {
           date: now,
           title: task.title,
           createdAt: now,
-          result: '已完成',
-          note: _recordNoteForTask(task),
+          workDescription: workDescription,
+          partsChanged: partsChanged,
+          cost: cost,
+          vendorName: vendorName,
+          result: result ?? '已完成',
+          note: note ?? _recordNoteForTask(task),
         ),
       ];
       await _recordRepository.saveRecords(updatedRecords);
@@ -483,6 +511,33 @@ String _labelForRiskLevel(RiskLevel riskLevel) {
     RiskLevel.high => '高風險',
     RiskLevel.unknown => '未知風險',
   };
+}
+
+String? _nullableTrimmedText(String value) {
+  final trimmed = value.trim();
+  return trimmed.isEmpty ? null : trimmed;
+}
+
+int? _parseOptionalCost(String value) {
+  final trimmed = value.trim();
+  if (trimmed.isEmpty) {
+    return null;
+  }
+
+  return int.tryParse(trimmed);
+}
+
+List<String> _partsChangedFrom(String value) {
+  final trimmed = value.trim();
+  if (trimmed.isEmpty) {
+    return const [];
+  }
+
+  return trimmed
+      .split(RegExp(r'[,，、\n]'))
+      .map((part) => part.trim())
+      .where((part) => part.isNotEmpty)
+      .toList();
 }
 
 InputDecoration _completeRecordInputDecoration(String label) {
