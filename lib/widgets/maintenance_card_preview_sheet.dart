@@ -83,9 +83,14 @@ class _MaintenanceCardPreviewSheetState
   }
 
   bool get _canCompleteSteps {
+    return _canShowCompleteStepsButton &&
+        widget.card.steps.every((step) => _checkedStepIds.contains(step.id));
+  }
+
+  bool get _canShowCompleteStepsButton {
     return _canCheckSteps &&
         widget.card.steps.isNotEmpty &&
-        widget.card.steps.every((step) => _checkedStepIds.contains(step.id));
+        widget.onCompleteSteps != null;
   }
 
   void _toggleStep(String stepId, bool checked) {
@@ -191,7 +196,7 @@ class _MaintenanceCardPreviewSheetState
               const SizedBox(height: 12),
               _SafetyNotice(text: widget.card.safetyNotice!),
             ],
-            if (_canCheckSteps && widget.card.steps.isNotEmpty) ...[
+            if (_canShowCompleteStepsButton) ...[
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
