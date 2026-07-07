@@ -120,6 +120,9 @@ class _TodayScreenState extends State<TodayScreen> {
                   riskLevelLabel: card == null
                       ? ''
                       : _labelForRiskLevel(card.riskLevel),
+                  onCompleteSteps: () {
+                    _completeTask(task, isUsingMockTasks: isUsingMockTasks);
+                  },
                 );
               },
               child: TaskCard(
