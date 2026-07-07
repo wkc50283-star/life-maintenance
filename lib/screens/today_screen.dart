@@ -152,6 +152,11 @@ class _TodayScreenState extends State<TodayScreen> {
     maintenance_task.Task task, {
     required bool isUsingMockTasks,
   }) async {
+    if (isUsingMockTasks) {
+      await _completeTask(task, isUsingMockTasks: true);
+      return;
+    }
+
     final workDescriptionController = TextEditingController();
     final costController = TextEditingController();
     final vendorNameController = TextEditingController();
@@ -199,7 +204,7 @@ class _TodayScreenState extends State<TodayScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '可先補上處理內容、費用與備註，完成後會建立保養維修紀錄。',
+                  '本次完成後會先建立基本紀錄，補充欄位將於下一步接入儲存。',
                   style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
                     color: const Color(0xFF687887),
                     height: 1.5,
