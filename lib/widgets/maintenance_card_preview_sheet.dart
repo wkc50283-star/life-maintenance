@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/enums.dart';
 import '../models/item.dart';
 import '../models/maintenance_card.dart';
+import 'maintenance_step_tiles.dart';
 
 void showMaintenanceCardPreview(
   BuildContext context, {
@@ -183,15 +184,21 @@ class _MaintenanceCardPreviewSheetState
             else
               for (final step in widget.card.steps)
                 if (_canCheckSteps)
-                  _StepChecklistTile(
-                    step: step,
+                  MaintenanceStepChecklistTile(
+                    order: step.order,
+                    title: step.title,
+                    description: step.description,
                     checked: _checkedStepIds.contains(step.id),
                     onChanged: (checked) {
                       _toggleStep(step.id, checked);
                     },
                   )
                 else
-                  _StepPreviewTile(step: step),
+                  MaintenanceStepPreviewTile(
+                    order: step.order,
+                    title: step.title,
+                    description: step.description,
+                  ),
             if (widget.card.safetyNotice != null) ...[
               const SizedBox(height: 12),
               _SafetyNotice(text: widget.card.safetyNotice!),
@@ -239,142 +246,6 @@ class _PreviewTag extends StatelessWidget {
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
               color: const Color(0xFF4D5D6B),
               fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StepChecklistTile extends StatelessWidget {
-  final MaintenanceStep step;
-  final bool checked;
-  final ValueChanged<bool> onChanged;
-
-  const _StepChecklistTile({
-    required this.step,
-    required this.checked,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: checked ? const Color(0xFFE8F0F6) : const Color(0xFFFFFCF6),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: checked ? const Color(0xFFB8CBDC) : const Color(0xFFE4E0D8),
-        ),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: () {
-          onChanged(!checked);
-        },
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Checkbox(
-              value: checked,
-              onChanged: (value) {
-                onChanged(value ?? false);
-              },
-              activeColor: const Color(0xFF5D7893),
-              visualDensity: VisualDensity.compact,
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${step.order}. ${step.title}',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xFF263746),
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  if (step.description.isNotEmpty) ...[
-                    const SizedBox(height: 5),
-                    Text(
-                      step.description,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFF687887),
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _StepPreviewTile extends StatelessWidget {
-  final MaintenanceStep step;
-
-  const _StepPreviewTile({required this.step});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFCF6),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE4E0D8)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 28,
-            height: 28,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE8F0F6),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              step.order.toString(),
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: const Color(0xFF5D7893),
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  step.title,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF263746),
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                if (step.description.isNotEmpty) ...[
-                  const SizedBox(height: 5),
-                  Text(
-                    step.description,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: const Color(0xFF687887),
-                      height: 1.4,
-                    ),
-                  ),
-                ],
-              ],
             ),
           ),
         ],
