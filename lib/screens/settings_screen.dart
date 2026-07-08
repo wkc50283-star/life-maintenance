@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../widgets/demo_data_notice.dart';
+import '../widgets/safety_guide_sheet.dart';
 import '../widgets/setting_card.dart';
 import '../widgets/settings_header.dart';
 
@@ -50,11 +51,19 @@ class SettingsScreen extends StatelessWidget {
         const DemoDataNotice(),
         const SizedBox(height: 18),
         for (final setting in _settings)
-          SettingCard(
-            title: setting.title,
-            content: setting.content,
-            icon: setting.icon,
-            highlighted: setting.highlighted,
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: setting.highlighted
+                ? () {
+                    showSafetyGuideSheet(context);
+                  }
+                : null,
+            child: SettingCard(
+              title: setting.title,
+              content: setting.content,
+              icon: setting.icon,
+              highlighted: setting.highlighted,
+            ),
           ),
       ],
     );
