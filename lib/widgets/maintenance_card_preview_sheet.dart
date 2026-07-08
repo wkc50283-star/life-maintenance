@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/enums.dart';
 import '../models/item.dart';
 import '../models/maintenance_card.dart';
+import 'maintenance_preview_notices.dart';
 import 'maintenance_step_tiles.dart';
 
 void showMaintenanceCardPreview(
@@ -149,15 +150,15 @@ class _MaintenanceCardPreviewSheetState
             spacing: 8,
             runSpacing: 8,
             children: [
-              _PreviewTag(
+              MaintenancePreviewTag(
                 icon: Icons.category_outlined,
                 label: widget.maintenanceTypeLabel,
               ),
-              _PreviewTag(
+              MaintenancePreviewTag(
                 icon: Icons.health_and_safety_outlined,
                 label: widget.riskLevelLabel,
               ),
-              _PreviewTag(
+              MaintenancePreviewTag(
                 icon: Icons.schedule_outlined,
                 label: '預估 ${widget.card.estimatedMinutes} 分鐘',
               ),
@@ -165,10 +166,10 @@ class _MaintenanceCardPreviewSheetState
           ),
           const SizedBox(height: 18),
           if (_shouldHideSteps) ...[
-            const _HighRiskNotice(),
+            const HighRiskMaintenanceNotice(),
             if (widget.card.safetyNotice != null) ...[
               const SizedBox(height: 12),
-              _SafetyNotice(text: widget.card.safetyNotice!),
+              MaintenanceSafetyNotice(text: widget.card.safetyNotice!),
             ],
           ] else ...[
             Text(
@@ -180,7 +181,7 @@ class _MaintenanceCardPreviewSheetState
             ),
             const SizedBox(height: 10),
             if (widget.card.steps.isEmpty)
-              const _EmptyStepsNotice()
+              const EmptyMaintenanceStepsNotice()
             else
               for (final step in widget.card.steps)
                 if (_canCheckSteps)
@@ -201,7 +202,7 @@ class _MaintenanceCardPreviewSheetState
                   ),
             if (widget.card.safetyNotice != null) ...[
               const SizedBox(height: 12),
-              _SafetyNotice(text: widget.card.safetyNotice!),
+              MaintenanceSafetyNotice(text: widget.card.safetyNotice!),
             ],
             if (_canShowCompleteStepsButton) ...[
               const SizedBox(height: 16),
@@ -215,107 +216,6 @@ class _MaintenanceCardPreviewSheetState
               ),
             ],
           ],
-        ],
-      ),
-    );
-  }
-}
-
-class _PreviewTag extends StatelessWidget {
-  final IconData icon;
-  final String label;
-
-  const _PreviewTag({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFCF6),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFE4E0D8)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 15, color: const Color(0xFF5D7893)),
-          const SizedBox(width: 5),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: const Color(0xFF4D5D6B),
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HighRiskNotice extends StatelessWidget {
-  const _HighRiskNotice();
-
-  @override
-  Widget build(BuildContext context) {
-    return _NoticeBox(
-      icon: Icons.shield_outlined,
-      text: '此項目屬於高風險或未知風險，請尋求合格專業人員協助。',
-    );
-  }
-}
-
-class _SafetyNotice extends StatelessWidget {
-  final String text;
-
-  const _SafetyNotice({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return _NoticeBox(icon: Icons.info_outline, text: text);
-  }
-}
-
-class _EmptyStepsNotice extends StatelessWidget {
-  const _EmptyStepsNotice();
-
-  @override
-  Widget build(BuildContext context) {
-    return _NoticeBox(icon: Icons.notes_outlined, text: '目前沒有步驟內容。');
-  }
-}
-
-class _NoticeBox extends StatelessWidget {
-  final IconData icon;
-  final String text;
-
-  const _NoticeBox({required this.icon, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFE8F0F6),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFD6E2EC)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: const Color(0xFF5D7893), size: 20),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              text,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: const Color(0xFF506272),
-                height: 1.5,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
         ],
       ),
     );
