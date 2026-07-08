@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/enums.dart';
 import '../models/item.dart';
 import '../models/maintenance_card.dart';
+import 'maintenance_preview_header.dart';
 import 'maintenance_preview_notices.dart';
 import 'maintenance_step_tiles.dart';
 
@@ -117,34 +118,10 @@ class _MaintenanceCardPreviewSheetState
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Center(
-            child: Container(
-              width: 42,
-              height: 4,
-              decoration: BoxDecoration(
-                color: const Color(0xFFB8CBDC),
-                borderRadius: BorderRadius.circular(999),
-              ),
-            ),
+          MaintenancePreviewHeader(
+            title: widget.card.title,
+            itemName: widget.item?.name,
           ),
-          const SizedBox(height: 18),
-          Text(
-            widget.card.title,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: const Color(0xFF263746),
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          if (widget.item != null) ...[
-            const SizedBox(height: 6),
-            Text(
-              widget.item!.name,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: const Color(0xFF687887),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
           const SizedBox(height: 16),
           Wrap(
             spacing: 8,
