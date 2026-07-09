@@ -11,6 +11,7 @@ class HistoryRecordCard extends StatelessWidget {
   final String? costLabel;
   final String? photoLabel;
   final IconData icon;
+  final VoidCallback? onTap;
 
   const HistoryRecordCard({
     super.key,
@@ -24,92 +25,96 @@ class HistoryRecordCard extends StatelessWidget {
     required this.costLabel,
     required this.photoLabel,
     required this.icon,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE8F0F6),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Icon(icon, color: const Color(0xFF5D7893)),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              color: const Color(0xFF263746),
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                            ),
-                      ),
-                      const SizedBox(height: 7),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          _SoftTag(label: date),
-                          _SoftTag(label: recordType),
-                          _SoftTag(label: itemName),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                _ResultTag(label: result),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              description,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: const Color(0xFF4D5D6B),
-                height: 1.4,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            if (detailLines.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              for (final line in detailLines) _DetailLine(text: line),
-            ],
-            if (costLabel != null || photoLabel != null) ...[
-              const SizedBox(height: 14),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (costLabel != null)
-                    _MetaTag(
-                      icon: Icons.payments_outlined,
-                      label: costLabel!,
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F0F6),
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                  if (photoLabel != null)
-                    _MetaTag(
-                      icon: Icons.photo_library_outlined,
-                      label: photoLabel!,
+                    child: Icon(icon, color: const Color(0xFF5D7893)),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                color: const Color(0xFF263746),
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                              ),
+                        ),
+                        const SizedBox(height: 7),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _SoftTag(label: date),
+                            _SoftTag(label: recordType),
+                            _SoftTag(label: itemName),
+                          ],
+                        ),
+                      ],
                     ),
+                  ),
+                  _ResultTag(label: result),
                 ],
               ),
+              const SizedBox(height: 16),
+              Text(
+                description,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: const Color(0xFF4D5D6B),
+                  height: 1.4,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (detailLines.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                for (final line in detailLines) _DetailLine(text: line),
+              ],
+              if (costLabel != null || photoLabel != null) ...[
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    if (costLabel != null)
+                      _MetaTag(
+                        icon: Icons.payments_outlined,
+                        label: costLabel!,
+                      ),
+                    if (photoLabel != null)
+                      _MetaTag(
+                        icon: Icons.photo_library_outlined,
+                        label: photoLabel!,
+                      ),
+                  ],
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

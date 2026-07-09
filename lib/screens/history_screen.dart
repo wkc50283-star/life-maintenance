@@ -12,6 +12,7 @@ import '../widgets/history_category_chips.dart';
 import '../widgets/history_header.dart';
 import '../widgets/history_month_section.dart';
 import '../widgets/history_record_card.dart';
+import '../widgets/maintenance_record_detail_sheet.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -88,6 +89,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     costLabel: record.costLabel,
                     photoLabel: record.photoLabel,
                     icon: record.icon,
+                    onTap: () {
+                      showMaintenanceRecordDetailSheet(
+                        context,
+                        data: record.detail,
+                      );
+                    },
                   ),
               ],
             ),
@@ -114,6 +121,7 @@ class _HistoryEntryData {
   final String? costLabel;
   final String? photoLabel;
   final IconData icon;
+  final MaintenanceRecordDetailData detail;
 
   const _HistoryEntryData({
     required this.date,
@@ -126,6 +134,7 @@ class _HistoryEntryData {
     required this.costLabel,
     required this.photoLabel,
     required this.icon,
+    required this.detail,
   });
 }
 
@@ -182,6 +191,61 @@ _HistoryEntryData _historyEntryFor(MaintenanceRecord record, List<Item> items) {
     costLabel: record.cost == null ? null : '費用：${record.cost}',
     photoLabel: record.photos.isEmpty ? null : '照片 ${record.photos.length} 張',
     icon: _iconForItem(item),
+    detail: _detailDataFor(record),
+  );
+}
+
+MaintenanceRecordDetailData _detailDataFor(MaintenanceRecord record) {
+  final result = _nullableText(record.result) ?? '已記錄';
+  final partsChanged = record.partsChanged
+      .map((part) => part.trim())
+      .where((part) => part.isNotEmpty)
+      .toList();
+
+  return MaintenanceRecordDetailData(
+    title: record.title,
+    recordType: _labelForRecordType(record.recordType),
+    date: _formatDate(record.date),
+    result: result,
+    rows: [
+      MaintenanceRecordDetailRow(label: '紀錄 ID', value: record.id),
+      MaintenanceRecordDetailRow(label: '物品 ID', value: record.itemId),
+      if (_nullableText(record.taskId) != null)
+        MaintenanceRecordDetailRow(label: '任務 ID', value: record.taskId!),
+      if (_nullableText(record.issueDescription) != null)
+        MaintenanceRecordDetailRow(
+          label: '問題描述',
+          value: record.issueDescription!.trim(),
+        ),
+      if (_nullableText(record.workDescription) != null)
+        MaintenanceRecordDetailRow(
+          label: '處理內容',
+          value: record.workDescription!.trim(),
+        ),
+      if (partsChanged.isNotEmpty)
+        MaintenanceRecordDetailRow(
+          label: '更換零件',
+          value: partsChanged.join('、'),
+        ),
+      if (record.cost != null)
+        MaintenanceRecordDetailRow(label: '費用', value: record.cost.toString()),
+      if (_nullableText(record.vendorName) != null)
+        MaintenanceRecordDetailRow(
+          label: '店家',
+          value: record.vendorName!.trim(),
+        ),
+      if (record.warrantyUntil != null)
+        MaintenanceRecordDetailRow(
+          label: '保固到期',
+          value: _formatDate(record.warrantyUntil!),
+        ),
+      if (_nullableText(record.note) != null)
+        MaintenanceRecordDetailRow(label: '備註', value: record.note!.trim()),
+      MaintenanceRecordDetailRow(
+        label: '建立日期',
+        value: _formatDate(record.createdAt),
+      ),
+    ],
   );
 }
 
@@ -230,4 +294,10 @@ String _formatShortDate(DateTime date) {
   final month = date.month.toString().padLeft(2, '0');
   final day = date.day.toString().padLeft(2, '0');
   return '$month/$day';
+}
+
+String _formatDate(DateTime date) {
+  final month = date.month.toString().padLeft(2, '0');
+  final day = date.day.toString().padLeft(2, '0');
+  return '${date.year}/$month/$day';
 }
