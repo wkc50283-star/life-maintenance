@@ -54,7 +54,7 @@ class _AddItemPreviewFormState extends State<_AddItemPreviewForm> {
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('請輸入物品名稱'),
+          content: Text('請輸入項目名稱'),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -82,7 +82,7 @@ class _AddItemPreviewFormState extends State<_AddItemPreviewForm> {
     Navigator.of(context).pop();
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('物品已儲存'),
+        content: Text('項目已儲存'),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -117,7 +117,7 @@ class _AddItemPreviewFormState extends State<_AddItemPreviewForm> {
           ),
           const SizedBox(height: 18),
           Text(
-            '新增物品預覽',
+            '新增項目預覽',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
               color: const Color(0xFF263746),
               fontWeight: FontWeight.w800,
@@ -132,7 +132,7 @@ class _AddItemPreviewFormState extends State<_AddItemPreviewForm> {
             ),
           ),
           const SizedBox(height: 18),
-          PreviewTextField(label: '物品名稱', controller: _nameController),
+          PreviewTextField(label: '項目名稱', controller: _nameController),
           const SizedBox(height: 12),
           PreviewCategoryDropdown(
             value: _category,

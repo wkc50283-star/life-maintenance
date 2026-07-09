@@ -16,7 +16,7 @@ class ItemsHeader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '我的物品',
+            '我的項目',
             style: TextStyle(
               color: Color(0xFF263746),
               fontSize: 28,
@@ -26,7 +26,7 @@ class ItemsHeader extends StatelessWidget {
           ),
           SizedBox(height: 8),
           Text(
-            '一個物品，一組提醒，一份長期紀錄。',
+            '一個項目，一組提醒，一份長期紀錄。',
             style: TextStyle(
               color: Color(0xFF687887),
               fontSize: 15,

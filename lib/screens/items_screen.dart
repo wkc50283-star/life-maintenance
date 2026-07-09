@@ -91,7 +91,7 @@ class _EmptyItemsState extends StatelessWidget {
         border: Border.all(color: const Color(0xFFE4E0D8)),
       ),
       child: Text(
-        '目前還沒有物品。',
+        '目前還沒有項目。',
         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
           color: const Color(0xFF687887),
           fontWeight: FontWeight.w600,
