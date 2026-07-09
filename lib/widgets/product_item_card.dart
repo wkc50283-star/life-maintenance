@@ -7,6 +7,7 @@ class ProductItemCard extends StatelessWidget {
   final String location;
   final String dateLine;
   final IconData icon;
+  final VoidCallback? onTap;
 
   const ProductItemCard({
     super.key,
@@ -16,65 +17,69 @@ class ProductItemCard extends StatelessWidget {
     required this.location,
     required this.dateLine,
     required this.icon,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE8F0F6),
-                    borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F0F6),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Icon(
+                      icon,
+                      color: const Color(0xFF5D7893),
+                    ),
                   ),
-                  child: Icon(
-                    icon,
-                    color: const Color(0xFF5D7893),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                color: const Color(0xFF263746),
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                              ),
+                        ),
+                        const SizedBox(height: 7),
+                        _InfoPill(label: categoryLabel),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              color: const Color(0xFF263746),
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                            ),
-                      ),
-                      const SizedBox(height: 7),
-                      _InfoPill(label: categoryLabel),
-                    ],
-                  ),
-                ),
-                _StatusTag(label: statusLabel),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _ItemInfoRow(
-              icon: Icons.place_outlined,
-              text: '位置：$location',
-            ),
-            const SizedBox(height: 10),
-            _ItemInfoRow(
-              icon: Icons.event_available_outlined,
-              text: dateLine,
-            ),
-          ],
+                  _StatusTag(label: statusLabel),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _ItemInfoRow(
+                icon: Icons.place_outlined,
+                text: '位置：$location',
+              ),
+              const SizedBox(height: 10),
+              _ItemInfoRow(
+                icon: Icons.event_available_outlined,
+                text: dateLine,
+              ),
+            ],
+          ),
         ),
       ),
     );
