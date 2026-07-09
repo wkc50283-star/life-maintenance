@@ -16,10 +16,14 @@ class TaskLocalRepository {
       return <Task>[];
     }
 
-    final decodedTasks = jsonDecode(rawTasks) as List<dynamic>;
-    return decodedTasks
-        .map((task) => Task.fromJson(task as Map<String, dynamic>))
-        .toList();
+    try {
+      final decodedTasks = jsonDecode(rawTasks) as List<dynamic>;
+      return decodedTasks
+          .map((task) => Task.fromJson(task as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      return <Task>[];
+    }
   }
 
   Future<void> saveTasks(List<Task> tasks) async {

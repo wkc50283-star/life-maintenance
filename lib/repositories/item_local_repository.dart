@@ -16,10 +16,14 @@ class ItemLocalRepository {
       return <Item>[];
     }
 
-    final decodedItems = jsonDecode(rawItems) as List<dynamic>;
-    return decodedItems
-        .map((item) => Item.fromJson(item as Map<String, dynamic>))
-        .toList();
+    try {
+      final decodedItems = jsonDecode(rawItems) as List<dynamic>;
+      return decodedItems
+          .map((item) => Item.fromJson(item as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      return <Item>[];
+    }
   }
 
   Future<void> saveItems(List<Item> items) async {

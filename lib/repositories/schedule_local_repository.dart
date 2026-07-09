@@ -16,12 +16,16 @@ class ScheduleLocalRepository {
       return <Schedule>[];
     }
 
-    final decodedSchedules = jsonDecode(rawSchedules) as List<dynamic>;
-    return decodedSchedules
-        .map(
-          (schedule) => Schedule.fromJson(schedule as Map<String, dynamic>),
-        )
-        .toList();
+    try {
+      final decodedSchedules = jsonDecode(rawSchedules) as List<dynamic>;
+      return decodedSchedules
+          .map(
+            (schedule) => Schedule.fromJson(schedule as Map<String, dynamic>),
+          )
+          .toList();
+    } catch (_) {
+      return <Schedule>[];
+    }
   }
 
   Future<void> saveSchedules(List<Schedule> schedules) async {

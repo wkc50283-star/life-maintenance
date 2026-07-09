@@ -16,13 +16,17 @@ class MaintenanceRecordLocalRepository {
       return <MaintenanceRecord>[];
     }
 
-    final decodedRecords = jsonDecode(rawRecords) as List<dynamic>;
-    return decodedRecords
-        .map(
-          (record) =>
-              MaintenanceRecord.fromJson(record as Map<String, dynamic>),
-        )
-        .toList();
+    try {
+      final decodedRecords = jsonDecode(rawRecords) as List<dynamic>;
+      return decodedRecords
+          .map(
+            (record) =>
+                MaintenanceRecord.fromJson(record as Map<String, dynamic>),
+          )
+          .toList();
+    } catch (_) {
+      return <MaintenanceRecord>[];
+    }
   }
 
   Future<void> saveRecords(List<MaintenanceRecord> records) async {
