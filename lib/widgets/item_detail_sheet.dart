@@ -68,6 +68,53 @@ class _ItemDetailSheet extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           for (final row in data.rows) _ItemDetailRow(row: row),
+          const SizedBox(height: 8),
+          const _MaintenanceRecordsPlaceholder(),
+        ],
+      ),
+    );
+  }
+}
+
+class _MaintenanceRecordsPlaceholder extends StatelessWidget {
+  const _MaintenanceRecordsPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFCF6),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE4E0D8)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '保養紀錄',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              color: const Color(0xFF263746),
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '目前尚無保養紀錄',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: const Color(0xFF4D5D6B),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '之後完成保養時，紀錄會出現在這裡。',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: const Color(0xFF687887),
+              height: 1.4,
+            ),
+          ),
         ],
       ),
     );
