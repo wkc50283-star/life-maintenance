@@ -31,8 +31,8 @@ class AddScreen extends StatelessWidget {
         const SizedBox(height: 20),
         AddEntryCard(
           icon: Icons.add_a_photo_outlined,
-          title: '新增物品',
-          description: '拍照建立物品，設定保養提醒。',
+          title: '新增項目',
+          description: '建立項目，設定提醒與紀錄。',
           onTap: () => showAddItemPreviewSheet(context),
         ),
         AddEntryCard(
