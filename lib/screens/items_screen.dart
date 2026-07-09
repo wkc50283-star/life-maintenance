@@ -7,6 +7,7 @@ import '../repositories/item_local_repository.dart';
 import '../services/local_storage_service.dart';
 import '../widgets/items_category_chips.dart';
 import '../widgets/items_header.dart';
+import '../widgets/item_detail_sheet.dart';
 import '../widgets/product_item_card.dart';
 
 class ItemsScreen extends StatefulWidget {
@@ -72,6 +73,9 @@ class _ItemsScreenState extends State<ItemsScreen> {
               location: item.location ?? '未設定',
               dateLine: _dateLineForItem(item),
               icon: _iconForCategory(item.category),
+              onTap: () {
+                showItemDetailSheet(context, data: _itemDetailDataFor(item));
+              },
             ),
       ],
     );
@@ -138,8 +142,49 @@ String _dateLineForItem(Item item) {
   return '建立日期：${_formatDate(item.createdAt)}';
 }
 
+ItemDetailData _itemDetailDataFor(Item item) {
+  return ItemDetailData(
+    title: '項目詳情',
+    rows: [
+      ItemDetailRow(label: '名稱', value: item.name),
+      ItemDetailRow(label: '分類', value: _labelForCategory(item.category)),
+      ItemDetailRow(label: '狀態', value: _labelForStatus(item.status)),
+      ItemDetailRow(label: '位置', value: _nullableText(item.location) ?? '未設定'),
+      ItemDetailRow(label: '建立日期', value: _formatDate(item.createdAt)),
+      ItemDetailRow(
+        label: '購買日期',
+        value: _formatOptionalDate(item.purchaseDate),
+      ),
+      ItemDetailRow(
+        label: '保固到期',
+        value: _formatOptionalDate(item.warrantyEndDate),
+      ),
+      ItemDetailRow(
+        label: '管理年限',
+        value: item.expectedLifeYears == null
+            ? '未設定'
+            : '${item.expectedLifeYears} 年',
+      ),
+      ItemDetailRow(label: '備註', value: _nullableText(item.note) ?? '未設定'),
+    ],
+  );
+}
+
+String _formatOptionalDate(DateTime? date) {
+  return date == null ? '未設定' : _formatDate(date);
+}
+
 String _formatDate(DateTime date) {
   final month = date.month.toString().padLeft(2, '0');
   final day = date.day.toString().padLeft(2, '0');
   return '${date.year}/$month/$day';
+}
+
+String? _nullableText(String? value) {
+  final trimmed = value?.trim();
+  if (trimmed == null || trimmed.isEmpty) {
+    return null;
+  }
+
+  return trimmed;
 }
