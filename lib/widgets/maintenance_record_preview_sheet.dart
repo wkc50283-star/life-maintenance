@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../data/mock_data.dart';
 import '../models/enums.dart';
 import '../models/maintenance_record.dart';
 import '../repositories/maintenance_record_local_repository.dart';
@@ -55,12 +54,23 @@ class _MaintenanceRecordPreviewFormState
   }
 
   Future<void> _saveRecord(BuildContext context) async {
+    final itemId = _itemId;
+    if (itemId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('請選擇項目'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     final now = DateTime.now();
     final repository = MaintenanceRecordLocalRepository(LocalStorageService());
     final records = await repository.loadRecords();
     final record = MaintenanceRecord(
       id: now.millisecondsSinceEpoch.toString(),
-      itemId: _itemId ?? MockData.items.first.id,
+      itemId: itemId,
       recordType: _recordTypeForLabel(_recordType),
       date: now,
       title: _recordType ?? '完成紀錄',
