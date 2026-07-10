@@ -63,7 +63,7 @@ class _MaintenanceRecordPreviewFormState
       itemId: _itemId ?? MockData.items.first.id,
       recordType: _recordTypeForLabel(_recordType),
       date: now,
-      title: _recordType ?? '保養/維修紀錄',
+      title: _recordType ?? '完成紀錄',
       workDescription: _workDescriptionController.text,
       cost: int.tryParse(_costController.text.trim()),
       note: _noteController.text,
@@ -79,7 +79,7 @@ class _MaintenanceRecordPreviewFormState
     Navigator.of(context).pop();
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('保養維修紀錄已儲存'),
+        content: Text('完成紀錄已儲存'),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -114,7 +114,7 @@ class _MaintenanceRecordPreviewFormState
           ),
           const SizedBox(height: 18),
           Text(
-            '保養/維修紀錄預覽',
+            '完成紀錄',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
               color: const Color(0xFF263746),
               fontWeight: FontWeight.w800,
@@ -122,7 +122,7 @@ class _MaintenanceRecordPreviewFormState
           ),
           const SizedBox(height: 6),
           Text(
-            '記下處理內容與費用後，按下預覽完成會儲存到本機。',
+            '記下已完成的處理內容、費用與備註，按下儲存後會保存到本機。',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: const Color(0xFF687887),
               height: 1.4,
@@ -178,7 +178,7 @@ class _MaintenanceRecordPreviewFormState
               Expanded(
                 child: FilledButton(
                   onPressed: () => _saveRecord(context),
-                  child: const Text('預覽完成'),
+                  child: const Text('儲存'),
                 ),
               ),
             ],
