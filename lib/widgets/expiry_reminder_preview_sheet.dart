@@ -56,7 +56,7 @@ class _ExpiryReminderPreviewFormState
     if (itemId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('請選擇物品'),
+          content: Text('請選擇項目'),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -67,7 +67,7 @@ class _ExpiryReminderPreviewFormState
     if (dueDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('請輸入正確到期日期'),
+          content: Text('請輸入正確日期'),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -97,7 +97,7 @@ class _ExpiryReminderPreviewFormState
     Navigator.of(context).pop();
     messenger.showSnackBar(
       const SnackBar(
-        content: Text('到期提醒已儲存'),
+        content: Text('需要你記住的事已儲存'),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -122,7 +122,7 @@ class _ExpiryReminderPreviewFormState
           ),
           const SizedBox(height: 18),
           Text(
-            '到期提醒預覽',
+            '需要你記住的事',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
               color: const Color(0xFF263746),
               fontWeight: FontWeight.w800,
@@ -130,7 +130,7 @@ class _ExpiryReminderPreviewFormState
           ),
           const SizedBox(height: 6),
           Text(
-            '填寫到期資訊後，按下預覽完成會儲存到本機。',
+            '記下到期日、保固、證件、合約等需要留意的時間，完成後會儲存到本機。',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: const Color(0xFF687887),
               height: 1.4,
@@ -146,9 +146,9 @@ class _ExpiryReminderPreviewFormState
             },
           ),
           const SizedBox(height: 12),
-          PreviewTextField(label: '提醒名稱', controller: _titleController),
+          PreviewTextField(label: '事項名稱', controller: _titleController),
           const SizedBox(height: 12),
-          PreviewTextField(label: '到期日期', controller: _dueDateController),
+          PreviewTextField(label: '提醒日期', controller: _dueDateController),
           const SizedBox(height: 12),
           const PreviewAdvanceReminderDropdown(),
           const SizedBox(height: 12),
@@ -175,7 +175,7 @@ class _ExpiryReminderPreviewFormState
               Expanded(
                 child: FilledButton(
                   onPressed: () => _saveSchedule(context),
-                  child: const Text('預覽完成'),
+                  child: const Text('儲存'),
                 ),
               ),
             ],
