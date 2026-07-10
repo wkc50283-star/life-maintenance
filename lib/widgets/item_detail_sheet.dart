@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'maintenance_record_detail_sheet.dart';
+
 class ItemDetailData {
   final String title;
   final List<ItemDetailRow> rows;
@@ -24,17 +26,22 @@ class ItemDetailMaintenanceRecord {
   final String title;
   final String recordType;
   final String result;
+  final MaintenanceRecordDetailData detail;
 
   const ItemDetailMaintenanceRecord({
     required this.date,
     required this.title,
     required this.recordType,
     required this.result,
+    required this.detail,
   });
 }
 
-void showItemDetailSheet(BuildContext context, {required ItemDetailData data}) {
-  showModalBottomSheet<void>(
+Future<ItemDetailMaintenanceRecord?> showItemDetailSheet(
+  BuildContext context, {
+  required ItemDetailData data,
+}) {
+  return showModalBottomSheet<ItemDetailMaintenanceRecord>(
     context: context,
     isScrollControlled: true,
     backgroundColor: const Color(0xFFF7F3EA),
@@ -153,36 +160,40 @@ class _MaintenanceRecordSummaryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(top: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF7F3EA),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE4E0D8)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            record.title,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: const Color(0xFF263746),
-              fontWeight: FontWeight.w800,
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: () => Navigator.of(context).pop(record),
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(top: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF7F3EA),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE4E0D8)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              record.title,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: const Color(0xFF263746),
+                fontWeight: FontWeight.w800,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _RecordSummaryTag(label: record.date),
-              _RecordSummaryTag(label: record.recordType),
-              _RecordSummaryTag(label: record.result),
-            ],
-          ),
-        ],
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _RecordSummaryTag(label: record.date),
+                _RecordSummaryTag(label: record.recordType),
+                _RecordSummaryTag(label: record.result),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
