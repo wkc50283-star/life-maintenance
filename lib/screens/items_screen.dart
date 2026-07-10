@@ -10,6 +10,7 @@ import '../services/local_storage_service.dart';
 import '../widgets/items_category_chips.dart';
 import '../widgets/items_header.dart';
 import '../widgets/item_detail_sheet.dart';
+import '../widgets/maintenance_record_detail_sheet.dart';
 import '../widgets/product_item_card.dart';
 
 class ItemsScreen extends StatefulWidget {
@@ -83,13 +84,21 @@ class _ItemsScreenState extends State<ItemsScreen> {
               location: item.location ?? '未設定',
               dateLine: _dateLineForItem(item),
               icon: _iconForCategory(item.category),
-              onTap: () {
+              onTap: () async {
                 final itemRecords = records
                     .where((record) => record.itemId == item.id)
                     .toList();
-                showItemDetailSheet(
+                final selectedRecord = await showItemDetailSheet(
                   context,
                   data: _itemDetailDataFor(item, itemRecords),
+                );
+                if (!context.mounted || selectedRecord == null) {
+                  return;
+                }
+
+                showMaintenanceRecordDetailSheet(
+                  context,
+                  data: selectedRecord.detail,
                 );
               },
             ),
@@ -192,7 +201,62 @@ ItemDetailData _itemDetailDataFor(Item item, List<MaintenanceRecord> records) {
           title: record.title,
           recordType: _labelForRecordType(record.recordType),
           result: _nullableText(record.result) ?? '已記錄',
+          detail: _detailDataFor(record),
         ),
+    ],
+  );
+}
+
+MaintenanceRecordDetailData _detailDataFor(MaintenanceRecord record) {
+  final result = _nullableText(record.result) ?? '已記錄';
+  final partsChanged = record.partsChanged
+      .map((part) => part.trim())
+      .where((part) => part.isNotEmpty)
+      .toList();
+
+  return MaintenanceRecordDetailData(
+    title: record.title,
+    recordType: _labelForRecordType(record.recordType),
+    date: _formatDate(record.date),
+    result: result,
+    rows: [
+      MaintenanceRecordDetailRow(label: '紀錄 ID', value: record.id),
+      MaintenanceRecordDetailRow(label: '物品 ID', value: record.itemId),
+      if (_nullableText(record.taskId) != null)
+        MaintenanceRecordDetailRow(label: '任務 ID', value: record.taskId!),
+      if (_nullableText(record.issueDescription) != null)
+        MaintenanceRecordDetailRow(
+          label: '問題描述',
+          value: record.issueDescription!.trim(),
+        ),
+      if (_nullableText(record.workDescription) != null)
+        MaintenanceRecordDetailRow(
+          label: '處理內容',
+          value: record.workDescription!.trim(),
+        ),
+      if (partsChanged.isNotEmpty)
+        MaintenanceRecordDetailRow(
+          label: '更換零件',
+          value: partsChanged.join('、'),
+        ),
+      if (record.cost != null)
+        MaintenanceRecordDetailRow(label: '費用', value: record.cost.toString()),
+      if (_nullableText(record.vendorName) != null)
+        MaintenanceRecordDetailRow(
+          label: '店家',
+          value: record.vendorName!.trim(),
+        ),
+      if (record.warrantyUntil != null)
+        MaintenanceRecordDetailRow(
+          label: '保固到期',
+          value: _formatDate(record.warrantyUntil!),
+        ),
+      if (_nullableText(record.note) != null)
+        MaintenanceRecordDetailRow(label: '備註', value: record.note!.trim()),
+      MaintenanceRecordDetailRow(
+        label: '建立日期',
+        value: _formatDate(record.createdAt),
+      ),
     ],
   );
 }
