@@ -3,8 +3,13 @@ import 'package:flutter/material.dart';
 class ItemDetailData {
   final String title;
   final List<ItemDetailRow> rows;
+  final List<ItemDetailMaintenanceRecord> maintenanceRecords;
 
-  const ItemDetailData({required this.title, required this.rows});
+  const ItemDetailData({
+    required this.title,
+    required this.rows,
+    this.maintenanceRecords = const [],
+  });
 }
 
 class ItemDetailRow {
@@ -12,6 +17,20 @@ class ItemDetailRow {
   final String value;
 
   const ItemDetailRow({required this.label, required this.value});
+}
+
+class ItemDetailMaintenanceRecord {
+  final String date;
+  final String title;
+  final String recordType;
+  final String result;
+
+  const ItemDetailMaintenanceRecord({
+    required this.date,
+    required this.title,
+    required this.recordType,
+    required this.result,
+  });
 }
 
 void showItemDetailSheet(BuildContext context, {required ItemDetailData data}) {
@@ -69,15 +88,17 @@ class _ItemDetailSheet extends StatelessWidget {
           const SizedBox(height: 18),
           for (final row in data.rows) _ItemDetailRow(row: row),
           const SizedBox(height: 8),
-          const _MaintenanceRecordsPlaceholder(),
+          _MaintenanceRecordsSection(records: data.maintenanceRecords),
         ],
       ),
     );
   }
 }
 
-class _MaintenanceRecordsPlaceholder extends StatelessWidget {
-  const _MaintenanceRecordsPlaceholder();
+class _MaintenanceRecordsSection extends StatelessWidget {
+  final List<ItemDetailMaintenanceRecord> records;
+
+  const _MaintenanceRecordsSection({required this.records});
 
   @override
   Widget build(BuildContext context) {
@@ -93,29 +114,99 @@ class _MaintenanceRecordsPlaceholder extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '保養紀錄',
+            '處理紀錄',
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
               color: const Color(0xFF263746),
               fontWeight: FontWeight.w800,
             ),
           ),
           const SizedBox(height: 8),
+          if (records.isEmpty) ...[
+            Text(
+              '目前尚無處理紀錄',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: const Color(0xFF4D5D6B),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '之後完成處理時，紀錄會出現在這裡。',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: const Color(0xFF687887),
+                height: 1.4,
+              ),
+            ),
+          ] else
+            for (final record in records)
+              _MaintenanceRecordSummaryTile(record: record),
+        ],
+      ),
+    );
+  }
+}
+
+class _MaintenanceRecordSummaryTile extends StatelessWidget {
+  final ItemDetailMaintenanceRecord record;
+
+  const _MaintenanceRecordSummaryTile({required this.record});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F3EA),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE4E0D8)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Text(
-            '目前尚無保養紀錄',
+            record.title,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: const Color(0xFF4D5D6B),
-              fontWeight: FontWeight.w700,
+              color: const Color(0xFF263746),
+              fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            '之後完成保養時，紀錄會出現在這裡。',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: const Color(0xFF687887),
-              height: 1.4,
-            ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _RecordSummaryTag(label: record.date),
+              _RecordSummaryTag(label: record.recordType),
+              _RecordSummaryTag(label: record.result),
+            ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _RecordSummaryTag extends StatelessWidget {
+  final String label;
+
+  const _RecordSummaryTag({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8F0F6),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          color: const Color(0xFF5D7893),
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }

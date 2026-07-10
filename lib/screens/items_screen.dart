@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../data/mock_data.dart';
 import '../models/enums.dart';
 import '../models/item.dart';
+import '../models/maintenance_record.dart';
 import '../repositories/item_local_repository.dart';
+import '../repositories/maintenance_record_local_repository.dart';
 import '../services/local_storage_service.dart';
 import '../widgets/items_category_chips.dart';
 import '../widgets/items_header.dart';
@@ -20,40 +22,48 @@ class ItemsScreen extends StatefulWidget {
 }
 
 class _ItemsScreenState extends State<ItemsScreen> {
-  final ItemLocalRepository _repository = ItemLocalRepository(
+  final ItemLocalRepository _itemRepository = ItemLocalRepository(
     LocalStorageService(),
   );
+  final MaintenanceRecordLocalRepository _recordRepository =
+      MaintenanceRecordLocalRepository(LocalStorageService());
   List<Item>? _localItems;
+  List<MaintenanceRecord>? _localRecords;
 
   @override
   void initState() {
     super.initState();
-    _loadItems();
+    _loadLocalData();
   }
 
   @override
   void activate() {
     super.activate();
-    _loadItems();
+    _loadLocalData();
   }
 
-  Future<void> _loadItems() async {
-    final items = await _repository.loadItems();
+  Future<void> _loadLocalData() async {
+    final items = await _itemRepository.loadItems();
+    final records = await _recordRepository.loadRecords();
     if (!mounted) {
       return;
     }
 
     setState(() {
       _localItems = items;
+      _localRecords = records;
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final localItems = _localItems;
-    final items = localItems == null || localItems.isEmpty
-        ? MockData.items
-        : localItems;
+    final isUsingMockItems = localItems == null || localItems.isEmpty;
+    final items = isUsingMockItems ? MockData.items : localItems;
+    final localRecords = _localRecords;
+    final records = isUsingMockItems
+        ? MockData.maintenanceRecords
+        : localRecords ?? <MaintenanceRecord>[];
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -74,7 +84,13 @@ class _ItemsScreenState extends State<ItemsScreen> {
               dateLine: _dateLineForItem(item),
               icon: _iconForCategory(item.category),
               onTap: () {
-                showItemDetailSheet(context, data: _itemDetailDataFor(item));
+                final itemRecords = records
+                    .where((record) => record.itemId == item.id)
+                    .toList();
+                showItemDetailSheet(
+                  context,
+                  data: _itemDetailDataFor(item, itemRecords),
+                );
               },
             ),
       ],
@@ -142,7 +158,9 @@ String _dateLineForItem(Item item) {
   return '建立日期：${_formatDate(item.createdAt)}';
 }
 
-ItemDetailData _itemDetailDataFor(Item item) {
+ItemDetailData _itemDetailDataFor(Item item, List<MaintenanceRecord> records) {
+  final sortedRecords = [...records]..sort((a, b) => b.date.compareTo(a.date));
+
   return ItemDetailData(
     title: '項目詳情',
     rows: [
@@ -167,7 +185,28 @@ ItemDetailData _itemDetailDataFor(Item item) {
       ),
       ItemDetailRow(label: '備註', value: _nullableText(item.note) ?? '未設定'),
     ],
+    maintenanceRecords: [
+      for (final record in sortedRecords)
+        ItemDetailMaintenanceRecord(
+          date: _formatDate(record.date),
+          title: record.title,
+          recordType: _labelForRecordType(record.recordType),
+          result: _nullableText(record.result) ?? '已記錄',
+        ),
+    ],
   );
+}
+
+String _labelForRecordType(RecordType type) {
+  return switch (type) {
+    RecordType.regularMaintenance => '保養',
+    RecordType.failure => '故障',
+    RecordType.repair => '維修',
+    RecordType.partsReplacement => '更換',
+    RecordType.expiryHandled => '到期提醒',
+    RecordType.construction => '施工',
+    RecordType.other => '其他',
+  };
 }
 
 String _formatOptionalDate(DateTime? date) {
