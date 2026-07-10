@@ -8,6 +8,7 @@ class Schedule {
   final int interval;
   final DateTime startDate;
   final DateTime nextDueDate;
+  final String? title;
   final String? reminderTime;
   final bool enabled;
   final bool strictPeriodMode;
@@ -20,6 +21,7 @@ class Schedule {
     required this.interval,
     required this.startDate,
     required this.nextDueDate,
+    this.title,
     this.reminderTime,
     this.enabled = true,
     this.strictPeriodMode = false,
@@ -34,6 +36,7 @@ class Schedule {
       interval: json['interval'] as int,
       startDate: DateTime.parse(json['startDate'] as String),
       nextDueDate: DateTime.parse(json['nextDueDate'] as String),
+      title: json['title'] as String?,
       reminderTime: json['reminderTime'] as String?,
       enabled: json['enabled'] as bool,
       strictPeriodMode: json['strictPeriodMode'] as bool,
@@ -49,6 +52,7 @@ class Schedule {
       'interval': interval,
       'startDate': startDate.toIso8601String(),
       'nextDueDate': nextDueDate.toIso8601String(),
+      'title': title,
       'reminderTime': reminderTime,
       'enabled': enabled,
       'strictPeriodMode': strictPeriodMode,
@@ -63,6 +67,7 @@ class Schedule {
     int? interval,
     DateTime? startDate,
     DateTime? nextDueDate,
+    String? title,
     String? reminderTime,
     bool? enabled,
     bool? strictPeriodMode,
@@ -75,6 +80,7 @@ class Schedule {
       interval: interval ?? this.interval,
       startDate: startDate ?? this.startDate,
       nextDueDate: nextDueDate ?? this.nextDueDate,
+      title: title ?? this.title,
       reminderTime: reminderTime ?? this.reminderTime,
       enabled: enabled ?? this.enabled,
       strictPeriodMode: strictPeriodMode ?? this.strictPeriodMode,

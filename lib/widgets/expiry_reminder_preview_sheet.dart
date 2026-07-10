@@ -75,6 +75,7 @@ class _ExpiryReminderPreviewFormState
     }
 
     final now = DateTime.now();
+    final title = _titleController.text.trim();
     final repository = ScheduleLocalRepository(LocalStorageService());
     final schedules = await repository.loadSchedules();
     final schedule = Schedule(
@@ -85,6 +86,7 @@ class _ExpiryReminderPreviewFormState
       interval: 1,
       startDate: now,
       nextDueDate: dueDate,
+      title: title.isEmpty ? null : title,
     );
 
     await repository.saveSchedules([...schedules, schedule]);

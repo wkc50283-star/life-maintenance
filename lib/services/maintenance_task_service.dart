@@ -35,7 +35,7 @@ class MaintenanceTaskService {
           itemId: schedule.itemId,
           cardId: schedule.cardId,
           scheduleId: schedule.id,
-          title: '保養提醒',
+          title: _taskTitleFor(schedule),
           dueDate: schedule.nextDueDate,
           status: overdue ? TaskStatus.overdue : TaskStatus.pending,
           overdue: overdue,
@@ -52,5 +52,18 @@ class MaintenanceTaskService {
 
   bool _isSameDay(DateTime firstDate, DateTime secondDate) {
     return _dateOnly(firstDate) == _dateOnly(secondDate);
+  }
+
+  String _taskTitleFor(Schedule schedule) {
+    final title = schedule.title?.trim();
+    if (title != null && title.isNotEmpty) {
+      return title;
+    }
+
+    if (schedule.cardId == 'manual-expiry-reminder') {
+      return '需要你記住的事';
+    }
+
+    return '保養提醒';
   }
 }
