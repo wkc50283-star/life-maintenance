@@ -82,7 +82,7 @@ class _AddItemPreviewFormState extends State<_AddItemPreviewForm> {
     Navigator.of(context).pop();
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('項目已儲存'),
+        content: Text('已先放著'),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -117,7 +117,7 @@ class _AddItemPreviewFormState extends State<_AddItemPreviewForm> {
           ),
           const SizedBox(height: 18),
           Text(
-            '新增項目預覽',
+            '先放著',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
               color: const Color(0xFF263746),
               fontWeight: FontWeight.w800,
@@ -125,7 +125,7 @@ class _AddItemPreviewFormState extends State<_AddItemPreviewForm> {
           ),
           const SizedBox(height: 6),
           Text(
-            '填寫基本資料後，按下預覽完成會儲存到本機。',
+            '先留下名稱，需要時再回來補充或安排。',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: const Color(0xFF687887),
               height: 1.4,
@@ -170,7 +170,7 @@ class _AddItemPreviewFormState extends State<_AddItemPreviewForm> {
               Expanded(
                 child: FilledButton(
                   onPressed: () => _saveItem(context),
-                  child: const Text('預覽完成'),
+                  child: const Text('儲存'),
                 ),
               ),
             ],
