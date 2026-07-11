@@ -60,7 +60,7 @@ Future<CompletionRecordSheetData?> showCompletionRecordSheet(
               ),
               const SizedBox(height: 18),
               Text(
-                '補充保養維修紀錄',
+                '補充完成紀錄',
                 style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
                   color: const Color(0xFF263746),
                   fontWeight: FontWeight.w800,
@@ -68,7 +68,7 @@ Future<CompletionRecordSheetData?> showCompletionRecordSheet(
               ),
               const SizedBox(height: 6),
               Text(
-                '完成後會建立保養維修紀錄，並保存本次補充欄位。',
+                '完成後會建立一筆紀錄，並保存本次補充欄位。',
                 style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
                   color: const Color(0xFF687887),
                   height: 1.5,
@@ -139,9 +139,7 @@ Future<CompletionRecordSheetData?> showCompletionRecordSheet(
 
   final data = shouldComplete == true
       ? CompletionRecordSheetData(
-          workDescription: _nullableTrimmedText(
-            workDescriptionController.text,
-          ),
+          workDescription: _nullableTrimmedText(workDescriptionController.text),
           cost: _parseOptionalCost(costController.text),
           vendorName: _nullableTrimmedText(vendorNameController.text),
           partsChanged: _partsChangedFrom(partsChangedController.text),

@@ -16,7 +16,7 @@ class HistoryHeader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '保養履歷',
+            '履歷',
             style: TextStyle(
               color: Color(0xFF263746),
               fontSize: 28,
@@ -26,7 +26,7 @@ class HistoryHeader extends StatelessWidget {
           ),
           SizedBox(height: 8),
           Text(
-            '修過什麼、換過什麼、花多少錢，都留在這裡。',
+            '完成過的處理、費用、結果與備註，都會整理在這裡。',
             style: TextStyle(
               color: Color(0xFF687887),
               fontSize: 15,
