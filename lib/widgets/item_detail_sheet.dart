@@ -6,11 +6,13 @@ class ItemDetailData {
   final String title;
   final List<ItemDetailRow> rows;
   final List<ItemDetailMaintenanceRecord> maintenanceRecords;
+  final List<ItemDetailReminder> reminders;
 
   const ItemDetailData({
     required this.title,
     required this.rows,
     this.maintenanceRecords = const [],
+    this.reminders = const [],
   });
 }
 
@@ -34,6 +36,18 @@ class ItemDetailMaintenanceRecord {
     required this.recordType,
     required this.result,
     required this.detail,
+  });
+}
+
+class ItemDetailReminder {
+  final String title;
+  final String dueDate;
+  final String status;
+
+  const ItemDetailReminder({
+    required this.title,
+    required this.dueDate,
+    required this.status,
   });
 }
 
@@ -95,7 +109,101 @@ class _ItemDetailSheet extends StatelessWidget {
           const SizedBox(height: 18),
           for (final row in data.rows) _ItemDetailRow(row: row),
           const SizedBox(height: 8),
+          _RemindersSection(reminders: data.reminders),
+          const SizedBox(height: 10),
           _MaintenanceRecordsSection(records: data.maintenanceRecords),
+        ],
+      ),
+    );
+  }
+}
+
+class _RemindersSection extends StatelessWidget {
+  final List<ItemDetailReminder> reminders;
+
+  const _RemindersSection({required this.reminders});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFCF6),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE4E0D8)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '需要你記住的事',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              color: const Color(0xFF263746),
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (reminders.isEmpty)
+            Text(
+              '目前沒有需要你記住的事',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: const Color(0xFF4D5D6B),
+                fontWeight: FontWeight.w700,
+              ),
+            )
+          else
+            for (final reminder in reminders)
+              _ReminderSummaryTile(reminder: reminder),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReminderSummaryTile extends StatelessWidget {
+  final ItemDetailReminder reminder;
+
+  const _ReminderSummaryTile({required this.reminder});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F3EA),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE4E0D8)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '事項名稱',
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: const Color(0xFF5D7893),
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            reminder.title,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: const Color(0xFF263746),
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _RecordSummaryTag(label: '提醒日期：${reminder.dueDate}'),
+              _RecordSummaryTag(label: '狀態：${reminder.status}'),
+            ],
+          ),
         ],
       ),
     );

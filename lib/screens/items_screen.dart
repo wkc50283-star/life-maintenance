@@ -4,8 +4,10 @@ import '../data/mock_data.dart';
 import '../models/enums.dart';
 import '../models/item.dart';
 import '../models/maintenance_record.dart';
+import '../models/schedule.dart';
 import '../repositories/item_local_repository.dart';
 import '../repositories/maintenance_record_local_repository.dart';
+import '../repositories/schedule_local_repository.dart';
 import '../services/local_storage_service.dart';
 import '../widgets/items_category_chips.dart';
 import '../widgets/items_header.dart';
@@ -28,8 +30,12 @@ class _ItemsScreenState extends State<ItemsScreen> {
   );
   final MaintenanceRecordLocalRepository _recordRepository =
       MaintenanceRecordLocalRepository(LocalStorageService());
+  final ScheduleLocalRepository _scheduleRepository = ScheduleLocalRepository(
+    LocalStorageService(),
+  );
   List<Item>? _localItems;
   List<MaintenanceRecord>? _localRecords;
+  List<Schedule>? _localSchedules;
 
   @override
   void initState() {
@@ -46,6 +52,7 @@ class _ItemsScreenState extends State<ItemsScreen> {
   Future<void> _loadLocalData() async {
     final items = await _itemRepository.loadItems();
     final records = await _recordRepository.loadRecords();
+    final schedules = await _scheduleRepository.loadSchedules();
     if (!mounted) {
       return;
     }
@@ -53,6 +60,7 @@ class _ItemsScreenState extends State<ItemsScreen> {
     setState(() {
       _localItems = items;
       _localRecords = records;
+      _localSchedules = schedules;
     });
   }
 
@@ -65,6 +73,10 @@ class _ItemsScreenState extends State<ItemsScreen> {
     final records = isUsingMockItems
         ? MockData.maintenanceRecords
         : localRecords ?? <MaintenanceRecord>[];
+    final localSchedules = _localSchedules;
+    final schedules = isUsingMockItems
+        ? MockData.schedules
+        : localSchedules ?? <Schedule>[];
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -88,9 +100,16 @@ class _ItemsScreenState extends State<ItemsScreen> {
                 final itemRecords = records
                     .where((record) => record.itemId == item.id)
                     .toList();
+                final itemSchedules = schedules
+                    .where(
+                      (schedule) =>
+                          schedule.itemId == item.id &&
+                          schedule.cardId == 'manual-expiry-reminder',
+                    )
+                    .toList();
                 final selectedRecord = await showItemDetailSheet(
                   context,
-                  data: _itemDetailDataFor(item, itemRecords),
+                  data: _itemDetailDataFor(item, itemRecords, itemSchedules),
                 );
                 if (!context.mounted || selectedRecord == null) {
                   return;
@@ -167,8 +186,14 @@ String _dateLineForItem(Item item) {
   return '建立日期：${_formatDate(item.createdAt)}';
 }
 
-ItemDetailData _itemDetailDataFor(Item item, List<MaintenanceRecord> records) {
+ItemDetailData _itemDetailDataFor(
+  Item item,
+  List<MaintenanceRecord> records,
+  List<Schedule> schedules,
+) {
   final sortedRecords = [...records]..sort((a, b) => b.date.compareTo(a.date));
+  final sortedSchedules = [...schedules]
+    ..sort((a, b) => a.nextDueDate.compareTo(b.nextDueDate));
 
   return ItemDetailData(
     title: '項目詳情',
@@ -202,6 +227,14 @@ ItemDetailData _itemDetailDataFor(Item item, List<MaintenanceRecord> records) {
           recordType: _labelForRecordType(record.recordType),
           result: _nullableText(record.result) ?? '已記錄',
           detail: _detailDataFor(record),
+        ),
+    ],
+    reminders: [
+      for (final schedule in sortedSchedules)
+        ItemDetailReminder(
+          title: _nullableText(schedule.title) ?? '需要你記住的事',
+          dueDate: _formatDate(schedule.nextDueDate),
+          status: _labelForScheduleStatus(schedule),
         ),
     ],
   );
@@ -281,6 +314,18 @@ String _formatDate(DateTime date) {
   final month = date.month.toString().padLeft(2, '0');
   final day = date.day.toString().padLeft(2, '0');
   return '${date.year}/$month/$day';
+}
+
+String _labelForScheduleStatus(Schedule schedule) {
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final dueDate = DateTime(
+    schedule.nextDueDate.year,
+    schedule.nextDueDate.month,
+    schedule.nextDueDate.day,
+  );
+
+  return dueDate.isAfter(today) ? '尚未到期' : '已到期';
 }
 
 String? _nullableText(String? value) {
