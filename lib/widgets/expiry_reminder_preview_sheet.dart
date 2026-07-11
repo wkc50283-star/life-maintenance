@@ -40,14 +40,12 @@ class _ExpiryReminderPreviewFormState
     extends State<_ExpiryReminderPreviewForm> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _dueDateController = TextEditingController();
-  final TextEditingController _noteController = TextEditingController();
   String? _itemId;
 
   @override
   void dispose() {
     _titleController.dispose();
     _dueDateController.dispose();
-    _noteController.dispose();
     super.dispose();
   }
 
@@ -152,14 +150,6 @@ class _ExpiryReminderPreviewFormState
           PreviewTextField(label: '事項名稱', controller: _titleController),
           const SizedBox(height: 12),
           PreviewTextField(label: '提醒日期', controller: _dueDateController),
-          const SizedBox(height: 12),
-          const PreviewAdvanceReminderDropdown(),
-          const SizedBox(height: 12),
-          PreviewTextField(
-            label: '備註',
-            controller: _noteController,
-            maxLines: 3,
-          ),
           const SizedBox(height: 20),
           Row(
             children: [
