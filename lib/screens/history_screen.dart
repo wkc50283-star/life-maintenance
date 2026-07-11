@@ -38,6 +38,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
     _loadLocalData();
   }
 
+  @override
+  void activate() {
+    super.activate();
+    _loadLocalData();
+  }
+
   Future<void> _loadLocalData() async {
     final records = await _recordRepository.loadRecords();
     final items = await _itemRepository.loadItems();
