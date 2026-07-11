@@ -296,7 +296,7 @@ class _TodayScreenState extends State<TodayScreen> {
 
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('已完成任務並建立紀錄')));
+      ).showSnackBar(const SnackBar(content: Text('已完成任務並建立紀錄，可到履歷查看')));
     } finally {
       _completingTaskIds.remove(task.id);
     }
