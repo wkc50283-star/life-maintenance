@@ -101,7 +101,11 @@ class _ItemsScreenState extends State<ItemsScreen> {
                     .where((record) => record.itemId == item.id)
                     .toList();
                 final itemSchedules = schedules
-                    .where((schedule) => schedule.itemId == item.id)
+                    .where(
+                      (schedule) =>
+                          schedule.itemId == item.id &&
+                          schedule.cardId == 'manual-expiry-reminder',
+                    )
                     .toList();
                 final selectedRecord = await showItemDetailSheet(
                   context,
