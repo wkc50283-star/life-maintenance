@@ -108,8 +108,11 @@ class _TodayScreenState extends State<TodayScreen> {
             GestureDetector(
               onTap: () {
                 if (_isManualExpiryReminderTask(task)) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('這是到期提醒，請確認後再記錄處理結果')),
+                  final item = _itemForTask(task, localItems: localItems);
+                  _showManualExpiryReminderDetailSheet(
+                    context,
+                    task: task,
+                    item: item,
                   );
                   return;
                 }
@@ -297,6 +300,116 @@ class _TodayScreenState extends State<TodayScreen> {
     } finally {
       _completingTaskIds.remove(task.id);
     }
+  }
+}
+
+void _showManualExpiryReminderDetailSheet(
+  BuildContext context, {
+  required maintenance_task.Task task,
+  required Item? item,
+}) {
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: const Color(0xFFF7F3EA),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    ),
+    builder: (sheetContext) {
+      return Padding(
+        padding: EdgeInsets.fromLTRB(
+          16,
+          12,
+          16,
+          MediaQuery.of(sheetContext).viewInsets.bottom + 24,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 42,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFB8CBDC),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                '需要你記住的事',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: const Color(0xFF263746),
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 18),
+              _ManualExpiryReminderDetailRow(label: '事項名稱', value: task.title),
+              _ManualExpiryReminderDetailRow(
+                label: '所屬項目',
+                value: item?.name ?? '未命名物品',
+              ),
+              _ManualExpiryReminderDetailRow(
+                label: '提醒日期',
+                value: _formatDate(task.dueDate),
+              ),
+              _ManualExpiryReminderDetailRow(
+                label: '狀態',
+                value: _labelForStatus(task.status),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+class _ManualExpiryReminderDetailRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _ManualExpiryReminderDetailRow({
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFCF6),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE4E0D8)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: const Color(0xFF5D7893),
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: const Color(0xFF263746),
+              height: 1.4,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
