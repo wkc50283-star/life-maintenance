@@ -50,6 +50,12 @@ class _TodayScreenState extends State<TodayScreen> {
     _loadTasks();
   }
 
+  @override
+  void activate() {
+    super.activate();
+    _loadTasks();
+  }
+
   Future<void> _loadTasks() async {
     final items = await _itemRepository.loadItems();
     final schedules = await _scheduleRepository.loadSchedules();
