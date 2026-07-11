@@ -37,10 +37,16 @@ class PreviewAdvanceReminderDropdown extends StatelessWidget {
 }
 
 class PreviewItemDropdown extends StatefulWidget {
-  const PreviewItemDropdown({super.key, this.value, this.onChanged});
+  const PreviewItemDropdown({
+    super.key,
+    this.value,
+    this.onChanged,
+    this.allowMockFallback = true,
+  });
 
   final String? value;
   final ValueChanged<String?>? onChanged;
+  final bool allowMockFallback;
 
   @override
   State<PreviewItemDropdown> createState() => _PreviewItemDropdownState();
@@ -73,8 +79,11 @@ class _PreviewItemDropdownState extends State<PreviewItemDropdown> {
   Widget build(BuildContext context) {
     final localItems = _localItems;
     final items = localItems == null || localItems.isEmpty
-        ? MockData.items
+        ? widget.allowMockFallback
+              ? MockData.items
+              : const <Item>[]
         : localItems;
+    final isDisabled = !widget.allowMockFallback && items.isEmpty;
     final selectedValue = items.any((item) => item.id == widget.value)
         ? widget.value
         : null;
@@ -82,7 +91,7 @@ class _PreviewItemDropdownState extends State<PreviewItemDropdown> {
     return DropdownButtonFormField<String>(
       initialValue: selectedValue,
       decoration: _previewInputDecoration('選擇物品'),
-      hint: const Text('請選擇物品'),
+      hint: Text(isDisabled ? '請先建立「先放著」項目' : '請選擇物品'),
       dropdownColor: const Color(0xFFFFFCF6),
       borderRadius: BorderRadius.circular(16),
       iconEnabledColor: const Color(0xFF5D7893),
@@ -94,7 +103,7 @@ class _PreviewItemDropdownState extends State<PreviewItemDropdown> {
             ),
           )
           .toList(),
-      onChanged: widget.onChanged ?? (_) {},
+      onChanged: isDisabled ? null : widget.onChanged ?? (_) {},
     );
   }
 }
