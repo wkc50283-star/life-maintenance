@@ -317,6 +317,10 @@ String _formatDate(DateTime date) {
 }
 
 String _labelForScheduleStatus(Schedule schedule) {
+  if (!schedule.enabled) {
+    return '已取消';
+  }
+
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
   final dueDate = DateTime(
