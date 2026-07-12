@@ -314,7 +314,8 @@ class _TodayScreenState extends State<TodayScreen> {
       final schedules = await _scheduleRepository.loadSchedules();
       final updatedSchedules = [
         for (final schedule in schedules)
-          schedule.id == task.scheduleId
+          schedule.id == task.scheduleId &&
+                  schedule.cardId == 'manual-expiry-reminder'
               ? schedule.copyWith(enabled: false)
               : schedule,
       ];

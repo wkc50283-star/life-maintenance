@@ -66,6 +66,41 @@ void main() {
     },
   );
 
+  testWidgets(
+    'manual expiry task pointing at maintenance schedule does not disable it',
+    (tester) async {
+      final dueDate = DateTime(2026, 7, 10);
+      await _setLocalData(
+        schedules: [
+          _schedule(
+            id: 'schedule-maintenance',
+            cardId: 'card-aircon-filter-cleaning',
+            nextDueDate: dueDate,
+          ),
+        ],
+        tasks: [
+          _task(
+            id: 'task-manual-bad-schedule',
+            scheduleId: 'schedule-maintenance',
+            dueDate: dueDate,
+          ),
+        ],
+      );
+
+      await _completeVisibleTask(tester);
+
+      final tasks = await _storedTasks();
+      expect(
+        _statusFor(tasks, 'task-manual-bad-schedule'),
+        TaskStatus.completed.name,
+      );
+      final records = await _storedRecords();
+      expect(records.single['taskId'], 'task-manual-bad-schedule');
+      final schedules = await _storedSchedules();
+      expect(_enabledFor(schedules, 'schedule-maintenance'), isTrue);
+    },
+  );
+
   testWidgets('completing a task with empty scheduleId still succeeds', (
     tester,
   ) async {
