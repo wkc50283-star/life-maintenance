@@ -77,6 +77,41 @@ void main() {
   );
 
   testWidgets(
+    'regular maintenance completion sheet defaults to continue cycle',
+    (tester) async {
+      final dueDate = DateTime(2026, 7, 10);
+      await _setLocalData(
+        schedules: [
+          _schedule(
+            id: 'schedule-maintenance',
+            cardId: 'card-aircon-filter-cleaning',
+            nextDueDate: dueDate,
+          ),
+        ],
+        tasks: [
+          _task(
+            id: 'task-maintenance',
+            cardId: 'card-aircon-filter-cleaning',
+            scheduleId: 'schedule-maintenance',
+            title: '保養提醒',
+            dueDate: dueDate,
+          ),
+        ],
+      );
+
+      await _openCompletionSheet(tester);
+
+      expect(find.text('後續安排'), findsOneWidget);
+      expect(find.text('繼續原週期'), findsOneWidget);
+      expect(find.text('結束排程'), findsOneWidget);
+
+      await tester.ensureVisible(find.text('取消'));
+      await tester.tap(find.text('取消'));
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets(
     'completing a regular maintenance task updates only matching schedule',
     (tester) async {
       final dueDate = DateTime(2026, 7, 10);
@@ -114,6 +149,70 @@ void main() {
       expect(_nextDueDateFor(schedules, 'schedule-other'), dueDate);
     },
   );
+
+  testWidgets(
+    'completing a regular maintenance task can end matching schedule',
+    (tester) async {
+      final dueDate = DateTime(2026, 7, 10);
+      await _setLocalData(
+        schedules: [
+          _schedule(
+            id: 'schedule-target',
+            cardId: 'card-aircon-filter-cleaning',
+            nextDueDate: dueDate,
+          ),
+          _schedule(
+            id: 'schedule-other',
+            cardId: 'card-aircon-filter-cleaning',
+            nextDueDate: dueDate,
+          ),
+        ],
+        tasks: [
+          _task(
+            id: 'task-maintenance',
+            cardId: 'card-aircon-filter-cleaning',
+            scheduleId: 'schedule-target',
+            title: '保養提醒',
+            dueDate: dueDate,
+          ),
+        ],
+      );
+
+      await _completeVisibleTaskWithEndSchedule(tester);
+
+      final schedules = await _storedSchedules();
+      expect(_enabledFor(schedules, 'schedule-target'), isFalse);
+      expect(_nextDueDateFor(schedules, 'schedule-target'), dueDate);
+      expect(_enabledFor(schedules, 'schedule-other'), isTrue);
+      expect(_nextDueDateFor(schedules, 'schedule-other'), dueDate);
+    },
+  );
+
+  testWidgets('manual expiry reminder does not show schedule action options', (
+    tester,
+  ) async {
+    final dueDate = DateTime(2026, 7, 10);
+    await _setLocalData(
+      schedules: [_schedule(id: 'schedule-target', nextDueDate: dueDate)],
+      tasks: [
+        _task(
+          id: 'task-target',
+          scheduleId: 'schedule-target',
+          dueDate: dueDate,
+        ),
+      ],
+    );
+
+    await _openCompletionSheet(tester);
+
+    expect(find.text('後續安排'), findsNothing);
+    expect(find.text('繼續原週期'), findsNothing);
+    expect(find.text('結束排程'), findsNothing);
+
+    await tester.ensureVisible(find.text('取消'));
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+  });
 
   testWidgets(
     'manual expiry task pointing at maintenance schedule does not disable it',
@@ -331,17 +430,34 @@ Future<void> _setLocalData({
 }
 
 Future<void> _completeVisibleTask(WidgetTester tester) async {
+  await _openCompletionSheet(tester);
+
+  final sheetCompleteButton = find.text('完成').last;
+  await tester.ensureVisible(sheetCompleteButton);
+  await tester.tap(sheetCompleteButton);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _completeVisibleTaskWithEndSchedule(WidgetTester tester) async {
+  await _openCompletionSheet(tester);
+
+  await tester.ensureVisible(find.text('結束排程'));
+  await tester.tap(find.text('結束排程'));
+  await tester.pumpAndSettle();
+
+  final sheetCompleteButton = find.text('完成').last;
+  await tester.ensureVisible(sheetCompleteButton);
+  await tester.tap(sheetCompleteButton);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _openCompletionSheet(WidgetTester tester) async {
   await tester.pumpWidget(
     const MaterialApp(home: Scaffold(body: TodayScreen())),
   );
   await tester.pumpAndSettle();
 
   await tester.tap(find.text('完成').first);
-  await tester.pumpAndSettle();
-
-  final sheetCompleteButton = find.text('完成').last;
-  await tester.ensureVisible(sheetCompleteButton);
-  await tester.tap(sheetCompleteButton);
   await tester.pumpAndSettle();
 }
 

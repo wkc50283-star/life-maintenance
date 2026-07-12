@@ -168,7 +168,10 @@ class _TodayScreenState extends State<TodayScreen> {
       return;
     }
 
-    final recordData = await showCompletionRecordSheet(context);
+    final recordData = await showCompletionRecordSheet(
+      context,
+      showScheduleAction: !_isManualExpiryReminderTask(task),
+    );
 
     if (recordData == null) {
       return;
@@ -187,6 +190,7 @@ class _TodayScreenState extends State<TodayScreen> {
       partsChanged: recordData.partsChanged,
       note: recordData.note,
       result: recordData.result,
+      scheduleAction: recordData.scheduleAction,
     );
   }
 
@@ -199,6 +203,8 @@ class _TodayScreenState extends State<TodayScreen> {
     List<String> partsChanged = const [],
     String? note,
     String? result,
+    CompletionScheduleAction scheduleAction =
+        CompletionScheduleAction.continueCycle,
   }) async {
     if (isUsingMockTasks) {
       ScaffoldMessenger.of(
@@ -285,8 +291,11 @@ class _TodayScreenState extends State<TodayScreen> {
         ),
       ];
       await _recordRepository.saveRecords(updatedRecords);
-      await _disableCompletedManualReminderSchedule(task);
-      await _advanceCompletedMaintenanceSchedule(task);
+      if (_isManualExpiryReminderTask(task)) {
+        await _disableCompletedManualReminderSchedule(task);
+      } else {
+        await _completeMaintenanceScheduleFollowUp(task, scheduleAction);
+      }
 
       if (!mounted) {
         return;
@@ -367,6 +376,52 @@ class _TodayScreenState extends State<TodayScreen> {
     } catch (_) {
       // Completing the task and creating the record are the durable actions.
       // Schedule advancement must not roll those back if local data is unavailable.
+    }
+  }
+
+  Future<void> _endCompletedMaintenanceSchedule(
+    maintenance_task.Task task,
+  ) async {
+    if (_isManualExpiryReminderTask(task) || task.scheduleId.isEmpty) {
+      return;
+    }
+
+    try {
+      final schedules = await _scheduleRepository.loadSchedules();
+      var didUpdateSchedule = false;
+      final updatedSchedules = <Schedule>[];
+      for (final schedule in schedules) {
+        if (!didUpdateSchedule &&
+            schedule.id == task.scheduleId &&
+            schedule.cardId == task.cardId &&
+            schedule.enabled) {
+          updatedSchedules.add(schedule.copyWith(enabled: false));
+          didUpdateSchedule = true;
+        } else {
+          updatedSchedules.add(schedule);
+        }
+      }
+
+      if (!didUpdateSchedule) {
+        return;
+      }
+
+      await _scheduleRepository.saveSchedules(updatedSchedules);
+    } catch (_) {
+      // Completing the task and creating the record are the durable actions.
+      // Schedule follow-up must not roll those back if local data is unavailable.
+    }
+  }
+
+  Future<void> _completeMaintenanceScheduleFollowUp(
+    maintenance_task.Task task,
+    CompletionScheduleAction scheduleAction,
+  ) async {
+    switch (scheduleAction) {
+      case CompletionScheduleAction.continueCycle:
+        await _advanceCompletedMaintenanceSchedule(task);
+      case CompletionScheduleAction.endSchedule:
+        await _endCompletedMaintenanceSchedule(task);
     }
   }
 }
