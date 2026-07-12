@@ -4,6 +4,7 @@ import '../widgets/add_entry_card.dart';
 import '../widgets/add_item_preview_sheet.dart';
 import '../widgets/expiry_reminder_preview_sheet.dart';
 import '../widgets/maintenance_record_preview_sheet.dart';
+import '../widgets/reminder_list_sheet.dart';
 
 class AddScreen extends StatelessWidget {
   const AddScreen({super.key});
@@ -41,6 +42,15 @@ class AddScreen extends StatelessWidget {
           description: '到期日、保固、證件、合約或其他提醒。',
           onTap: () => showExpiryReminderPreviewSheet(context),
         ),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton.icon(
+            onPressed: () => showReminderListSheet(context),
+            icon: const Icon(Icons.event_note_outlined),
+            label: const Text('查看已建立的提醒'),
+          ),
+        ),
+        const SizedBox(height: 8),
         AddEntryCard(
           icon: Icons.construction_outlined,
           title: '完成紀錄',
