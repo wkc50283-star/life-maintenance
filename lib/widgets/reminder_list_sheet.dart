@@ -130,6 +130,7 @@ class _ReminderListSheetState extends State<_ReminderListSheet> {
                     dueDate: _formatDate(schedule.nextDueDate),
                     status: _statusForSchedule(schedule),
                     onTitleSaved: _loadReminders,
+                    onDateSaved: _loadReminders,
                     onReminderCanceled: _loadReminders,
                   );
                 },
@@ -236,6 +237,7 @@ void _showReminderDetailSheet(
   required String dueDate,
   required String status,
   required Future<void> Function() onTitleSaved,
+  required Future<void> Function() onDateSaved,
   required Future<void> Function() onReminderCanceled,
 }) {
   showModalBottomSheet<void>(
@@ -297,8 +299,23 @@ void _showReminderDetailSheet(
                   label: const Text('編輯名稱'),
                 ),
               ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    _editReminderDate(
+                      sheetContext,
+                      schedule: schedule,
+                      onDateSaved: onDateSaved,
+                    );
+                  },
+                  icon: const Icon(Icons.event_outlined),
+                  label: const Text('編輯提醒日期'),
+                ),
+              ),
               if (schedule.enabled) ...[
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
@@ -519,6 +536,71 @@ Future<void> _cancelReminder(
   Navigator.of(context).pop();
   messenger.showSnackBar(
     const SnackBar(content: Text('提醒已取消'), behavior: SnackBarBehavior.floating),
+  );
+}
+
+Future<void> _editReminderDate(
+  BuildContext context, {
+  required Schedule schedule,
+  required Future<void> Function() onDateSaved,
+}) async {
+  final taskRepository = TaskLocalRepository(LocalStorageService());
+  final tasks = await taskRepository.loadTasks();
+  final hasUnfinishedTask = tasks.any(
+    (task) =>
+        task.scheduleId == schedule.id &&
+        task.status != TaskStatus.completed &&
+        task.status != TaskStatus.canceled,
+  );
+
+  if (!context.mounted) {
+    return;
+  }
+
+  if (hasUnfinishedTask) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('已有待處理提醒，請先完成或取消後再修改日期'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+    return;
+  }
+
+  final selectedDate = await showDatePicker(
+    context: context,
+    initialDate: schedule.nextDueDate,
+    firstDate: DateTime(2000),
+    lastDate: DateTime(2100),
+    helpText: '編輯提醒日期',
+  );
+
+  if (selectedDate == null) {
+    return;
+  }
+
+  final repository = ScheduleLocalRepository(LocalStorageService());
+  final schedules = await repository.loadSchedules();
+  final updatedSchedules = [
+    for (final existingSchedule in schedules)
+      existingSchedule.id == schedule.id
+          ? existingSchedule.copyWith(nextDueDate: selectedDate)
+          : existingSchedule,
+  ];
+  await repository.saveSchedules(updatedSchedules);
+  await onDateSaved();
+
+  if (!context.mounted) {
+    return;
+  }
+
+  final messenger = ScaffoldMessenger.of(context);
+  Navigator.of(context).pop();
+  messenger.showSnackBar(
+    const SnackBar(
+      content: Text('提醒日期已更新'),
+      behavior: SnackBarBehavior.floating,
+    ),
   );
 }
 
