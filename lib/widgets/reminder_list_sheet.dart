@@ -119,6 +119,15 @@ class _ReminderListSheetState extends State<_ReminderListSheet> {
                 itemName: _itemNameForSchedule(schedule, items),
                 dueDate: _formatDate(schedule.nextDueDate),
                 status: _statusForSchedule(schedule),
+                onTap: () {
+                  _showReminderDetailSheet(
+                    context,
+                    title: _titleForSchedule(schedule),
+                    itemName: _itemNameForSchedule(schedule, items),
+                    dueDate: _formatDate(schedule.nextDueDate),
+                    status: _statusForSchedule(schedule),
+                  );
+                },
               ),
         ],
       ),
@@ -155,13 +164,128 @@ class _ReminderTile extends StatelessWidget {
   final String itemName;
   final String dueDate;
   final String status;
+  final VoidCallback? onTap;
 
   const _ReminderTile({
     required this.title,
     required this.itemName,
     required this.dueDate,
     required this.status,
+    this.onTap,
   });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFCF6),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE4E0D8)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '事項名稱',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: const Color(0xFF5D7893),
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              title,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: const Color(0xFF263746),
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _ReminderTag(label: '所屬項目：$itemName'),
+                _ReminderTag(label: '提醒日期：$dueDate'),
+                _ReminderTag(label: '狀態：$status'),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+void _showReminderDetailSheet(
+  BuildContext context, {
+  required String title,
+  required String itemName,
+  required String dueDate,
+  required String status,
+}) {
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: const Color(0xFFF7F3EA),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    ),
+    builder: (sheetContext) {
+      return Padding(
+        padding: EdgeInsets.fromLTRB(
+          16,
+          12,
+          16,
+          MediaQuery.of(sheetContext).viewInsets.bottom + 24,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 42,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFB8CBDC),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                '事項詳情',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: const Color(0xFF263746),
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 18),
+              _ReminderDetailRow(label: '事項名稱', value: title),
+              _ReminderDetailRow(label: '所屬項目', value: itemName),
+              _ReminderDetailRow(label: '提醒日期', value: dueDate),
+              _ReminderDetailRow(label: '狀態', value: status),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+class _ReminderDetailRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _ReminderDetailRow({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -178,7 +302,7 @@ class _ReminderTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '事項名稱',
+            label,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
               color: const Color(0xFF5D7893),
               fontWeight: FontWeight.w800,
@@ -186,21 +310,12 @@ class _ReminderTile extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            title,
+            value,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: const Color(0xFF263746),
-              fontWeight: FontWeight.w800,
+              height: 1.4,
+              fontWeight: FontWeight.w600,
             ),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _ReminderTag(label: '所屬項目：$itemName'),
-              _ReminderTag(label: '提醒日期：$dueDate'),
-              _ReminderTag(label: '狀態：$status'),
-            ],
           ),
         ],
       ),
