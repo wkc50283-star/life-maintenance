@@ -378,12 +378,13 @@ void _showEditReminderTitleSheet(
         await repository.saveSchedules(updatedSchedules);
         await onTitleSaved();
 
-        if (!sheetContext.mounted) {
+        if (!sheetContext.mounted || !context.mounted) {
           return;
         }
 
         final messenger = ScaffoldMessenger.of(sheetContext);
         Navigator.of(sheetContext).pop();
+        Navigator.of(context).pop();
         messenger.showSnackBar(
           const SnackBar(
             content: Text('事項名稱已更新'),
