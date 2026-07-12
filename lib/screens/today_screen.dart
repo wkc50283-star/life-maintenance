@@ -284,6 +284,7 @@ class _TodayScreenState extends State<TodayScreen> {
         ),
       ];
       await _recordRepository.saveRecords(updatedRecords);
+      await _disableCompletedManualReminderSchedule(task);
 
       if (!mounted) {
         return;
@@ -299,6 +300,29 @@ class _TodayScreenState extends State<TodayScreen> {
       ).showSnackBar(const SnackBar(content: Text('已完成任務並建立紀錄，可到履歷查看')));
     } finally {
       _completingTaskIds.remove(task.id);
+    }
+  }
+
+  Future<void> _disableCompletedManualReminderSchedule(
+    maintenance_task.Task task,
+  ) async {
+    if (!_isManualExpiryReminderTask(task) || task.scheduleId.isEmpty) {
+      return;
+    }
+
+    try {
+      final schedules = await _scheduleRepository.loadSchedules();
+      final updatedSchedules = [
+        for (final schedule in schedules)
+          schedule.id == task.scheduleId &&
+                  schedule.cardId == 'manual-expiry-reminder'
+              ? schedule.copyWith(enabled: false)
+              : schedule,
+      ];
+      await _scheduleRepository.saveSchedules(updatedSchedules);
+    } catch (_) {
+      // Completing the task and creating the record are the durable actions.
+      // Schedule cleanup must not roll those back if local data is unavailable.
     }
   }
 }
