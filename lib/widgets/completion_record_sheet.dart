@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 
 enum CompletionScheduleAction { continueCycle, endSchedule }
 
+enum CompletionManualReminderAction { endReminder, reschedule }
+
+enum CompletionFollowUpMode { none, maintenanceSchedule, manualReminder }
+
 class CompletionRecordSheetData {
   final String? workDescription;
   final int? cost;
@@ -10,6 +14,8 @@ class CompletionRecordSheetData {
   final String? note;
   final String? result;
   final CompletionScheduleAction scheduleAction;
+  final CompletionManualReminderAction manualReminderAction;
+  final DateTime? rescheduledDate;
 
   const CompletionRecordSheetData({
     required this.workDescription,
@@ -19,12 +25,14 @@ class CompletionRecordSheetData {
     required this.note,
     required this.result,
     required this.scheduleAction,
+    required this.manualReminderAction,
+    required this.rescheduledDate,
   });
 }
 
 Future<CompletionRecordSheetData?> showCompletionRecordSheet(
   BuildContext context, {
-  bool showScheduleAction = false,
+  CompletionFollowUpMode followUpMode = CompletionFollowUpMode.none,
 }) async {
   final workDescriptionController = TextEditingController();
   final costController = TextEditingController();
@@ -33,6 +41,8 @@ Future<CompletionRecordSheetData?> showCompletionRecordSheet(
   final noteController = TextEditingController();
   final resultController = TextEditingController(text: '已完成');
   var scheduleAction = CompletionScheduleAction.continueCycle;
+  var manualReminderAction = CompletionManualReminderAction.endReminder;
+  DateTime? rescheduledDate;
 
   final shouldComplete = await showModalBottomSheet<bool>(
     context: context,
@@ -118,7 +128,8 @@ Future<CompletionRecordSheetData?> showCompletionRecordSheet(
                     controller: resultController,
                     decoration: _completionRecordInputDecoration('結果'),
                   ),
-                  if (showScheduleAction) ...[
+                  if (followUpMode ==
+                      CompletionFollowUpMode.maintenanceSchedule) ...[
                     const SizedBox(height: 18),
                     Text(
                       '後續安排',
@@ -151,6 +162,74 @@ Future<CompletionRecordSheetData?> showCompletionRecordSheet(
                       },
                     ),
                   ],
+                  if (followUpMode ==
+                      CompletionFollowUpMode.manualReminder) ...[
+                    const SizedBox(height: 18),
+                    Text(
+                      '後續安排',
+                      style: Theme.of(sheetContext).textTheme.titleMedium
+                          ?.copyWith(
+                            color: const Color(0xFF263746),
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    _ManualReminderActionOption(
+                      title: '結束提醒',
+                      value: CompletionManualReminderAction.endReminder,
+                      groupValue: manualReminderAction,
+                      onChanged: (value) {
+                        setSheetState(() {
+                          manualReminderAction = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    _ManualReminderActionOption(
+                      title: '重新安排日期',
+                      value: CompletionManualReminderAction.reschedule,
+                      groupValue: manualReminderAction,
+                      onChanged: (value) {
+                        setSheetState(() {
+                          manualReminderAction = value;
+                        });
+                      },
+                    ),
+                    if (manualReminderAction ==
+                        CompletionManualReminderAction.reschedule) ...[
+                      const SizedBox(height: 12),
+                      OutlinedButton(
+                        onPressed: () async {
+                          final today = DateTime.now();
+                          final firstDate = DateTime(
+                            today.year,
+                            today.month,
+                            today.day + 1,
+                          );
+                          final selectedDate = await showDatePicker(
+                            context: sheetContext,
+                            initialDate: rescheduledDate ?? firstDate,
+                            firstDate: firstDate,
+                            lastDate: DateTime(2100),
+                            helpText: '重新安排日期',
+                          );
+
+                          if (selectedDate == null) {
+                            return;
+                          }
+
+                          setSheetState(() {
+                            rescheduledDate = selectedDate;
+                          });
+                        },
+                        child: Text(
+                          rescheduledDate == null
+                              ? '選擇新的提醒日期'
+                              : _formatDate(rescheduledDate!),
+                        ),
+                      ),
+                    ],
+                  ],
                   const SizedBox(height: 20),
                   Row(
                     children: [
@@ -166,6 +245,20 @@ Future<CompletionRecordSheetData?> showCompletionRecordSheet(
                       Expanded(
                         child: FilledButton(
                           onPressed: () {
+                            if (followUpMode ==
+                                    CompletionFollowUpMode.manualReminder &&
+                                manualReminderAction ==
+                                    CompletionManualReminderAction.reschedule &&
+                                rescheduledDate == null) {
+                              ScaffoldMessenger.of(sheetContext).showSnackBar(
+                                const SnackBar(
+                                  content: Text('請選擇新的提醒日期'),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                              return;
+                            }
+
                             Navigator.of(sheetContext).pop(true);
                           },
                           child: const Text('完成'),
@@ -193,6 +286,8 @@ Future<CompletionRecordSheetData?> showCompletionRecordSheet(
           note: _nullableTrimmedText(noteController.text),
           result: _nullableTrimmedText(resultController.text),
           scheduleAction: scheduleAction,
+          manualReminderAction: manualReminderAction,
+          rescheduledDate: rescheduledDate,
         )
       : null;
 
@@ -213,6 +308,53 @@ class _ScheduleActionOption extends StatelessWidget {
   final ValueChanged<CompletionScheduleAction> onChanged;
 
   const _ScheduleActionOption({
+    required this.title,
+    required this.value,
+    required this.groupValue,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () {
+        onChanged(value);
+      },
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFCF6),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE4E0D8)),
+        ),
+        child: Row(
+          children: [
+            _ScheduleActionIndicator(selected: value == groupValue),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                title,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: const Color(0xFF263746),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ManualReminderActionOption extends StatelessWidget {
+  final String title;
+  final CompletionManualReminderAction value;
+  final CompletionManualReminderAction groupValue;
+  final ValueChanged<CompletionManualReminderAction> onChanged;
+
+  const _ManualReminderActionOption({
     required this.title,
     required this.value,
     required this.groupValue,
@@ -284,6 +426,12 @@ class _ScheduleActionIndicator extends StatelessWidget {
           : null,
     );
   }
+}
+
+String _formatDate(DateTime date) {
+  final month = date.month.toString().padLeft(2, '0');
+  final day = date.day.toString().padLeft(2, '0');
+  return '${date.year}/$month/$day';
 }
 
 String? _nullableTrimmedText(String value) {

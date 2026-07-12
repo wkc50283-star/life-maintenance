@@ -188,7 +188,7 @@ void main() {
     },
   );
 
-  testWidgets('manual expiry reminder does not show schedule action options', (
+  testWidgets('manual expiry reminder shows manual reminder action options', (
     tester,
   ) async {
     final dueDate = DateTime(2026, 7, 10);
@@ -205,9 +205,11 @@ void main() {
 
     await _openCompletionSheet(tester);
 
-    expect(find.text('後續安排'), findsNothing);
+    expect(find.text('後續安排'), findsOneWidget);
     expect(find.text('繼續原週期'), findsNothing);
     expect(find.text('結束排程'), findsNothing);
+    expect(find.text('結束提醒'), findsOneWidget);
+    expect(find.text('重新安排日期'), findsOneWidget);
 
     await tester.ensureVisible(find.text('取消'));
     await tester.tap(find.text('取消'));
@@ -248,6 +250,125 @@ void main() {
       expect(_enabledFor(schedules, 'schedule-maintenance'), isTrue);
     },
   );
+
+  testWidgets(
+    'manual expiry reminder can reschedule matching enabled schedule',
+    (tester) async {
+      final dueDate = DateTime(2026, 7, 10);
+      final newDate = _tomorrowDate();
+      await _setLocalData(
+        schedules: [_schedule(id: 'schedule-target', nextDueDate: dueDate)],
+        tasks: [
+          _task(
+            id: 'task-target',
+            scheduleId: 'schedule-target',
+            dueDate: dueDate,
+          ),
+        ],
+      );
+
+      await _completeManualReminderWithReschedule(tester);
+
+      final tasks = await _storedTasks();
+      expect(_statusFor(tasks, 'task-target'), TaskStatus.completed.name);
+      final records = await _storedRecords();
+      expect(records.single['taskId'], 'task-target');
+      final schedules = await _storedSchedules();
+      expect(_enabledFor(schedules, 'schedule-target'), isTrue);
+      expect(_nextDueDateFor(schedules, 'schedule-target'), newDate);
+    },
+  );
+
+  testWidgets(
+    'manual expiry reminder reschedule requires a new reminder date',
+    (tester) async {
+      final dueDate = DateTime(2026, 7, 10);
+      await _setLocalData(
+        schedules: [_schedule(id: 'schedule-target', nextDueDate: dueDate)],
+        tasks: [
+          _task(
+            id: 'task-target',
+            scheduleId: 'schedule-target',
+            dueDate: dueDate,
+          ),
+        ],
+      );
+
+      await _openCompletionSheet(tester);
+      await tester.ensureVisible(find.text('重新安排日期'));
+      await tester.tap(find.text('重新安排日期'));
+      await tester.pumpAndSettle();
+      final sheetCompleteButton = find.text('完成').last;
+      await tester.ensureVisible(sheetCompleteButton);
+      await tester.tap(sheetCompleteButton);
+      await tester.pumpAndSettle();
+
+      expect(find.text('請選擇新的提醒日期'), findsOneWidget);
+      final tasks = await _storedTasks();
+      expect(_statusFor(tasks, 'task-target'), TaskStatus.pending.name);
+      final records = await _storedRecords();
+      expect(records, isEmpty);
+    },
+  );
+
+  testWidgets(
+    'manual expiry reminder reschedule rejects conflicting unfinished task',
+    (tester) async {
+      final dueDate = DateTime(2026, 7, 10);
+      final newDate = _tomorrowDate();
+      await _setLocalData(
+        schedules: [_schedule(id: 'schedule-target', nextDueDate: dueDate)],
+        tasks: [
+          _task(
+            id: 'task-target',
+            scheduleId: 'schedule-target',
+            dueDate: dueDate,
+          ),
+          _task(
+            id: 'task-conflict',
+            scheduleId: 'schedule-target',
+            dueDate: newDate,
+          ),
+        ],
+      );
+
+      await _completeManualReminderWithReschedule(tester);
+
+      expect(find.text('這個日期已有待處理提醒，請選擇其他日期'), findsOneWidget);
+      final tasks = await _storedTasks();
+      expect(_statusFor(tasks, 'task-target'), TaskStatus.pending.name);
+      final records = await _storedRecords();
+      expect(records, isEmpty);
+      final schedules = await _storedSchedules();
+      expect(_nextDueDateFor(schedules, 'schedule-target'), dueDate);
+    },
+  );
+
+  testWidgets('disabled manual schedule does not reschedule', (tester) async {
+    final dueDate = DateTime(2026, 7, 10);
+    await _setLocalData(
+      schedules: [
+        _schedule(id: 'schedule-target', nextDueDate: dueDate, enabled: false),
+      ],
+      tasks: [
+        _task(
+          id: 'task-target',
+          scheduleId: 'schedule-target',
+          dueDate: dueDate,
+        ),
+      ],
+    );
+
+    await _completeManualReminderWithReschedule(tester);
+
+    final tasks = await _storedTasks();
+    expect(_statusFor(tasks, 'task-target'), TaskStatus.completed.name);
+    final records = await _storedRecords();
+    expect(records.single['taskId'], 'task-target');
+    final schedules = await _storedSchedules();
+    expect(_enabledFor(schedules, 'schedule-target'), isFalse);
+    expect(_nextDueDateFor(schedules, 'schedule-target'), dueDate);
+  });
 
   testWidgets('completing a task with empty scheduleId still succeeds', (
     tester,
@@ -451,6 +572,26 @@ Future<void> _completeVisibleTaskWithEndSchedule(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+Future<void> _completeManualReminderWithReschedule(WidgetTester tester) async {
+  await _openCompletionSheet(tester);
+
+  await tester.ensureVisible(find.text('重新安排日期'));
+  await tester.tap(find.text('重新安排日期'));
+  await tester.pumpAndSettle();
+
+  await tester.ensureVisible(find.text('選擇新的提醒日期'));
+  await tester.tap(find.text('選擇新的提醒日期'));
+  await tester.pumpAndSettle();
+
+  await tester.tap(find.text('OK'));
+  await tester.pumpAndSettle();
+
+  final sheetCompleteButton = find.text('完成').last;
+  await tester.ensureVisible(sheetCompleteButton);
+  await tester.tap(sheetCompleteButton);
+  await tester.pumpAndSettle();
+}
+
 Future<void> _openCompletionSheet(WidgetTester tester) async {
   await tester.pumpWidget(
     const MaterialApp(home: Scaffold(body: TodayScreen())),
@@ -459,6 +600,11 @@ Future<void> _openCompletionSheet(WidgetTester tester) async {
 
   await tester.tap(find.text('完成').first);
   await tester.pumpAndSettle();
+}
+
+DateTime _tomorrowDate() {
+  final now = DateTime.now();
+  return DateTime(now.year, now.month, now.day + 1);
 }
 
 Future<List<dynamic>> _storedSchedules() async {
