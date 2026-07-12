@@ -344,8 +344,9 @@ void _showEditReminderTitleSheet(
           return;
         }
 
+        final messenger = ScaffoldMessenger.of(sheetContext);
         Navigator.of(sheetContext).pop();
-        ScaffoldMessenger.of(sheetContext).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(
             content: Text('事項名稱已更新'),
             behavior: SnackBarBehavior.floating,
