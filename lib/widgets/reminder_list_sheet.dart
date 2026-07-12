@@ -122,10 +122,12 @@ class _ReminderListSheetState extends State<_ReminderListSheet> {
                 onTap: () {
                   _showReminderDetailSheet(
                     context,
+                    schedule: schedule,
                     title: _titleForSchedule(schedule),
                     itemName: _itemNameForSchedule(schedule, items),
                     dueDate: _formatDate(schedule.nextDueDate),
                     status: _statusForSchedule(schedule),
+                    onTitleSaved: _loadReminders,
                   );
                 },
               ),
@@ -225,10 +227,12 @@ class _ReminderTile extends StatelessWidget {
 
 void _showReminderDetailSheet(
   BuildContext context, {
+  required Schedule schedule,
   required String title,
   required String itemName,
   required String dueDate,
   required String status,
+  required Future<void> Function() onTitleSaved,
 }) {
   showModalBottomSheet<void>(
     context: context,
@@ -273,12 +277,153 @@ void _showReminderDetailSheet(
               _ReminderDetailRow(label: '所屬項目', value: itemName),
               _ReminderDetailRow(label: '提醒日期', value: dueDate),
               _ReminderDetailRow(label: '狀態', value: status),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    _showEditReminderTitleSheet(
+                      sheetContext,
+                      schedule: schedule,
+                      currentTitle: title,
+                      onTitleSaved: onTitleSaved,
+                    );
+                  },
+                  icon: const Icon(Icons.edit_outlined),
+                  label: const Text('編輯名稱'),
+                ),
+              ),
             ],
           ),
         ),
       );
     },
   );
+}
+
+void _showEditReminderTitleSheet(
+  BuildContext context, {
+  required Schedule schedule,
+  required String currentTitle,
+  required Future<void> Function() onTitleSaved,
+}) {
+  final titleController = TextEditingController(text: currentTitle);
+
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: const Color(0xFFF7F3EA),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    ),
+    builder: (sheetContext) {
+      Future<void> saveTitle() async {
+        final title = titleController.text.trim();
+        if (title.isEmpty) {
+          ScaffoldMessenger.of(sheetContext).showSnackBar(
+            const SnackBar(
+              content: Text('請輸入事項名稱'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          return;
+        }
+
+        final repository = ScheduleLocalRepository(LocalStorageService());
+        final schedules = await repository.loadSchedules();
+        final updatedSchedules = [
+          for (final existingSchedule in schedules)
+            existingSchedule.id == schedule.id
+                ? existingSchedule.copyWith(title: title)
+                : existingSchedule,
+        ];
+        await repository.saveSchedules(updatedSchedules);
+        await onTitleSaved();
+
+        if (!sheetContext.mounted) {
+          return;
+        }
+
+        Navigator.of(sheetContext).pop();
+        ScaffoldMessenger.of(sheetContext).showSnackBar(
+          const SnackBar(
+            content: Text('事項名稱已更新'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+
+      return Padding(
+        padding: EdgeInsets.fromLTRB(
+          16,
+          12,
+          16,
+          MediaQuery.of(sheetContext).viewInsets.bottom + 24,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 42,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFB8CBDC),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                '編輯名稱',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: const Color(0xFF263746),
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 18),
+              TextField(
+                controller: titleController,
+                decoration: InputDecoration(
+                  labelText: '事項名稱',
+                  filled: true,
+                  fillColor: const Color(0xFFFFFCF6),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(color: Color(0xFFE4E0D8)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(color: Color(0xFFE4E0D8)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(sheetContext).pop(),
+                      child: const Text('取消'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: saveTitle,
+                      child: const Text('儲存'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  ).whenComplete(titleController.dispose);
 }
 
 class _ReminderDetailRow extends StatelessWidget {
