@@ -5,6 +5,7 @@ import '../models/enums.dart';
 import '../models/item.dart';
 import '../models/maintenance_card.dart';
 import '../models/maintenance_record.dart';
+import '../models/schedule.dart';
 import '../models/task.dart' as maintenance_task;
 import '../repositories/item_local_repository.dart';
 import '../repositories/maintenance_record_local_repository.dart';
@@ -285,6 +286,7 @@ class _TodayScreenState extends State<TodayScreen> {
       ];
       await _recordRepository.saveRecords(updatedRecords);
       await _disableCompletedManualReminderSchedule(task);
+      await _advanceCompletedMaintenanceSchedule(task);
 
       if (!mounted) {
         return;
@@ -325,6 +327,87 @@ class _TodayScreenState extends State<TodayScreen> {
       // Schedule cleanup must not roll those back if local data is unavailable.
     }
   }
+
+  Future<void> _advanceCompletedMaintenanceSchedule(
+    maintenance_task.Task task,
+  ) async {
+    if (_isManualExpiryReminderTask(task) || task.scheduleId.isEmpty) {
+      return;
+    }
+
+    try {
+      final schedules = await _scheduleRepository.loadSchedules();
+      var didUpdateSchedule = false;
+      final updatedSchedules = <Schedule>[];
+      for (final schedule in schedules) {
+        if (!didUpdateSchedule &&
+            schedule.id == task.scheduleId &&
+            schedule.cardId == task.cardId &&
+            schedule.enabled) {
+          updatedSchedules.add(
+            schedule.copyWith(
+              nextDueDate: _nextDueDateAfter(
+                fromDate: task.dueDate,
+                cycleType: schedule.cycleType,
+                interval: schedule.interval,
+              ),
+            ),
+          );
+          didUpdateSchedule = true;
+        } else {
+          updatedSchedules.add(schedule);
+        }
+      }
+
+      if (!didUpdateSchedule) {
+        return;
+      }
+
+      await _scheduleRepository.saveSchedules(updatedSchedules);
+    } catch (_) {
+      // Completing the task and creating the record are the durable actions.
+      // Schedule advancement must not roll those back if local data is unavailable.
+    }
+  }
+}
+
+DateTime _nextDueDateAfter({
+  required DateTime fromDate,
+  required CycleType cycleType,
+  required int interval,
+}) {
+  final safeInterval = interval <= 0 ? 1 : interval;
+  return switch (cycleType) {
+    CycleType.daily => fromDate.add(Duration(days: safeInterval)),
+    CycleType.weekly => fromDate.add(Duration(days: 7 * safeInterval)),
+    CycleType.monthly => _addMonths(fromDate, safeInterval),
+    CycleType.quarterly => _addMonths(fromDate, 3 * safeInterval),
+    CycleType.semiAnnual => _addMonths(fromDate, 6 * safeInterval),
+    CycleType.yearly => _addMonths(fromDate, 12 * safeInterval),
+    CycleType.custom => fromDate.add(Duration(days: safeInterval)),
+  };
+}
+
+DateTime _addMonths(DateTime date, int months) {
+  final targetMonthIndex = date.month - 1 + months;
+  final targetYear = date.year + targetMonthIndex ~/ 12;
+  final targetMonth = targetMonthIndex % 12 + 1;
+  final targetDay = date.day.clamp(1, _daysInMonth(targetYear, targetMonth));
+
+  return DateTime(
+    targetYear,
+    targetMonth,
+    targetDay,
+    date.hour,
+    date.minute,
+    date.second,
+    date.millisecond,
+    date.microsecond,
+  );
+}
+
+int _daysInMonth(int year, int month) {
+  return DateTime(year, month + 1, 0).day;
 }
 
 void _showManualExpiryReminderDetailSheet(

@@ -7,6 +7,7 @@ import 'package:life_maintenance/models/item.dart';
 import 'package:life_maintenance/models/schedule.dart';
 import 'package:life_maintenance/models/task.dart';
 import 'package:life_maintenance/screens/today_screen.dart';
+import 'package:life_maintenance/services/maintenance_task_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -32,12 +33,13 @@ void main() {
 
       final schedules = await _storedSchedules();
       expect(_enabledFor(schedules, 'schedule-target'), isFalse);
+      expect(_nextDueDateFor(schedules, 'schedule-target'), dueDate);
       expect(_enabledFor(schedules, 'schedule-other'), isTrue);
     },
   );
 
   testWidgets(
-    'completing a regular maintenance task does not disable schedule',
+    'completing a regular maintenance task advances schedule due date',
     (tester) async {
       final dueDate = DateTime(2026, 7, 10);
       await _setLocalData(
@@ -63,6 +65,53 @@ void main() {
 
       final schedules = await _storedSchedules();
       expect(_enabledFor(schedules, 'schedule-maintenance'), isTrue);
+      expect(
+        _nextDueDateFor(schedules, 'schedule-maintenance'),
+        DateTime(2026, 8, 10),
+      );
+      expect(
+        _nextDueDateFor(schedules, 'schedule-maintenance').isAfter(dueDate),
+        isTrue,
+      );
+    },
+  );
+
+  testWidgets(
+    'completing a regular maintenance task updates only matching schedule',
+    (tester) async {
+      final dueDate = DateTime(2026, 7, 10);
+      await _setLocalData(
+        schedules: [
+          _schedule(
+            id: 'schedule-target',
+            cardId: 'card-aircon-filter-cleaning',
+            nextDueDate: dueDate,
+          ),
+          _schedule(
+            id: 'schedule-other',
+            cardId: 'card-aircon-filter-cleaning',
+            nextDueDate: dueDate,
+          ),
+        ],
+        tasks: [
+          _task(
+            id: 'task-maintenance',
+            cardId: 'card-aircon-filter-cleaning',
+            scheduleId: 'schedule-target',
+            title: '保養提醒',
+            dueDate: dueDate,
+          ),
+        ],
+      );
+
+      await _completeVisibleTask(tester);
+
+      final schedules = await _storedSchedules();
+      expect(
+        _nextDueDateFor(schedules, 'schedule-target'),
+        DateTime(2026, 8, 10),
+      );
+      expect(_nextDueDateFor(schedules, 'schedule-other'), dueDate);
     },
   );
 
@@ -147,6 +196,123 @@ void main() {
     final schedules = await _storedSchedules();
     expect(_enabledFor(schedules, 'schedule-unrelated'), isTrue);
   });
+
+  testWidgets('card id mismatch does not update schedule', (tester) async {
+    final dueDate = DateTime(2026, 7, 10);
+    await _setLocalData(
+      schedules: [
+        _schedule(
+          id: 'schedule-maintenance',
+          cardId: 'card-aircon-filter-cleaning',
+          nextDueDate: dueDate,
+        ),
+      ],
+      tasks: [
+        _task(
+          id: 'task-mismatched-card',
+          cardId: 'card-water-heater-check',
+          scheduleId: 'schedule-maintenance',
+          title: '保養提醒',
+          dueDate: dueDate,
+        ),
+      ],
+    );
+
+    await _completeVisibleTask(tester);
+
+    final tasks = await _storedTasks();
+    expect(
+      _statusFor(tasks, 'task-mismatched-card'),
+      TaskStatus.completed.name,
+    );
+    final records = await _storedRecords();
+    expect(records.single['taskId'], 'task-mismatched-card');
+    final schedules = await _storedSchedules();
+    expect(_nextDueDateFor(schedules, 'schedule-maintenance'), dueDate);
+  });
+
+  testWidgets('disabled schedule does not update', (tester) async {
+    final dueDate = DateTime(2026, 7, 10);
+    await _setLocalData(
+      schedules: [
+        _schedule(
+          id: 'schedule-disabled',
+          cardId: 'card-aircon-filter-cleaning',
+          nextDueDate: dueDate,
+          enabled: false,
+        ),
+      ],
+      tasks: [
+        _task(
+          id: 'task-disabled-schedule',
+          cardId: 'card-aircon-filter-cleaning',
+          scheduleId: 'schedule-disabled',
+          title: '保養提醒',
+          dueDate: dueDate,
+        ),
+      ],
+    );
+
+    await _completeVisibleTask(tester);
+
+    final tasks = await _storedTasks();
+    expect(
+      _statusFor(tasks, 'task-disabled-schedule'),
+      TaskStatus.completed.name,
+    );
+    final records = await _storedRecords();
+    expect(records.single['taskId'], 'task-disabled-schedule');
+    final schedules = await _storedSchedules();
+    expect(_nextDueDateFor(schedules, 'schedule-disabled'), dueDate);
+  });
+
+  testWidgets(
+    'advanced schedule can generate a future task when next due date arrives',
+    (tester) async {
+      final dueDate = DateTime(2026, 7, 10);
+      await _setLocalData(
+        schedules: [
+          _schedule(
+            id: 'schedule-maintenance',
+            cardId: 'card-aircon-filter-cleaning',
+            nextDueDate: dueDate,
+          ),
+        ],
+        tasks: [
+          _task(
+            id: 'task-maintenance',
+            cardId: 'card-aircon-filter-cleaning',
+            scheduleId: 'schedule-maintenance',
+            title: '保養提醒',
+            dueDate: dueDate,
+          ),
+        ],
+      );
+
+      await _completeVisibleTask(tester);
+
+      final storedSchedules = await _storedSchedules();
+      final storedTasks = await _storedTasks();
+      final schedules = storedSchedules
+          .cast<Map<String, dynamic>>()
+          .map(Schedule.fromJson)
+          .toList();
+      final tasks = storedTasks
+          .cast<Map<String, dynamic>>()
+          .map(Task.fromJson)
+          .toList();
+
+      final generatedTasks = MaintenanceTaskService().generateDueTasks(
+        schedules: schedules,
+        existingTasks: tasks,
+        today: DateTime(2026, 8, 10),
+      );
+
+      expect(generatedTasks, hasLength(1));
+      expect(generatedTasks.single.scheduleId, 'schedule-maintenance');
+      expect(generatedTasks.single.dueDate, DateTime(2026, 8, 10));
+    },
+  );
 }
 
 Future<void> _setLocalData({
@@ -202,6 +368,13 @@ bool _enabledFor(List<dynamic> schedules, String id) {
   return schedule['enabled'] as bool;
 }
 
+DateTime _nextDueDateFor(List<dynamic> schedules, String id) {
+  final schedule = schedules.cast<Map<String, dynamic>>().singleWhere(
+    (schedule) => schedule['id'] == id,
+  );
+  return DateTime.parse(schedule['nextDueDate'] as String);
+}
+
 String _statusFor(List<dynamic> tasks, String id) {
   final task = tasks.cast<Map<String, dynamic>>().singleWhere(
     (task) => task['id'] == id,
@@ -222,16 +395,20 @@ Schedule _schedule({
   required String id,
   required DateTime nextDueDate,
   String cardId = 'manual-expiry-reminder',
+  bool enabled = true,
 }) {
   return Schedule(
     id: id,
     itemId: 'item-1',
     cardId: cardId,
-    cycleType: CycleType.custom,
+    cycleType: cardId == 'manual-expiry-reminder'
+        ? CycleType.custom
+        : CycleType.monthly,
     interval: 1,
     startDate: DateTime(2026, 7, 1),
     nextDueDate: nextDueDate,
     title: '合約續約',
+    enabled: enabled,
   );
 }
 
