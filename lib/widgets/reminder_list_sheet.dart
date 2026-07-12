@@ -131,6 +131,7 @@ class _ReminderListSheetState extends State<_ReminderListSheet> {
                     status: _statusForSchedule(schedule),
                     onTitleSaved: _loadReminders,
                     onDateSaved: _loadReminders,
+                    onReminderCanceled: _loadReminders,
                   );
                 },
               ),
@@ -237,6 +238,7 @@ void _showReminderDetailSheet(
   required String status,
   required Future<void> Function() onTitleSaved,
   required Future<void> Function() onDateSaved,
+  required Future<void> Function() onReminderCanceled,
 }) {
   showModalBottomSheet<void>(
     context: context,
@@ -312,6 +314,23 @@ void _showReminderDetailSheet(
                   label: const Text('編輯提醒日期'),
                 ),
               ),
+              if (schedule.enabled) ...[
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      _cancelReminder(
+                        sheetContext,
+                        schedule: schedule,
+                        onReminderCanceled: onReminderCanceled,
+                      );
+                    },
+                    icon: const Icon(Icons.cancel_outlined),
+                    label: const Text('取消提醒'),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -444,6 +463,80 @@ void _showEditReminderTitleSheet(
       );
     },
   ).whenComplete(titleController.dispose);
+}
+
+Future<void> _cancelReminder(
+  BuildContext context, {
+  required Schedule schedule,
+  required Future<void> Function() onReminderCanceled,
+}) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) {
+      return AlertDialog(
+        title: const Text('取消提醒'),
+        content: const Text('確定要取消這筆提醒嗎？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('返回'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('取消提醒'),
+          ),
+        ],
+      );
+    },
+  );
+
+  if (confirmed != true) {
+    return;
+  }
+
+  final taskRepository = TaskLocalRepository(LocalStorageService());
+  final tasks = await taskRepository.loadTasks();
+  final hasPendingTask = tasks.any(
+    (task) =>
+        task.scheduleId == schedule.id &&
+        task.status != TaskStatus.completed &&
+        task.status != TaskStatus.canceled,
+  );
+
+  if (hasPendingTask) {
+    if (!context.mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('已有待處理提醒，請先完成後再取消'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+    return;
+  }
+
+  final repository = ScheduleLocalRepository(LocalStorageService());
+  final schedules = await repository.loadSchedules();
+  final updatedSchedules = [
+    for (final existingSchedule in schedules)
+      existingSchedule.id == schedule.id
+          ? existingSchedule.copyWith(enabled: false)
+          : existingSchedule,
+  ];
+  await repository.saveSchedules(updatedSchedules);
+  await onReminderCanceled();
+
+  if (!context.mounted) {
+    return;
+  }
+
+  final messenger = ScaffoldMessenger.of(context);
+  Navigator.of(context).pop();
+  messenger.showSnackBar(
+    const SnackBar(content: Text('提醒已取消'), behavior: SnackBarBehavior.floating),
+  );
 }
 
 Future<void> _editReminderDate(
