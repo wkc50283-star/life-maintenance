@@ -184,7 +184,9 @@ Future<CompletionRecordSheetData?> showCompletionRecordSheet(
 
   final data = shouldComplete == true
       ? CompletionRecordSheetData(
-          workDescription: _nullableTrimmedText(workDescriptionController.text),
+          workDescription: _nullableTrimmedText(
+            workDescriptionController.text,
+          ),
           cost: _parseOptionalCost(costController.text),
           vendorName: _nullableTrimmedText(vendorNameController.text),
           partsChanged: _partsChangedFrom(partsChangedController.text),
