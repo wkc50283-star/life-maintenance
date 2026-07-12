@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+enum CompletionScheduleAction { continueCycle, endSchedule }
+
 class CompletionRecordSheetData {
   final String? workDescription;
   final int? cost;
@@ -7,6 +9,7 @@ class CompletionRecordSheetData {
   final List<String> partsChanged;
   final String? note;
   final String? result;
+  final CompletionScheduleAction scheduleAction;
 
   const CompletionRecordSheetData({
     required this.workDescription,
@@ -15,18 +18,21 @@ class CompletionRecordSheetData {
     required this.partsChanged,
     required this.note,
     required this.result,
+    required this.scheduleAction,
   });
 }
 
 Future<CompletionRecordSheetData?> showCompletionRecordSheet(
-  BuildContext context,
-) async {
+  BuildContext context, {
+  bool showScheduleAction = false,
+}) async {
   final workDescriptionController = TextEditingController();
   final costController = TextEditingController();
   final vendorNameController = TextEditingController();
   final partsChangedController = TextEditingController();
   final noteController = TextEditingController();
   final resultController = TextEditingController(text: '已完成');
+  var scheduleAction = CompletionScheduleAction.continueCycle;
 
   final shouldComplete = await showModalBottomSheet<bool>(
     context: context,
@@ -36,103 +42,142 @@ Future<CompletionRecordSheetData?> showCompletionRecordSheet(
       borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
     ),
     builder: (sheetContext) {
-      return Padding(
-        padding: EdgeInsets.fromLTRB(
-          16,
-          12,
-          16,
-          MediaQuery.of(sheetContext).viewInsets.bottom + 24,
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 42,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFB8CBDC),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 18),
-              Text(
-                '補充完成紀錄',
-                style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
-                  color: const Color(0xFF263746),
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                '完成後會建立一筆紀錄，並保存本次補充欄位。',
-                style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFF687887),
-                  height: 1.5,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 18),
-              TextField(
-                controller: workDescriptionController,
-                maxLines: 3,
-                decoration: _completionRecordInputDecoration('處理內容'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: costController,
-                keyboardType: TextInputType.number,
-                decoration: _completionRecordInputDecoration('費用'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: vendorNameController,
-                decoration: _completionRecordInputDecoration('店家'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: partsChangedController,
-                decoration: _completionRecordInputDecoration('更換零件'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: noteController,
-                maxLines: 3,
-                decoration: _completionRecordInputDecoration('備註'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: resultController,
-                decoration: _completionRecordInputDecoration('結果'),
-              ),
-              const SizedBox(height: 20),
-              Row(
+      return StatefulBuilder(
+        builder: (sheetContext, setSheetState) {
+          return Padding(
+            padding: EdgeInsets.fromLTRB(
+              16,
+              12,
+              16,
+              MediaQuery.of(sheetContext).viewInsets.bottom + 24,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () {
-                        Navigator.of(sheetContext).pop(false);
-                      },
-                      child: const Text('取消'),
+                  Center(
+                    child: Container(
+                      width: 42,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFB8CBDC),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: () {
-                        Navigator.of(sheetContext).pop(true);
-                      },
-                      child: const Text('完成'),
+                  const SizedBox(height: 18),
+                  Text(
+                    '補充完成紀錄',
+                    style: Theme.of(sheetContext).textTheme.titleLarge
+                        ?.copyWith(
+                          color: const Color(0xFF263746),
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '完成後會建立一筆紀錄，並保存本次補充欄位。',
+                    style: Theme.of(sheetContext).textTheme.bodyMedium
+                        ?.copyWith(
+                          color: const Color(0xFF687887),
+                          height: 1.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  const SizedBox(height: 18),
+                  TextField(
+                    controller: workDescriptionController,
+                    maxLines: 3,
+                    decoration: _completionRecordInputDecoration('處理內容'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: costController,
+                    keyboardType: TextInputType.number,
+                    decoration: _completionRecordInputDecoration('費用'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: vendorNameController,
+                    decoration: _completionRecordInputDecoration('店家'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: partsChangedController,
+                    decoration: _completionRecordInputDecoration('更換零件'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: noteController,
+                    maxLines: 3,
+                    decoration: _completionRecordInputDecoration('備註'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: resultController,
+                    decoration: _completionRecordInputDecoration('結果'),
+                  ),
+                  if (showScheduleAction) ...[
+                    const SizedBox(height: 18),
+                    Text(
+                      '後續安排',
+                      style: Theme.of(sheetContext).textTheme.titleMedium
+                          ?.copyWith(
+                            color: const Color(0xFF263746),
+                            fontWeight: FontWeight.w800,
+                          ),
                     ),
+                    const SizedBox(height: 8),
+                    _ScheduleActionOption(
+                      title: '繼續原週期',
+                      value: CompletionScheduleAction.continueCycle,
+                      groupValue: scheduleAction,
+                      onChanged: (value) {
+                        setSheetState(() {
+                          scheduleAction = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    _ScheduleActionOption(
+                      title: '結束排程',
+                      value: CompletionScheduleAction.endSchedule,
+                      groupValue: scheduleAction,
+                      onChanged: (value) {
+                        setSheetState(() {
+                          scheduleAction = value;
+                        });
+                      },
+                    ),
+                  ],
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            Navigator.of(sheetContext).pop(false);
+                          },
+                          child: const Text('取消'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: () {
+                            Navigator.of(sheetContext).pop(true);
+                          },
+                          child: const Text('完成'),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       );
     },
   );
@@ -147,6 +192,7 @@ Future<CompletionRecordSheetData?> showCompletionRecordSheet(
           partsChanged: _partsChangedFrom(partsChangedController.text),
           note: _nullableTrimmedText(noteController.text),
           result: _nullableTrimmedText(resultController.text),
+          scheduleAction: scheduleAction,
         )
       : null;
 
@@ -158,6 +204,86 @@ Future<CompletionRecordSheetData?> showCompletionRecordSheet(
   resultController.dispose();
 
   return data;
+}
+
+class _ScheduleActionOption extends StatelessWidget {
+  final String title;
+  final CompletionScheduleAction value;
+  final CompletionScheduleAction groupValue;
+  final ValueChanged<CompletionScheduleAction> onChanged;
+
+  const _ScheduleActionOption({
+    required this.title,
+    required this.value,
+    required this.groupValue,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () {
+        onChanged(value);
+      },
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFCF6),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE4E0D8)),
+        ),
+        child: Row(
+          children: [
+            _ScheduleActionIndicator(selected: value == groupValue),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                title,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: const Color(0xFF263746),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ScheduleActionIndicator extends StatelessWidget {
+  final bool selected;
+
+  const _ScheduleActionIndicator({required this.selected});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 20,
+      height: 20,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: selected ? const Color(0xFF5D7893) : const Color(0xFFB8CBDC),
+          width: 2,
+        ),
+      ),
+      child: selected
+          ? Center(
+              child: Container(
+                width: 10,
+                height: 10,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF5D7893),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            )
+          : null,
+    );
+  }
 }
 
 String? _nullableTrimmedText(String value) {
