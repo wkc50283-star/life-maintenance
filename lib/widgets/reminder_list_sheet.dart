@@ -501,7 +501,9 @@ Future<void> _editReminderDate(
     return;
   }
 
-  ScaffoldMessenger.of(context).showSnackBar(
+  final messenger = ScaffoldMessenger.of(context);
+  Navigator.of(context).pop();
+  messenger.showSnackBar(
     const SnackBar(
       content: Text('提醒日期已更新'),
       behavior: SnackBarBehavior.floating,
