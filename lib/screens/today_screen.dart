@@ -328,12 +328,11 @@ class _TodayScreenState extends State<TodayScreen> {
       ];
       await _recordRepository.saveRecords(updatedRecords);
       final scheduleFollowUpResult = _isManualExpiryReminderTask(task)
-          ? manualReminderAction == CompletionManualReminderAction.reschedule
-                ? await _rescheduleCompletedManualReminderSchedule(
-                    task,
-                    rescheduledDate,
-                  )
-                : await _disableCompletedManualReminderSchedule(task)
+          ? await _completeManualReminderScheduleFollowUp(
+              task,
+              manualReminderAction,
+              rescheduledDate,
+            )
           : await _completeMaintenanceScheduleFollowUp(task, scheduleAction);
 
       if (!mounted) {
@@ -415,6 +414,42 @@ class _TodayScreenState extends State<TodayScreen> {
             schedule.cardId == task.cardId &&
             schedule.enabled) {
           updatedSchedules.add(schedule.copyWith(nextDueDate: rescheduledDate));
+          didUpdateSchedule = true;
+        } else {
+          updatedSchedules.add(schedule);
+        }
+      }
+
+      if (!didUpdateSchedule) {
+        return _ScheduleFollowUpResult.notApplicable;
+      }
+
+      await _scheduleRepository.saveSchedules(updatedSchedules);
+      return _ScheduleFollowUpResult.updated;
+    } catch (_) {
+      // Completing the task and creating the record are the durable actions.
+      // Schedule follow-up must not roll those back if local data is unavailable.
+      return _ScheduleFollowUpResult.failed;
+    }
+  }
+
+  Future<_ScheduleFollowUpResult> _pauseCompletedSchedule(
+    maintenance_task.Task task,
+  ) async {
+    if (task.scheduleId.isEmpty) {
+      return _ScheduleFollowUpResult.notApplicable;
+    }
+
+    try {
+      final schedules = await _scheduleRepository.loadSchedules();
+      var didUpdateSchedule = false;
+      final updatedSchedules = <Schedule>[];
+      for (final schedule in schedules) {
+        if (!didUpdateSchedule &&
+            schedule.id == task.scheduleId &&
+            schedule.cardId == task.cardId &&
+            schedule.status == ScheduleStatus.active) {
+          updatedSchedules.add(schedule.copyWith(status: ScheduleStatus.paused));
           didUpdateSchedule = true;
         } else {
           updatedSchedules.add(schedule);
@@ -521,8 +556,28 @@ class _TodayScreenState extends State<TodayScreen> {
     switch (scheduleAction) {
       case CompletionScheduleAction.continueCycle:
         return _advanceCompletedMaintenanceSchedule(task);
+      case CompletionScheduleAction.pauseSchedule:
+        return _pauseCompletedSchedule(task);
       case CompletionScheduleAction.endSchedule:
         return _endCompletedMaintenanceSchedule(task);
+    }
+  }
+
+  Future<_ScheduleFollowUpResult> _completeManualReminderScheduleFollowUp(
+    maintenance_task.Task task,
+    CompletionManualReminderAction manualReminderAction,
+    DateTime? rescheduledDate,
+  ) async {
+    switch (manualReminderAction) {
+      case CompletionManualReminderAction.endReminder:
+        return _disableCompletedManualReminderSchedule(task);
+      case CompletionManualReminderAction.pauseReminder:
+        return _pauseCompletedSchedule(task);
+      case CompletionManualReminderAction.reschedule:
+        return _rescheduleCompletedManualReminderSchedule(
+          task,
+          rescheduledDate,
+        );
     }
   }
 

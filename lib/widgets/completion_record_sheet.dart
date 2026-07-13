@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-enum CompletionScheduleAction { continueCycle, endSchedule }
+enum CompletionScheduleAction { continueCycle, pauseSchedule, endSchedule }
 
-enum CompletionManualReminderAction { endReminder, reschedule }
+enum CompletionManualReminderAction { endReminder, pauseReminder, reschedule }
 
 enum CompletionFollowUpMode { none, maintenanceSchedule, manualReminder }
 
@@ -152,6 +152,17 @@ Future<CompletionRecordSheetData?> showCompletionRecordSheet(
                     ),
                     const SizedBox(height: 8),
                     _ScheduleActionOption(
+                      title: '保留但不排程',
+                      value: CompletionScheduleAction.pauseSchedule,
+                      groupValue: scheduleAction,
+                      onChanged: (value) {
+                        setSheetState(() {
+                          scheduleAction = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    _ScheduleActionOption(
                       title: '結束排程',
                       value: CompletionScheduleAction.endSchedule,
                       groupValue: scheduleAction,
@@ -177,6 +188,17 @@ Future<CompletionRecordSheetData?> showCompletionRecordSheet(
                     _ManualReminderActionOption(
                       title: '結束提醒',
                       value: CompletionManualReminderAction.endReminder,
+                      groupValue: manualReminderAction,
+                      onChanged: (value) {
+                        setSheetState(() {
+                          manualReminderAction = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    _ManualReminderActionOption(
+                      title: '保留但不排程',
+                      value: CompletionManualReminderAction.pauseReminder,
                       groupValue: manualReminderAction,
                       onChanged: (value) {
                         setSheetState(() {

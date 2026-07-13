@@ -347,6 +347,7 @@ void main() {
 
       expect(find.text('後續安排'), findsOneWidget);
       expect(find.text('繼續原週期'), findsOneWidget);
+      expect(find.text('保留但不排程'), findsOneWidget);
       expect(find.text('結束排程'), findsOneWidget);
 
       await tester.ensureVisible(find.text('取消'));
@@ -354,6 +355,310 @@ void main() {
       await tester.pumpAndSettle();
     },
   );
+
+  testWidgets(
+    'completing a regular maintenance task can pause matching schedule',
+    (tester) async {
+      final dueDate = DateTime(2026, 7, 10);
+      await _setLocalData(
+        schedules: [
+          _schedule(
+            id: 'schedule-target',
+            cardId: 'card-aircon-filter-cleaning',
+            nextDueDate: dueDate,
+          ),
+          _schedule(
+            id: 'schedule-other',
+            cardId: 'card-aircon-filter-cleaning',
+            nextDueDate: dueDate,
+          ),
+        ],
+        tasks: [
+          _task(
+            id: 'task-maintenance',
+            cardId: 'card-aircon-filter-cleaning',
+            scheduleId: 'schedule-target',
+            title: '保養提醒',
+            dueDate: dueDate,
+          ),
+        ],
+      );
+
+      await _completeVisibleTaskWithPauseSchedule(tester);
+
+      expect(find.text('已完成任務並建立紀錄，可到履歷查看'), findsOneWidget);
+      final tasks = await _storedTasks();
+      expect(_statusFor(tasks, 'task-maintenance'), TaskStatus.completed.name);
+      final records = await _storedRecords();
+      expect(records, hasLength(1));
+      expect(records.single['taskId'], 'task-maintenance');
+      final schedules = await _storedSchedules();
+      expect(_scheduleStatusFor(schedules, 'schedule-target'), 'paused');
+      expect(_enabledFor(schedules, 'schedule-target'), isFalse);
+      expect(_nextDueDateFor(schedules, 'schedule-target'), dueDate);
+      expect(_scheduleStatusFor(schedules, 'schedule-other'), 'active');
+      expect(_enabledFor(schedules, 'schedule-other'), isTrue);
+      expect(_nextDueDateFor(schedules, 'schedule-other'), dueDate);
+    },
+  );
+
+  testWidgets('pause schedule with empty scheduleId still completes', (
+    tester,
+  ) async {
+    final dueDate = DateTime(2026, 7, 10);
+    await _setLocalData(
+      schedules: [
+        _schedule(
+          id: 'schedule-other',
+          cardId: 'card-aircon-filter-cleaning',
+          nextDueDate: dueDate,
+        ),
+      ],
+      tasks: [
+        _task(
+          id: 'task-empty-schedule',
+          cardId: 'card-aircon-filter-cleaning',
+          scheduleId: '',
+          title: '保養提醒',
+          dueDate: dueDate,
+        ),
+      ],
+    );
+
+    await _completeVisibleTaskWithPauseSchedule(tester);
+
+    expect(find.text('已完成並建立紀錄，但後續安排未更新'), findsOneWidget);
+    final tasks = await _storedTasks();
+    expect(_statusFor(tasks, 'task-empty-schedule'), TaskStatus.completed.name);
+    final records = await _storedRecords();
+    expect(records.single['taskId'], 'task-empty-schedule');
+    final schedules = await _storedSchedules();
+    expect(_scheduleStatusFor(schedules, 'schedule-other'), 'active');
+    expect(_nextDueDateFor(schedules, 'schedule-other'), dueDate);
+  });
+
+  testWidgets('pause schedule with missing schedule still completes', (
+    tester,
+  ) async {
+    final dueDate = DateTime(2026, 7, 10);
+    await _setLocalData(
+      schedules: [
+        _schedule(
+          id: 'schedule-other',
+          cardId: 'card-aircon-filter-cleaning',
+          nextDueDate: dueDate,
+        ),
+      ],
+      tasks: [
+        _task(
+          id: 'task-missing-schedule',
+          cardId: 'card-aircon-filter-cleaning',
+          scheduleId: 'schedule-missing',
+          title: '保養提醒',
+          dueDate: dueDate,
+        ),
+      ],
+    );
+
+    await _completeVisibleTaskWithPauseSchedule(tester);
+
+    expect(find.text('已完成並建立紀錄，但後續安排未更新'), findsOneWidget);
+    final tasks = await _storedTasks();
+    expect(
+      _statusFor(tasks, 'task-missing-schedule'),
+      TaskStatus.completed.name,
+    );
+    final records = await _storedRecords();
+    expect(records.single['taskId'], 'task-missing-schedule');
+    final schedules = await _storedSchedules();
+    expect(_scheduleStatusFor(schedules, 'schedule-other'), 'active');
+    expect(_nextDueDateFor(schedules, 'schedule-other'), dueDate);
+  });
+
+  testWidgets('pause schedule with card mismatch does not update schedule', (
+    tester,
+  ) async {
+    final dueDate = DateTime(2026, 7, 10);
+    await _setLocalData(
+      schedules: [
+        _schedule(
+          id: 'schedule-maintenance',
+          cardId: 'card-aircon-filter-cleaning',
+          nextDueDate: dueDate,
+        ),
+      ],
+      tasks: [
+        _task(
+          id: 'task-mismatch',
+          cardId: 'card-water-heater-check',
+          scheduleId: 'schedule-maintenance',
+          title: '保養提醒',
+          dueDate: dueDate,
+        ),
+      ],
+    );
+
+    await _completeVisibleTaskWithPauseSchedule(tester);
+
+    expect(find.text('已完成並建立紀錄，但後續安排未更新'), findsOneWidget);
+    final tasks = await _storedTasks();
+    expect(_statusFor(tasks, 'task-mismatch'), TaskStatus.completed.name);
+    final records = await _storedRecords();
+    expect(records.single['taskId'], 'task-mismatch');
+    final schedules = await _storedSchedules();
+    expect(_scheduleStatusFor(schedules, 'schedule-maintenance'), 'active');
+    expect(_nextDueDateFor(schedules, 'schedule-maintenance'), dueDate);
+  });
+
+  testWidgets('pause schedule does not update already paused schedule', (
+    tester,
+  ) async {
+    final dueDate = DateTime(2026, 7, 10);
+    await _setLocalData(
+      schedules: [
+        _schedule(
+          id: 'schedule-paused',
+          cardId: 'card-aircon-filter-cleaning',
+          nextDueDate: dueDate,
+          status: ScheduleStatus.paused,
+        ),
+      ],
+      tasks: [
+        _task(
+          id: 'task-paused',
+          cardId: 'card-aircon-filter-cleaning',
+          scheduleId: 'schedule-paused',
+          title: '保養提醒',
+          dueDate: dueDate,
+        ),
+      ],
+    );
+
+    await _completeVisibleTaskWithPauseSchedule(tester);
+
+    expect(find.text('已完成並建立紀錄，但後續安排未更新'), findsOneWidget);
+    final tasks = await _storedTasks();
+    expect(_statusFor(tasks, 'task-paused'), TaskStatus.completed.name);
+    final records = await _storedRecords();
+    expect(records.single['taskId'], 'task-paused');
+    final schedules = await _storedSchedules();
+    expect(_scheduleStatusFor(schedules, 'schedule-paused'), 'paused');
+    expect(_nextDueDateFor(schedules, 'schedule-paused'), dueDate);
+  });
+
+  testWidgets('pause schedule does not update already ended schedule', (
+    tester,
+  ) async {
+    final dueDate = DateTime(2026, 7, 10);
+    await _setLocalData(
+      schedules: [
+        _schedule(
+          id: 'schedule-ended',
+          cardId: 'card-aircon-filter-cleaning',
+          nextDueDate: dueDate,
+          status: ScheduleStatus.ended,
+        ),
+      ],
+      tasks: [
+        _task(
+          id: 'task-ended',
+          cardId: 'card-aircon-filter-cleaning',
+          scheduleId: 'schedule-ended',
+          title: '保養提醒',
+          dueDate: dueDate,
+        ),
+      ],
+    );
+
+    await _completeVisibleTaskWithPauseSchedule(tester);
+
+    expect(find.text('已完成並建立紀錄，但後續安排未更新'), findsOneWidget);
+    final tasks = await _storedTasks();
+    expect(_statusFor(tasks, 'task-ended'), TaskStatus.completed.name);
+    final records = await _storedRecords();
+    expect(records.single['taskId'], 'task-ended');
+    final schedules = await _storedSchedules();
+    expect(_scheduleStatusFor(schedules, 'schedule-ended'), 'ended');
+    expect(_nextDueDateFor(schedules, 'schedule-ended'), dueDate);
+  });
+
+  testWidgets('pause schedule load failure shows partial success', (
+    tester,
+  ) async {
+    final dueDate = DateTime(2026, 7, 10);
+    final schedule = _schedule(
+      id: 'schedule-maintenance',
+      cardId: 'card-aircon-filter-cleaning',
+      nextDueDate: dueDate,
+    );
+    await _setLocalData(
+      schedules: [schedule],
+      tasks: [
+        _task(
+          id: 'task-maintenance',
+          cardId: 'card-aircon-filter-cleaning',
+          scheduleId: 'schedule-maintenance',
+          title: '保養提醒',
+          dueDate: dueDate,
+        ),
+      ],
+    );
+    final scheduleRepository = _FailingScheduleLocalRepository(
+      schedules: [schedule],
+      failLoadAfterCalls: 1,
+    );
+
+    await _completeVisibleTaskWithPauseSchedule(
+      tester,
+      todayScreen: TodayScreen(scheduleRepository: scheduleRepository),
+    );
+
+    expect(find.text('已完成並建立紀錄，但後續安排未更新'), findsOneWidget);
+    final tasks = await _storedTasks();
+    expect(_statusFor(tasks, 'task-maintenance'), TaskStatus.completed.name);
+    final records = await _storedRecords();
+    expect(records, hasLength(1));
+    expect(records.single['taskId'], 'task-maintenance');
+  });
+
+  testWidgets('pause schedule save failure shows partial success', (
+    tester,
+  ) async {
+    final dueDate = DateTime(2026, 7, 10);
+    final schedule = _schedule(
+      id: 'schedule-maintenance',
+      cardId: 'card-aircon-filter-cleaning',
+      nextDueDate: dueDate,
+    );
+    await _setLocalData(
+      schedules: [schedule],
+      tasks: [
+        _task(
+          id: 'task-maintenance',
+          cardId: 'card-aircon-filter-cleaning',
+          scheduleId: 'schedule-maintenance',
+          title: '保養提醒',
+          dueDate: dueDate,
+        ),
+      ],
+    );
+    final scheduleRepository = _FailingScheduleLocalRepository(
+      schedules: [schedule],
+      failSave: true,
+    );
+
+    await _completeVisibleTaskWithPauseSchedule(
+      tester,
+      todayScreen: TodayScreen(scheduleRepository: scheduleRepository),
+    );
+
+    expect(find.text('已完成並建立紀錄，但後續安排未更新'), findsOneWidget);
+    final tasks = await _storedTasks();
+    expect(_statusFor(tasks, 'task-maintenance'), TaskStatus.completed.name);
+    final records = await _storedRecords();
+    expect(records, hasLength(1));
+    expect(records.single['taskId'], 'task-maintenance');
+  });
 
   testWidgets(
     'completing a regular maintenance task updates only matching schedule',
@@ -454,6 +759,7 @@ void main() {
     expect(find.text('繼續原週期'), findsNothing);
     expect(find.text('結束排程'), findsNothing);
     expect(find.text('結束提醒'), findsOneWidget);
+    expect(find.text('保留但不排程'), findsOneWidget);
     expect(find.text('重新安排日期'), findsOneWidget);
 
     await tester.ensureVisible(find.text('取消'));
@@ -493,6 +799,45 @@ void main() {
       expect(records.single['taskId'], 'task-manual-bad-schedule');
       final schedules = await _storedSchedules();
       expect(_enabledFor(schedules, 'schedule-maintenance'), isTrue);
+    },
+  );
+
+  testWidgets(
+    'manual expiry reminder can pause matching enabled schedule',
+    (tester) async {
+      final dueDate = DateTime(2026, 7, 10);
+      await _setLocalData(
+        schedules: [
+          _schedule(id: 'schedule-target', nextDueDate: dueDate),
+          _schedule(
+            id: 'schedule-maintenance',
+            cardId: 'card-aircon-filter-cleaning',
+            nextDueDate: dueDate,
+          ),
+        ],
+        tasks: [
+          _task(
+            id: 'task-target',
+            scheduleId: 'schedule-target',
+            dueDate: dueDate,
+          ),
+        ],
+      );
+
+      await _completeManualReminderWithPause(tester);
+
+      expect(find.text('已完成任務並建立紀錄，可到履歷查看'), findsOneWidget);
+      final tasks = await _storedTasks();
+      expect(_statusFor(tasks, 'task-target'), TaskStatus.completed.name);
+      final records = await _storedRecords();
+      _expectSingleExpiryRecord(records, 'task-target');
+      final schedules = await _storedSchedules();
+      expect(_scheduleStatusFor(schedules, 'schedule-target'), 'paused');
+      expect(_enabledFor(schedules, 'schedule-target'), isFalse);
+      expect(_nextDueDateFor(schedules, 'schedule-target'), dueDate);
+      expect(_scheduleStatusFor(schedules, 'schedule-maintenance'), 'active');
+      expect(_enabledFor(schedules, 'schedule-maintenance'), isTrue);
+      expect(_nextDueDateFor(schedules, 'schedule-maintenance'), dueDate);
     },
   );
 
@@ -1137,6 +1482,22 @@ Future<void> _completeVisibleTaskWithEndSchedule(
   await tester.pumpAndSettle();
 }
 
+Future<void> _completeVisibleTaskWithPauseSchedule(
+  WidgetTester tester, {
+  Widget todayScreen = const TodayScreen(),
+}) async {
+  await _openCompletionSheet(tester, todayScreen: todayScreen);
+
+  await tester.ensureVisible(find.text('保留但不排程'));
+  await tester.tap(find.text('保留但不排程'));
+  await tester.pumpAndSettle();
+
+  final sheetCompleteButton = find.text('完成').last;
+  await tester.ensureVisible(sheetCompleteButton);
+  await tester.tap(sheetCompleteButton);
+  await tester.pumpAndSettle();
+}
+
 Future<void> _completeManualReminderWithReschedule(
   WidgetTester tester, {
   Widget todayScreen = const TodayScreen(),
@@ -1152,6 +1513,22 @@ Future<void> _completeManualReminderWithReschedule(
   await tester.pumpAndSettle();
 
   await tester.tap(find.text('OK'));
+  await tester.pumpAndSettle();
+
+  final sheetCompleteButton = find.text('完成').last;
+  await tester.ensureVisible(sheetCompleteButton);
+  await tester.tap(sheetCompleteButton);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _completeManualReminderWithPause(
+  WidgetTester tester, {
+  Widget todayScreen = const TodayScreen(),
+}) async {
+  await _openCompletionSheet(tester, todayScreen: todayScreen);
+
+  await tester.ensureVisible(find.text('保留但不排程'));
+  await tester.tap(find.text('保留但不排程'));
   await tester.pumpAndSettle();
 
   final sheetCompleteButton = find.text('完成').last;
@@ -1208,6 +1585,13 @@ DateTime _nextDueDateFor(List<dynamic> schedules, String id) {
   return DateTime.parse(schedule['nextDueDate'] as String);
 }
 
+String _scheduleStatusFor(List<dynamic> schedules, String id) {
+  final schedule = schedules.cast<Map<String, dynamic>>().singleWhere(
+    (schedule) => schedule['id'] == id,
+  );
+  return schedule['status'] as String;
+}
+
 String _statusFor(List<dynamic> tasks, String id) {
   final task = tasks.cast<Map<String, dynamic>>().singleWhere(
     (task) => task['id'] == id,
@@ -1231,6 +1615,7 @@ Schedule _schedule({
   CycleType? cycleType,
   int interval = 1,
   bool enabled = true,
+  ScheduleStatus? status,
 }) {
   return Schedule(
     id: id,
@@ -1246,6 +1631,7 @@ Schedule _schedule({
     nextDueDate: nextDueDate,
     title: '合約續約',
     enabled: enabled,
+    status: status,
   );
 }
 
