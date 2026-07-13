@@ -512,7 +512,7 @@ void main() {
       final tasks = await _storedTasks();
       expect(_statusFor(tasks, 'task-target'), TaskStatus.completed.name);
       final records = await _storedRecords();
-      expect(records.single['taskId'], 'task-target');
+      _expectSingleExpiryRecord(records, 'task-target');
       final schedules = await _storedSchedules();
       expect(_enabledFor(schedules, 'schedule-target'), isTrue);
       expect(_nextDueDateFor(schedules, 'schedule-target'), newDate);
@@ -604,11 +604,205 @@ void main() {
     final tasks = await _storedTasks();
     expect(_statusFor(tasks, 'task-target'), TaskStatus.completed.name);
     final records = await _storedRecords();
-    expect(records.single['taskId'], 'task-target');
+    _expectSingleExpiryRecord(records, 'task-target');
     final schedules = await _storedSchedules();
     expect(_enabledFor(schedules, 'schedule-target'), isFalse);
     expect(_nextDueDateFor(schedules, 'schedule-target'), dueDate);
   });
+
+  testWidgets(
+    'manual reschedule with empty schedule id still completes without schedules',
+    (tester) async {
+      final dueDate = DateTime(2026, 7, 10);
+      await _setLocalData(
+        schedules: [
+          _schedule(id: 'schedule-other', nextDueDate: dueDate),
+        ],
+        tasks: [
+          _task(id: 'task-target', scheduleId: '', dueDate: dueDate),
+        ],
+      );
+
+      await _completeManualReminderWithReschedule(tester);
+
+      final tasks = await _storedTasks();
+      expect(_statusFor(tasks, 'task-target'), TaskStatus.completed.name);
+      final records = await _storedRecords();
+      _expectSingleExpiryRecord(records, 'task-target');
+      final schedules = await _storedSchedules();
+      expect(_nextDueDateFor(schedules, 'schedule-other'), dueDate);
+      expect(_enabledFor(schedules, 'schedule-other'), isTrue);
+    },
+  );
+
+  testWidgets(
+    'manual reschedule with missing schedule still completes',
+    (tester) async {
+      final dueDate = DateTime(2026, 7, 10);
+      await _setLocalData(
+        schedules: [
+          _schedule(id: 'schedule-other', nextDueDate: dueDate),
+        ],
+        tasks: [
+          _task(
+            id: 'task-target',
+            scheduleId: 'schedule-missing',
+            dueDate: dueDate,
+          ),
+        ],
+      );
+
+      await _completeManualReminderWithReschedule(tester);
+
+      final tasks = await _storedTasks();
+      expect(_statusFor(tasks, 'task-target'), TaskStatus.completed.name);
+      final records = await _storedRecords();
+      _expectSingleExpiryRecord(records, 'task-target');
+      final schedules = await _storedSchedules();
+      expect(_nextDueDateFor(schedules, 'schedule-other'), dueDate);
+      expect(_enabledFor(schedules, 'schedule-other'), isTrue);
+    },
+  );
+
+  testWidgets(
+    'manual reschedule with card mismatch does not update schedule',
+    (tester) async {
+      final dueDate = DateTime(2026, 7, 10);
+      await _setLocalData(
+        schedules: [
+          _schedule(
+            id: 'schedule-target',
+            cardId: 'card-aircon-filter-cleaning',
+            nextDueDate: dueDate,
+          ),
+        ],
+        tasks: [
+          _task(
+            id: 'task-target',
+            scheduleId: 'schedule-target',
+            dueDate: dueDate,
+          ),
+        ],
+      );
+
+      await _completeManualReminderWithReschedule(tester);
+
+      final tasks = await _storedTasks();
+      expect(_statusFor(tasks, 'task-target'), TaskStatus.completed.name);
+      final records = await _storedRecords();
+      _expectSingleExpiryRecord(records, 'task-target');
+      final schedules = await _storedSchedules();
+      expect(_enabledFor(schedules, 'schedule-target'), isTrue);
+      expect(_nextDueDateFor(schedules, 'schedule-target'), dueDate);
+    },
+  );
+
+  testWidgets(
+    'manual reschedule ignores completed task on selected date',
+    (tester) async {
+      final dueDate = DateTime(2026, 7, 10);
+      final newDate = _tomorrowDate();
+      await _setLocalData(
+        schedules: [
+          _schedule(id: 'schedule-target', nextDueDate: dueDate),
+          _schedule(id: 'schedule-other', nextDueDate: dueDate),
+        ],
+        tasks: [
+          _task(
+            id: 'task-target',
+            scheduleId: 'schedule-target',
+            dueDate: dueDate,
+          ),
+          _task(
+            id: 'task-completed',
+            scheduleId: 'schedule-target',
+            dueDate: newDate,
+            status: TaskStatus.completed,
+          ),
+        ],
+      );
+
+      await _completeManualReminderWithReschedule(tester);
+
+      final tasks = await _storedTasks();
+      expect(_statusFor(tasks, 'task-target'), TaskStatus.completed.name);
+      final records = await _storedRecords();
+      _expectSingleExpiryRecord(records, 'task-target');
+      final schedules = await _storedSchedules();
+      expect(_enabledFor(schedules, 'schedule-target'), isTrue);
+      expect(_nextDueDateFor(schedules, 'schedule-target'), newDate);
+      expect(_nextDueDateFor(schedules, 'schedule-other'), dueDate);
+    },
+  );
+
+  testWidgets(
+    'manual reschedule ignores canceled task on selected date',
+    (tester) async {
+      final dueDate = DateTime(2026, 7, 10);
+      final newDate = _tomorrowDate();
+      await _setLocalData(
+        schedules: [
+          _schedule(id: 'schedule-target', nextDueDate: dueDate),
+          _schedule(id: 'schedule-other', nextDueDate: dueDate),
+        ],
+        tasks: [
+          _task(
+            id: 'task-target',
+            scheduleId: 'schedule-target',
+            dueDate: dueDate,
+          ),
+          _task(
+            id: 'task-canceled',
+            scheduleId: 'schedule-target',
+            dueDate: newDate,
+            status: TaskStatus.canceled,
+          ),
+        ],
+      );
+
+      await _completeManualReminderWithReschedule(tester);
+
+      final tasks = await _storedTasks();
+      expect(_statusFor(tasks, 'task-target'), TaskStatus.completed.name);
+      final records = await _storedRecords();
+      _expectSingleExpiryRecord(records, 'task-target');
+      final schedules = await _storedSchedules();
+      expect(_enabledFor(schedules, 'schedule-target'), isTrue);
+      expect(_nextDueDateFor(schedules, 'schedule-target'), newDate);
+      expect(_nextDueDateFor(schedules, 'schedule-other'), dueDate);
+    },
+  );
+
+  testWidgets(
+    'manual reschedule does not treat current task as conflict',
+    (tester) async {
+      final dueDate = _tomorrowDate();
+      await _setLocalData(
+        schedules: [
+          _schedule(id: 'schedule-target', nextDueDate: dueDate),
+          _schedule(id: 'schedule-other', nextDueDate: dueDate),
+        ],
+        tasks: [
+          _task(
+            id: 'task-target',
+            scheduleId: 'schedule-target',
+            dueDate: dueDate,
+          ),
+        ],
+      );
+
+      await _completeManualReminderWithReschedule(tester);
+
+      final tasks = await _storedTasks();
+      expect(_statusFor(tasks, 'task-target'), TaskStatus.completed.name);
+      final records = await _storedRecords();
+      _expectSingleExpiryRecord(records, 'task-target');
+      final schedules = await _storedSchedules();
+      expect(_enabledFor(schedules, 'schedule-target'), isTrue);
+      expect(_nextDueDateFor(schedules, 'schedule-target'), dueDate);
+      expect(_nextDueDateFor(schedules, 'schedule-other'), dueDate);
+    },
+  );
 
   testWidgets('completing a task with empty scheduleId still succeeds', (
     tester,
@@ -924,6 +1118,7 @@ Task _task({
   required DateTime dueDate,
   String cardId = 'manual-expiry-reminder',
   String title = '合約續約',
+  TaskStatus status = TaskStatus.pending,
 }) {
   return Task(
     id: id,
@@ -932,5 +1127,12 @@ Task _task({
     scheduleId: scheduleId,
     title: title,
     dueDate: dueDate,
+    status: status,
   );
+}
+
+void _expectSingleExpiryRecord(List<dynamic> records, String taskId) {
+  expect(records, hasLength(1));
+  expect(records.single['taskId'], taskId);
+  expect(records.single['recordType'], RecordType.expiryHandled.name);
 }
