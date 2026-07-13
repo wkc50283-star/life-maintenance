@@ -6,7 +6,9 @@ import 'package:life_maintenance/models/enums.dart';
 import 'package:life_maintenance/models/item.dart';
 import 'package:life_maintenance/models/schedule.dart';
 import 'package:life_maintenance/models/task.dart';
+import 'package:life_maintenance/repositories/schedule_local_repository.dart';
 import 'package:life_maintenance/screens/today_screen.dart';
+import 'package:life_maintenance/services/local_storage_service.dart';
 import 'package:life_maintenance/services/maintenance_task_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -31,6 +33,7 @@ void main() {
 
       await _completeVisibleTask(tester);
 
+      expect(find.text('已完成任務並建立紀錄，可到履歷查看'), findsOneWidget);
       final schedules = await _storedSchedules();
       expect(_enabledFor(schedules, 'schedule-target'), isFalse);
       expect(_nextDueDateFor(schedules, 'schedule-target'), dueDate);
@@ -63,6 +66,7 @@ void main() {
 
       await _completeVisibleTask(tester);
 
+      expect(find.text('已完成任務並建立紀錄，可到履歷查看'), findsOneWidget);
       final schedules = await _storedSchedules();
       expect(_enabledFor(schedules, 'schedule-maintenance'), isTrue);
       expect(
@@ -420,6 +424,7 @@ void main() {
 
       await _completeVisibleTaskWithEndSchedule(tester);
 
+      expect(find.text('已完成任務並建立紀錄，可到履歷查看'), findsOneWidget);
       final schedules = await _storedSchedules();
       expect(_enabledFor(schedules, 'schedule-target'), isFalse);
       expect(_nextDueDateFor(schedules, 'schedule-target'), dueDate);
@@ -509,6 +514,7 @@ void main() {
 
       await _completeManualReminderWithReschedule(tester);
 
+      expect(find.text('已完成任務並建立紀錄，可到履歷查看'), findsOneWidget);
       final tasks = await _storedTasks();
       expect(_statusFor(tasks, 'task-target'), TaskStatus.completed.name);
       final records = await _storedRecords();
@@ -601,6 +607,7 @@ void main() {
 
     await _completeManualReminderWithReschedule(tester);
 
+    expect(find.text('已完成任務並建立紀錄，可到履歷查看'), findsOneWidget);
     final tasks = await _storedTasks();
     expect(_statusFor(tasks, 'task-target'), TaskStatus.completed.name);
     final records = await _storedRecords();
@@ -609,6 +616,79 @@ void main() {
     expect(_enabledFor(schedules, 'schedule-target'), isFalse);
     expect(_nextDueDateFor(schedules, 'schedule-target'), dueDate);
   });
+
+  testWidgets(
+    'schedule follow-up load failure shows partial success',
+    (tester) async {
+      final dueDate = DateTime(2026, 7, 10);
+      final schedule = _schedule(
+        id: 'schedule-maintenance',
+        cardId: 'card-aircon-filter-cleaning',
+        nextDueDate: dueDate,
+      );
+      await _setLocalData(
+        schedules: [schedule],
+        tasks: [
+          _task(
+            id: 'task-maintenance',
+            cardId: 'card-aircon-filter-cleaning',
+            scheduleId: 'schedule-maintenance',
+            title: '保養提醒',
+            dueDate: dueDate,
+          ),
+        ],
+      );
+      final scheduleRepository = _FailingScheduleLocalRepository(
+        schedules: [schedule],
+        failLoadAfterCalls: 1,
+      );
+
+      await _completeVisibleTask(
+        tester,
+        todayScreen: TodayScreen(scheduleRepository: scheduleRepository),
+      );
+
+      expect(find.text('已完成並建立紀錄，但後續安排未更新'), findsOneWidget);
+      final tasks = await _storedTasks();
+      expect(_statusFor(tasks, 'task-maintenance'), TaskStatus.completed.name);
+      final records = await _storedRecords();
+      expect(records, hasLength(1));
+      expect(records.single['taskId'], 'task-maintenance');
+    },
+  );
+
+  testWidgets(
+    'schedule follow-up save failure shows partial success',
+    (tester) async {
+      final dueDate = DateTime(2026, 7, 10);
+      final schedule = _schedule(id: 'schedule-target', nextDueDate: dueDate);
+      await _setLocalData(
+        schedules: [schedule],
+        tasks: [
+          _task(
+            id: 'task-target',
+            scheduleId: 'schedule-target',
+            dueDate: dueDate,
+          ),
+        ],
+      );
+      final scheduleRepository = _FailingScheduleLocalRepository(
+        schedules: [schedule],
+        failSave: true,
+      );
+
+      await _completeManualReminderWithReschedule(
+        tester,
+        todayScreen: TodayScreen(scheduleRepository: scheduleRepository),
+      );
+
+      expect(find.text('已完成並建立紀錄，但後續安排未更新'), findsOneWidget);
+      final tasks = await _storedTasks();
+      expect(_statusFor(tasks, 'task-target'), TaskStatus.completed.name);
+      final records = await _storedRecords();
+      _expectSingleExpiryRecord(records, 'task-target');
+    },
+  );
 
   testWidgets(
     'manual reschedule with empty schedule id still completes without schedules',
@@ -625,6 +705,7 @@ void main() {
 
       await _completeManualReminderWithReschedule(tester);
 
+      expect(find.text('已完成任務並建立紀錄，可到履歷查看'), findsOneWidget);
       final tasks = await _storedTasks();
       expect(_statusFor(tasks, 'task-target'), TaskStatus.completed.name);
       final records = await _storedRecords();
@@ -654,6 +735,7 @@ void main() {
 
       await _completeManualReminderWithReschedule(tester);
 
+      expect(find.text('已完成任務並建立紀錄，可到履歷查看'), findsOneWidget);
       final tasks = await _storedTasks();
       expect(_statusFor(tasks, 'task-target'), TaskStatus.completed.name);
       final records = await _storedRecords();
@@ -687,6 +769,7 @@ void main() {
 
       await _completeManualReminderWithReschedule(tester);
 
+      expect(find.text('已完成任務並建立紀錄，可到履歷查看'), findsOneWidget);
       final tasks = await _storedTasks();
       expect(_statusFor(tasks, 'task-target'), TaskStatus.completed.name);
       final records = await _storedRecords();
@@ -817,6 +900,7 @@ void main() {
 
     await _completeVisibleTask(tester);
 
+    expect(find.text('已完成任務並建立紀錄，可到履歷查看'), findsOneWidget);
     final tasks = await _storedTasks();
     expect(_statusFor(tasks, 'task-empty-schedule'), TaskStatus.completed.name);
     final records = await _storedRecords();
@@ -842,6 +926,7 @@ void main() {
 
     await _completeVisibleTask(tester);
 
+    expect(find.text('已完成任務並建立紀錄，可到履歷查看'), findsOneWidget);
     final tasks = await _storedTasks();
     expect(
       _statusFor(tasks, 'task-missing-schedule'),
@@ -874,6 +959,7 @@ void main() {
 
     await _completeVisibleTask(tester);
 
+    expect(find.text('已完成任務並建立紀錄，可到履歷查看'), findsOneWidget);
     final tasks = await _storedTasks();
     expect(
       _statusFor(tasks, 'task-mismatched-card'),
@@ -909,6 +995,7 @@ void main() {
 
     await _completeVisibleTask(tester);
 
+    expect(find.text('已完成任務並建立紀錄，可到履歷查看'), findsOneWidget);
     final tasks = await _storedTasks();
     expect(
       _statusFor(tasks, 'task-disabled-schedule'),
@@ -919,6 +1006,43 @@ void main() {
     final schedules = await _storedSchedules();
     expect(_nextDueDateFor(schedules, 'schedule-disabled'), dueDate);
   });
+
+  testWidgets(
+    'existing record does not create duplicate or run schedule follow-up',
+    (tester) async {
+      final dueDate = DateTime(2026, 7, 10);
+      await _setLocalData(
+        schedules: [
+          _schedule(
+            id: 'schedule-maintenance',
+            cardId: 'card-aircon-filter-cleaning',
+            nextDueDate: dueDate,
+          ),
+        ],
+        tasks: [
+          _task(
+            id: 'task-maintenance',
+            cardId: 'card-aircon-filter-cleaning',
+            scheduleId: 'schedule-maintenance',
+            title: '保養提醒',
+            dueDate: dueDate,
+          ),
+        ],
+        records: [_recordJson(taskId: 'task-maintenance')],
+      );
+
+      await _completeVisibleTask(tester);
+
+      expect(find.text('此任務已完成'), findsOneWidget);
+      final tasks = await _storedTasks();
+      expect(_statusFor(tasks, 'task-maintenance'), TaskStatus.completed.name);
+      final records = await _storedRecords();
+      expect(records, hasLength(1));
+      expect(records.single['taskId'], 'task-maintenance');
+      final schedules = await _storedSchedules();
+      expect(_nextDueDateFor(schedules, 'schedule-maintenance'), dueDate);
+    },
+  );
 
   testWidgets(
     'advanced schedule can generate a future task when next due date arrives',
@@ -972,6 +1096,7 @@ void main() {
 Future<void> _setLocalData({
   required List<Schedule> schedules,
   required List<Task> tasks,
+  List<Map<String, dynamic>> records = const [],
 }) async {
   SharedPreferences.resetStatic();
   SharedPreferences.setMockInitialValues({
@@ -980,12 +1105,15 @@ Future<void> _setLocalData({
       schedules.map((schedule) => schedule.toJson()).toList(),
     ),
     'tasks': jsonEncode(tasks.map((task) => task.toJson()).toList()),
-    'maintenance_records': jsonEncode([]),
+    'maintenance_records': jsonEncode(records),
   });
 }
 
-Future<void> _completeVisibleTask(WidgetTester tester) async {
-  await _openCompletionSheet(tester);
+Future<void> _completeVisibleTask(
+  WidgetTester tester, {
+  Widget todayScreen = const TodayScreen(),
+}) async {
+  await _openCompletionSheet(tester, todayScreen: todayScreen);
 
   final sheetCompleteButton = find.text('完成').last;
   await tester.ensureVisible(sheetCompleteButton);
@@ -993,8 +1121,11 @@ Future<void> _completeVisibleTask(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-Future<void> _completeVisibleTaskWithEndSchedule(WidgetTester tester) async {
-  await _openCompletionSheet(tester);
+Future<void> _completeVisibleTaskWithEndSchedule(
+  WidgetTester tester, {
+  Widget todayScreen = const TodayScreen(),
+}) async {
+  await _openCompletionSheet(tester, todayScreen: todayScreen);
 
   await tester.ensureVisible(find.text('結束排程'));
   await tester.tap(find.text('結束排程'));
@@ -1006,8 +1137,11 @@ Future<void> _completeVisibleTaskWithEndSchedule(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-Future<void> _completeManualReminderWithReschedule(WidgetTester tester) async {
-  await _openCompletionSheet(tester);
+Future<void> _completeManualReminderWithReschedule(
+  WidgetTester tester, {
+  Widget todayScreen = const TodayScreen(),
+}) async {
+  await _openCompletionSheet(tester, todayScreen: todayScreen);
 
   await tester.ensureVisible(find.text('重新安排日期'));
   await tester.tap(find.text('重新安排日期'));
@@ -1026,9 +1160,12 @@ Future<void> _completeManualReminderWithReschedule(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-Future<void> _openCompletionSheet(WidgetTester tester) async {
+Future<void> _openCompletionSheet(
+  WidgetTester tester, {
+  Widget todayScreen = const TodayScreen(),
+}) async {
   await tester.pumpWidget(
-    const MaterialApp(home: Scaffold(body: TodayScreen())),
+    MaterialApp(home: Scaffold(body: todayScreen)),
   );
   await tester.pumpAndSettle();
 
@@ -1135,4 +1272,60 @@ void _expectSingleExpiryRecord(List<dynamic> records, String taskId) {
   expect(records, hasLength(1));
   expect(records.single['taskId'], taskId);
   expect(records.single['recordType'], RecordType.expiryHandled.name);
+}
+
+Map<String, dynamic> _recordJson({required String taskId}) {
+  final now = DateTime(2026, 7, 10);
+  return {
+    'id': 'record-$taskId',
+    'itemId': 'item-1',
+    'taskId': taskId,
+    'recordType': RecordType.regularMaintenance.name,
+    'date': now.toIso8601String(),
+    'title': '保養提醒',
+    'issueDescription': null,
+    'workDescription': null,
+    'partsChanged': <String>[],
+    'cost': null,
+    'vendorName': null,
+    'warrantyUntil': null,
+    'result': '已完成',
+    'photos': <String>[],
+    'note': '既有紀錄',
+    'createdAt': now.toIso8601String(),
+  };
+}
+
+class _FailingScheduleLocalRepository extends ScheduleLocalRepository {
+  _FailingScheduleLocalRepository({
+    required List<Schedule> schedules,
+    this.failLoadAfterCalls,
+    this.failSave = false,
+  }) : _schedules = schedules,
+       super(LocalStorageService());
+
+  List<Schedule> _schedules;
+  final int? failLoadAfterCalls;
+  final bool failSave;
+  int _loadCallCount = 0;
+
+  @override
+  Future<List<Schedule>> loadSchedules() async {
+    _loadCallCount += 1;
+    final failAfter = failLoadAfterCalls;
+    if (failAfter != null && _loadCallCount > failAfter) {
+      throw Exception('schedule load failed');
+    }
+
+    return _schedules;
+  }
+
+  @override
+  Future<void> saveSchedules(List<Schedule> schedules) async {
+    if (failSave) {
+      throw Exception('schedule save failed');
+    }
+
+    _schedules = schedules;
+  }
 }

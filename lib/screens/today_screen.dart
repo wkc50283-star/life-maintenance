@@ -21,11 +21,16 @@ import '../widgets/task_section_header.dart';
 import '../widgets/today_hero.dart';
 
 class TodayScreen extends StatefulWidget {
-  const TodayScreen({super.key});
+  const TodayScreen({super.key, ScheduleLocalRepository? scheduleRepository})
+    : _scheduleRepository = scheduleRepository;
+
+  final ScheduleLocalRepository? _scheduleRepository;
 
   @override
   State<TodayScreen> createState() => _TodayScreenState();
 }
+
+enum _ScheduleFollowUpResult { updated, notApplicable, failed }
 
 class _TodayScreenState extends State<TodayScreen> {
   final LocalStorageService _storageService = LocalStorageService();
@@ -35,7 +40,7 @@ class _TodayScreenState extends State<TodayScreen> {
   late final MaintenanceRecordLocalRepository _recordRepository =
       MaintenanceRecordLocalRepository(_storageService);
   late final ScheduleLocalRepository _scheduleRepository =
-      ScheduleLocalRepository(_storageService);
+      widget._scheduleRepository ?? ScheduleLocalRepository(_storageService);
   late final TaskLocalRepository _taskRepository = TaskLocalRepository(
     _storageService,
   );
@@ -322,18 +327,14 @@ class _TodayScreenState extends State<TodayScreen> {
         ),
       ];
       await _recordRepository.saveRecords(updatedRecords);
-      if (_isManualExpiryReminderTask(task)) {
-        if (manualReminderAction == CompletionManualReminderAction.reschedule) {
-          await _rescheduleCompletedManualReminderSchedule(
-            task,
-            rescheduledDate,
-          );
-        } else {
-          await _disableCompletedManualReminderSchedule(task);
-        }
-      } else {
-        await _completeMaintenanceScheduleFollowUp(task, scheduleAction);
-      }
+      final scheduleFollowUpResult = _isManualExpiryReminderTask(task)
+          ? manualReminderAction == CompletionManualReminderAction.reschedule
+                ? await _rescheduleCompletedManualReminderSchedule(
+                    task,
+                    rescheduledDate,
+                  )
+                : await _disableCompletedManualReminderSchedule(task)
+          : await _completeMaintenanceScheduleFollowUp(task, scheduleAction);
 
       if (!mounted) {
         return;
@@ -344,45 +345,64 @@ class _TodayScreenState extends State<TodayScreen> {
         _hasLocalScheduleOrTaskData = true;
       });
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('已完成任務並建立紀錄，可到履歷查看')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            scheduleFollowUpResult == _ScheduleFollowUpResult.failed
+                ? '已完成並建立紀錄，但後續安排未更新'
+                : '已完成任務並建立紀錄，可到履歷查看',
+          ),
+        ),
+      );
     } finally {
       _completingTaskIds.remove(task.id);
     }
   }
 
-  Future<void> _disableCompletedManualReminderSchedule(
+  Future<_ScheduleFollowUpResult> _disableCompletedManualReminderSchedule(
     maintenance_task.Task task,
   ) async {
     if (!_isManualExpiryReminderTask(task) || task.scheduleId.isEmpty) {
-      return;
+      return _ScheduleFollowUpResult.notApplicable;
     }
 
     try {
       final schedules = await _scheduleRepository.loadSchedules();
-      final updatedSchedules = [
-        for (final schedule in schedules)
-          schedule.id == task.scheduleId &&
-                  schedule.cardId == 'manual-expiry-reminder'
-              ? schedule.copyWith(enabled: false)
-              : schedule,
-      ];
+      var didUpdateSchedule = false;
+      final updatedSchedules = <Schedule>[];
+      for (final schedule in schedules) {
+        if (!didUpdateSchedule &&
+            schedule.id == task.scheduleId &&
+            schedule.cardId == 'manual-expiry-reminder' &&
+            schedule.enabled) {
+          updatedSchedules.add(schedule.copyWith(enabled: false));
+          didUpdateSchedule = true;
+        } else {
+          updatedSchedules.add(schedule);
+        }
+      }
+
+      if (!didUpdateSchedule) {
+        return _ScheduleFollowUpResult.notApplicable;
+      }
+
       await _scheduleRepository.saveSchedules(updatedSchedules);
+      return _ScheduleFollowUpResult.updated;
     } catch (_) {
       // Completing the task and creating the record are the durable actions.
       // Schedule cleanup must not roll those back if local data is unavailable.
+      return _ScheduleFollowUpResult.failed;
     }
   }
 
-  Future<void> _rescheduleCompletedManualReminderSchedule(
+  Future<_ScheduleFollowUpResult> _rescheduleCompletedManualReminderSchedule(
     maintenance_task.Task task,
     DateTime? rescheduledDate,
   ) async {
     if (!_isManualExpiryReminderTask(task) ||
         task.scheduleId.isEmpty ||
         rescheduledDate == null) {
-      return;
+      return _ScheduleFollowUpResult.notApplicable;
     }
 
     try {
@@ -402,21 +422,23 @@ class _TodayScreenState extends State<TodayScreen> {
       }
 
       if (!didUpdateSchedule) {
-        return;
+        return _ScheduleFollowUpResult.notApplicable;
       }
 
       await _scheduleRepository.saveSchedules(updatedSchedules);
+      return _ScheduleFollowUpResult.updated;
     } catch (_) {
       // Completing the task and creating the record are the durable actions.
       // Schedule follow-up must not roll those back if local data is unavailable.
+      return _ScheduleFollowUpResult.failed;
     }
   }
 
-  Future<void> _advanceCompletedMaintenanceSchedule(
+  Future<_ScheduleFollowUpResult> _advanceCompletedMaintenanceSchedule(
     maintenance_task.Task task,
   ) async {
     if (_isManualExpiryReminderTask(task) || task.scheduleId.isEmpty) {
-      return;
+      return _ScheduleFollowUpResult.notApplicable;
     }
 
     try {
@@ -444,21 +466,23 @@ class _TodayScreenState extends State<TodayScreen> {
       }
 
       if (!didUpdateSchedule) {
-        return;
+        return _ScheduleFollowUpResult.notApplicable;
       }
 
       await _scheduleRepository.saveSchedules(updatedSchedules);
+      return _ScheduleFollowUpResult.updated;
     } catch (_) {
       // Completing the task and creating the record are the durable actions.
       // Schedule advancement must not roll those back if local data is unavailable.
+      return _ScheduleFollowUpResult.failed;
     }
   }
 
-  Future<void> _endCompletedMaintenanceSchedule(
+  Future<_ScheduleFollowUpResult> _endCompletedMaintenanceSchedule(
     maintenance_task.Task task,
   ) async {
     if (_isManualExpiryReminderTask(task) || task.scheduleId.isEmpty) {
-      return;
+      return _ScheduleFollowUpResult.notApplicable;
     }
 
     try {
@@ -478,25 +502,27 @@ class _TodayScreenState extends State<TodayScreen> {
       }
 
       if (!didUpdateSchedule) {
-        return;
+        return _ScheduleFollowUpResult.notApplicable;
       }
 
       await _scheduleRepository.saveSchedules(updatedSchedules);
+      return _ScheduleFollowUpResult.updated;
     } catch (_) {
       // Completing the task and creating the record are the durable actions.
       // Schedule follow-up must not roll those back if local data is unavailable.
+      return _ScheduleFollowUpResult.failed;
     }
   }
 
-  Future<void> _completeMaintenanceScheduleFollowUp(
+  Future<_ScheduleFollowUpResult> _completeMaintenanceScheduleFollowUp(
     maintenance_task.Task task,
     CompletionScheduleAction scheduleAction,
   ) async {
     switch (scheduleAction) {
       case CompletionScheduleAction.continueCycle:
-        await _advanceCompletedMaintenanceSchedule(task);
+        return _advanceCompletedMaintenanceSchedule(task);
       case CompletionScheduleAction.endSchedule:
-        await _endCompletedMaintenanceSchedule(task);
+        return _endCompletedMaintenanceSchedule(task);
     }
   }
 
