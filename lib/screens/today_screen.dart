@@ -170,7 +170,9 @@ class _TodayScreenState extends State<TodayScreen> {
 
     final recordData = await showCompletionRecordSheet(
       context,
-      showScheduleAction: !_isManualExpiryReminderTask(task),
+      followUpMode: _isManualExpiryReminderTask(task)
+          ? CompletionFollowUpMode.manualReminder
+          : CompletionFollowUpMode.maintenanceSchedule,
     );
 
     if (recordData == null) {
@@ -191,6 +193,8 @@ class _TodayScreenState extends State<TodayScreen> {
       note: recordData.note,
       result: recordData.result,
       scheduleAction: recordData.scheduleAction,
+      manualReminderAction: recordData.manualReminderAction,
+      rescheduledDate: recordData.rescheduledDate,
     );
   }
 
@@ -205,6 +209,9 @@ class _TodayScreenState extends State<TodayScreen> {
     String? result,
     CompletionScheduleAction scheduleAction =
         CompletionScheduleAction.continueCycle,
+    CompletionManualReminderAction manualReminderAction =
+        CompletionManualReminderAction.endReminder,
+    DateTime? rescheduledDate,
   }) async {
     if (isUsingMockTasks) {
       ScaffoldMessenger.of(
@@ -223,6 +230,30 @@ class _TodayScreenState extends State<TodayScreen> {
     _completingTaskIds.add(task.id);
 
     try {
+      if (_isManualExpiryReminderTask(task) &&
+          manualReminderAction == CompletionManualReminderAction.reschedule) {
+        if (rescheduledDate == null) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('請選擇新的提醒日期')));
+          return;
+        }
+
+        if (!_isAfterToday(rescheduledDate)) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('請選擇新的提醒日期')));
+          return;
+        }
+
+        if (_hasConflictingManualReminderTask(task, rescheduledDate)) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('這個日期已有待處理提醒，請選擇其他日期')));
+          return;
+        }
+      }
+
       final localTasks = _localTasks;
       if (localTasks == null) {
         return;
@@ -292,7 +323,14 @@ class _TodayScreenState extends State<TodayScreen> {
       ];
       await _recordRepository.saveRecords(updatedRecords);
       if (_isManualExpiryReminderTask(task)) {
-        await _disableCompletedManualReminderSchedule(task);
+        if (manualReminderAction == CompletionManualReminderAction.reschedule) {
+          await _rescheduleCompletedManualReminderSchedule(
+            task,
+            rescheduledDate,
+          );
+        } else {
+          await _disableCompletedManualReminderSchedule(task);
+        }
       } else {
         await _completeMaintenanceScheduleFollowUp(task, scheduleAction);
       }
@@ -334,6 +372,43 @@ class _TodayScreenState extends State<TodayScreen> {
     } catch (_) {
       // Completing the task and creating the record are the durable actions.
       // Schedule cleanup must not roll those back if local data is unavailable.
+    }
+  }
+
+  Future<void> _rescheduleCompletedManualReminderSchedule(
+    maintenance_task.Task task,
+    DateTime? rescheduledDate,
+  ) async {
+    if (!_isManualExpiryReminderTask(task) ||
+        task.scheduleId.isEmpty ||
+        rescheduledDate == null) {
+      return;
+    }
+
+    try {
+      final schedules = await _scheduleRepository.loadSchedules();
+      var didUpdateSchedule = false;
+      final updatedSchedules = <Schedule>[];
+      for (final schedule in schedules) {
+        if (!didUpdateSchedule &&
+            schedule.id == task.scheduleId &&
+            schedule.cardId == task.cardId &&
+            schedule.enabled) {
+          updatedSchedules.add(schedule.copyWith(nextDueDate: rescheduledDate));
+          didUpdateSchedule = true;
+        } else {
+          updatedSchedules.add(schedule);
+        }
+      }
+
+      if (!didUpdateSchedule) {
+        return;
+      }
+
+      await _scheduleRepository.saveSchedules(updatedSchedules);
+    } catch (_) {
+      // Completing the task and creating the record are the durable actions.
+      // Schedule follow-up must not roll those back if local data is unavailable.
     }
   }
 
@@ -424,6 +499,25 @@ class _TodayScreenState extends State<TodayScreen> {
         await _endCompletedMaintenanceSchedule(task);
     }
   }
+
+  bool _hasConflictingManualReminderTask(
+    maintenance_task.Task task,
+    DateTime rescheduledDate,
+  ) {
+    final localTasks = _localTasks;
+    if (localTasks == null || task.scheduleId.isEmpty) {
+      return false;
+    }
+
+    return localTasks.any(
+      (localTask) =>
+          localTask.id != task.id &&
+          localTask.scheduleId == task.scheduleId &&
+          _isSameDay(localTask.dueDate, rescheduledDate) &&
+          localTask.status != TaskStatus.completed &&
+          localTask.status != TaskStatus.canceled,
+    );
+  }
 }
 
 DateTime _nextDueDateAfter({
@@ -463,6 +557,18 @@ DateTime _addMonths(DateTime date, int months) {
 
 int _daysInMonth(int year, int month) {
   return DateTime(year, month + 1, 0).day;
+}
+
+bool _isAfterToday(DateTime date) {
+  return _dateOnly(date).isAfter(_dateOnly(DateTime.now()));
+}
+
+bool _isSameDay(DateTime firstDate, DateTime secondDate) {
+  return _dateOnly(firstDate) == _dateOnly(secondDate);
+}
+
+DateTime _dateOnly(DateTime date) {
+  return DateTime(date.year, date.month, date.day);
 }
 
 void _showManualExpiryReminderDetailSheet(
