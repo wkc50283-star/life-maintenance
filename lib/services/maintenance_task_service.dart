@@ -13,7 +13,8 @@ class MaintenanceTaskService {
 
     for (final schedule in schedules) {
       final dueDate = _dateOnly(schedule.nextDueDate);
-      if (!schedule.enabled || dueDate.isAfter(todayDate)) {
+      if (schedule.status != ScheduleStatus.active ||
+          dueDate.isAfter(todayDate)) {
         continue;
       }
 
