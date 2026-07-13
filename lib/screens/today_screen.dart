@@ -348,9 +348,9 @@ class _TodayScreenState extends State<TodayScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            scheduleFollowUpResult == _ScheduleFollowUpResult.failed
-                ? '已完成並建立紀錄，但後續安排未更新'
-                : '已完成任務並建立紀錄，可到履歷查看',
+            scheduleFollowUpResult == _ScheduleFollowUpResult.updated
+                ? '已完成任務並建立紀錄，可到履歷查看'
+                : '已完成並建立紀錄，但後續安排未更新',
           ),
         ),
       );

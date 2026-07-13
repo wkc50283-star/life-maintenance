@@ -607,7 +607,7 @@ void main() {
 
     await _completeManualReminderWithReschedule(tester);
 
-    expect(find.text('已完成任務並建立紀錄，可到履歷查看'), findsOneWidget);
+    expect(find.text('已完成並建立紀錄，但後續安排未更新'), findsOneWidget);
     final tasks = await _storedTasks();
     expect(_statusFor(tasks, 'task-target'), TaskStatus.completed.name);
     final records = await _storedRecords();
@@ -705,7 +705,7 @@ void main() {
 
       await _completeManualReminderWithReschedule(tester);
 
-      expect(find.text('已完成任務並建立紀錄，可到履歷查看'), findsOneWidget);
+      expect(find.text('已完成並建立紀錄，但後續安排未更新'), findsOneWidget);
       final tasks = await _storedTasks();
       expect(_statusFor(tasks, 'task-target'), TaskStatus.completed.name);
       final records = await _storedRecords();
@@ -735,7 +735,7 @@ void main() {
 
       await _completeManualReminderWithReschedule(tester);
 
-      expect(find.text('已完成任務並建立紀錄，可到履歷查看'), findsOneWidget);
+      expect(find.text('已完成並建立紀錄，但後續安排未更新'), findsOneWidget);
       final tasks = await _storedTasks();
       expect(_statusFor(tasks, 'task-target'), TaskStatus.completed.name);
       final records = await _storedRecords();
@@ -769,7 +769,7 @@ void main() {
 
       await _completeManualReminderWithReschedule(tester);
 
-      expect(find.text('已完成任務並建立紀錄，可到履歷查看'), findsOneWidget);
+      expect(find.text('已完成並建立紀錄，但後續安排未更新'), findsOneWidget);
       final tasks = await _storedTasks();
       expect(_statusFor(tasks, 'task-target'), TaskStatus.completed.name);
       final records = await _storedRecords();
@@ -900,7 +900,7 @@ void main() {
 
     await _completeVisibleTask(tester);
 
-    expect(find.text('已完成任務並建立紀錄，可到履歷查看'), findsOneWidget);
+    expect(find.text('已完成並建立紀錄，但後續安排未更新'), findsOneWidget);
     final tasks = await _storedTasks();
     expect(_statusFor(tasks, 'task-empty-schedule'), TaskStatus.completed.name);
     final records = await _storedRecords();
@@ -926,7 +926,7 @@ void main() {
 
     await _completeVisibleTask(tester);
 
-    expect(find.text('已完成任務並建立紀錄，可到履歷查看'), findsOneWidget);
+    expect(find.text('已完成並建立紀錄，但後續安排未更新'), findsOneWidget);
     final tasks = await _storedTasks();
     expect(
       _statusFor(tasks, 'task-missing-schedule'),
@@ -959,7 +959,7 @@ void main() {
 
     await _completeVisibleTask(tester);
 
-    expect(find.text('已完成任務並建立紀錄，可到履歷查看'), findsOneWidget);
+    expect(find.text('已完成並建立紀錄，但後續安排未更新'), findsOneWidget);
     final tasks = await _storedTasks();
     expect(
       _statusFor(tasks, 'task-mismatched-card'),
@@ -995,7 +995,7 @@ void main() {
 
     await _completeVisibleTask(tester);
 
-    expect(find.text('已完成任務並建立紀錄，可到履歷查看'), findsOneWidget);
+    expect(find.text('已完成並建立紀錄，但後續安排未更新'), findsOneWidget);
     final tasks = await _storedTasks();
     expect(
       _statusFor(tasks, 'task-disabled-schedule'),
