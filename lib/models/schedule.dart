@@ -10,8 +10,10 @@ class Schedule {
   final DateTime nextDueDate;
   final String? title;
   final String? reminderTime;
-  final bool enabled;
+  final ScheduleStatus status;
   final bool strictPeriodMode;
+
+  bool get enabled => status == ScheduleStatus.active;
 
   const Schedule({
     required this.id,
@@ -23,9 +25,10 @@ class Schedule {
     required this.nextDueDate,
     this.title,
     this.reminderTime,
-    this.enabled = true,
+    bool enabled = true,
+    ScheduleStatus? status,
     this.strictPeriodMode = false,
-  });
+  }) : status = status ?? (enabled ? ScheduleStatus.active : ScheduleStatus.ended);
 
   factory Schedule.fromJson(Map<String, dynamic> json) {
     return Schedule(
@@ -38,7 +41,7 @@ class Schedule {
       nextDueDate: DateTime.parse(json['nextDueDate'] as String),
       title: json['title'] as String?,
       reminderTime: json['reminderTime'] as String?,
-      enabled: json['enabled'] as bool,
+      status: _statusFromJson(json),
       strictPeriodMode: json['strictPeriodMode'] as bool,
     );
   }
@@ -54,6 +57,7 @@ class Schedule {
       'nextDueDate': nextDueDate.toIso8601String(),
       'title': title,
       'reminderTime': reminderTime,
+      'status': status.name,
       'enabled': enabled,
       'strictPeriodMode': strictPeriodMode,
     };
@@ -69,9 +73,18 @@ class Schedule {
     DateTime? nextDueDate,
     String? title,
     String? reminderTime,
+    ScheduleStatus? status,
     bool? enabled,
     bool? strictPeriodMode,
   }) {
+    final nextStatus =
+        status ??
+        (enabled == null
+            ? this.status
+            : enabled
+            ? ScheduleStatus.active
+            : ScheduleStatus.ended);
+
     return Schedule(
       id: id ?? this.id,
       itemId: itemId ?? this.itemId,
@@ -82,8 +95,21 @@ class Schedule {
       nextDueDate: nextDueDate ?? this.nextDueDate,
       title: title ?? this.title,
       reminderTime: reminderTime ?? this.reminderTime,
-      enabled: enabled ?? this.enabled,
+      status: nextStatus,
       strictPeriodMode: strictPeriodMode ?? this.strictPeriodMode,
     );
   }
+}
+
+ScheduleStatus _statusFromJson(Map<String, dynamic> json) {
+  final statusName = json['status'];
+  if (statusName is String) {
+    try {
+      return ScheduleStatus.values.byName(statusName);
+    } catch (_) {
+      // Fall back to the legacy enabled flag below.
+    }
+  }
+
+  return (json['enabled'] as bool) ? ScheduleStatus.active : ScheduleStatus.ended;
 }

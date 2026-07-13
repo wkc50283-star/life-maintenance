@@ -15,6 +15,8 @@ enum RiskLevel { low, medium, high, unknown }
 
 enum CycleType { daily, weekly, monthly, quarterly, semiAnnual, yearly, custom }
 
+enum ScheduleStatus { active, paused, ended }
+
 enum TaskStatus { pending, completed, overdue, postponed, canceled }
 
 enum RecordType {
