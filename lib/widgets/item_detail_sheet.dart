@@ -5,12 +5,14 @@ import 'maintenance_record_detail_sheet.dart';
 class ItemDetailData {
   final String title;
   final List<ItemDetailRow> rows;
+  final List<ItemDetailMaintenanceSchedule> maintenanceSchedules;
   final List<ItemDetailMaintenanceRecord> maintenanceRecords;
   final List<ItemDetailReminder> reminders;
 
   const ItemDetailData({
     required this.title,
     required this.rows,
+    this.maintenanceSchedules = const [],
     this.maintenanceRecords = const [],
     this.reminders = const [],
   });
@@ -36,6 +38,29 @@ class ItemDetailMaintenanceRecord {
     required this.recordType,
     required this.result,
     required this.detail,
+  });
+}
+
+enum ItemDetailScheduleResumeResult { updated, conflict, failed }
+
+class ItemDetailMaintenanceSchedule {
+  final String id;
+  final String title;
+  final String nextDueDate;
+  final DateTime rawNextDueDate;
+  final String status;
+  final bool canResume;
+  final Future<ItemDetailScheduleResumeResult> Function(DateTime selectedDate)?
+  onReschedule;
+
+  const ItemDetailMaintenanceSchedule({
+    required this.id,
+    required this.title,
+    required this.nextDueDate,
+    required this.rawNextDueDate,
+    required this.status,
+    this.canResume = false,
+    this.onReschedule,
   });
 }
 
@@ -110,6 +135,8 @@ class _ItemDetailSheet extends StatelessWidget {
           for (final row in data.rows) _ItemDetailRow(row: row),
           const SizedBox(height: 8),
           _RemindersSection(reminders: data.reminders),
+          const SizedBox(height: 10),
+          _MaintenanceSchedulesSection(schedules: data.maintenanceSchedules),
           const SizedBox(height: 10),
           _MaintenanceRecordsSection(records: data.maintenanceRecords),
         ],
@@ -210,6 +237,155 @@ class _ReminderSummaryTile extends StatelessWidget {
   }
 }
 
+class _MaintenanceSchedulesSection extends StatelessWidget {
+  final List<ItemDetailMaintenanceSchedule> schedules;
+
+  const _MaintenanceSchedulesSection({required this.schedules});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFCF6),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE4E0D8)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '保養安排',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              color: const Color(0xFF263746),
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (schedules.isEmpty)
+            Text(
+              '目前沒有保養安排',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: const Color(0xFF4D5D6B),
+                fontWeight: FontWeight.w700,
+              ),
+            )
+          else
+            for (final schedule in schedules)
+              _MaintenanceScheduleSummaryTile(schedule: schedule),
+        ],
+      ),
+    );
+  }
+}
+
+class _MaintenanceScheduleSummaryTile extends StatelessWidget {
+  final ItemDetailMaintenanceSchedule schedule;
+
+  const _MaintenanceScheduleSummaryTile({required this.schedule});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F3EA),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE4E0D8)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            schedule.title,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: const Color(0xFF263746),
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _RecordSummaryTag(label: '下次日期：${schedule.nextDueDate}'),
+              _RecordSummaryTag(label: '狀態：${schedule.status}'),
+            ],
+          ),
+          if (schedule.canResume && schedule.onReschedule != null) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () =>
+                    _rescheduleMaintenanceSchedule(context, schedule: schedule),
+                icon: const Icon(Icons.event_available_outlined),
+                label: const Text('重新安排並恢復'),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+Future<void> _rescheduleMaintenanceSchedule(
+  BuildContext context, {
+  required ItemDetailMaintenanceSchedule schedule,
+}) async {
+  final today = _dateOnly(DateTime.now());
+  final firstDate = today.add(const Duration(days: 1));
+  final initialDate = _dateOnly(schedule.rawNextDueDate).isAfter(today)
+      ? _dateOnly(schedule.rawNextDueDate)
+      : firstDate;
+  final selectedDate = await showDatePicker(
+    context: context,
+    initialDate: initialDate,
+    firstDate: firstDate,
+    lastDate: DateTime(2100),
+    helpText: '重新安排並恢復',
+  );
+
+  if (selectedDate == null) {
+    return;
+  }
+
+  final result = await schedule.onReschedule!(selectedDate);
+  if (!context.mounted) {
+    return;
+  }
+
+  switch (result) {
+    case ItemDetailScheduleResumeResult.updated:
+      final messenger = ScaffoldMessenger.of(context);
+      Navigator.of(context).pop();
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('保養安排已重新安排並恢復'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    case ItemDetailScheduleResumeResult.conflict:
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('這個日期已有待處理提醒，請選擇其他日期'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    case ItemDetailScheduleResumeResult.failed:
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('重新安排失敗，請稍後再試'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+}
+
 class _MaintenanceRecordsSection extends StatelessWidget {
   final List<ItemDetailMaintenanceRecord> records;
 
@@ -305,6 +481,10 @@ class _MaintenanceRecordSummaryTile extends StatelessWidget {
       ),
     );
   }
+}
+
+DateTime _dateOnly(DateTime date) {
+  return DateTime(date.year, date.month, date.day);
 }
 
 class _RecordSummaryTag extends StatelessWidget {

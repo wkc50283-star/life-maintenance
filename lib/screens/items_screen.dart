@@ -5,9 +5,11 @@ import '../models/enums.dart';
 import '../models/item.dart';
 import '../models/maintenance_record.dart';
 import '../models/schedule.dart';
+import '../models/task.dart';
 import '../repositories/item_local_repository.dart';
 import '../repositories/maintenance_record_local_repository.dart';
 import '../repositories/schedule_local_repository.dart';
+import '../repositories/task_local_repository.dart';
 import '../services/local_storage_service.dart';
 import '../widgets/items_category_chips.dart';
 import '../widgets/items_header.dart';
@@ -31,6 +33,9 @@ class _ItemsScreenState extends State<ItemsScreen> {
   final MaintenanceRecordLocalRepository _recordRepository =
       MaintenanceRecordLocalRepository(LocalStorageService());
   final ScheduleLocalRepository _scheduleRepository = ScheduleLocalRepository(
+    LocalStorageService(),
+  );
+  final TaskLocalRepository _taskRepository = TaskLocalRepository(
     LocalStorageService(),
   );
   List<Item>? _localItems;
@@ -107,9 +112,26 @@ class _ItemsScreenState extends State<ItemsScreen> {
                           schedule.cardId == 'manual-expiry-reminder',
                     )
                     .toList();
+                final itemMaintenanceSchedules = schedules
+                    .where(
+                      (schedule) =>
+                          schedule.itemId == item.id &&
+                          schedule.cardId != 'manual-expiry-reminder',
+                    )
+                    .toList();
                 final selectedRecord = await showItemDetailSheet(
                   context,
-                  data: _itemDetailDataFor(item, itemRecords, itemSchedules),
+                  data: _itemDetailDataFor(
+                    item,
+                    itemRecords,
+                    itemSchedules,
+                    itemMaintenanceSchedules,
+                    (schedule, selectedDate) => _resumeMaintenanceSchedule(
+                      item,
+                      schedule,
+                      selectedDate,
+                    ),
+                  ),
                 );
                 if (!context.mounted || selectedRecord == null) {
                   return;
@@ -123,6 +145,70 @@ class _ItemsScreenState extends State<ItemsScreen> {
             ),
       ],
     );
+  }
+
+  Future<ItemDetailScheduleResumeResult> _resumeMaintenanceSchedule(
+    Item item,
+    Schedule selectedSchedule,
+    DateTime selectedDate,
+  ) async {
+    final List<Task> tasks;
+    try {
+      tasks = await _taskRepository.loadTasks();
+    } catch (_) {
+      return ItemDetailScheduleResumeResult.failed;
+    }
+
+    final hasConflictingTask = tasks.any(
+      (task) =>
+          task.scheduleId == selectedSchedule.id &&
+          _isSameDay(task.dueDate, selectedDate) &&
+          task.status != TaskStatus.completed &&
+          task.status != TaskStatus.canceled,
+    );
+    if (hasConflictingTask) {
+      return ItemDetailScheduleResumeResult.conflict;
+    }
+
+    final List<Schedule> schedules;
+    try {
+      schedules = await _scheduleRepository.loadSchedules();
+    } catch (_) {
+      return ItemDetailScheduleResumeResult.failed;
+    }
+
+    var didUpdateSchedule = false;
+    final updatedSchedules = [
+      for (final existingSchedule in schedules)
+        if (!didUpdateSchedule &&
+            existingSchedule.id == selectedSchedule.id &&
+            existingSchedule.itemId == item.id &&
+            existingSchedule.cardId == selectedSchedule.cardId &&
+            existingSchedule.cardId != 'manual-expiry-reminder' &&
+            existingSchedule.status == ScheduleStatus.paused)
+          () {
+            didUpdateSchedule = true;
+            return existingSchedule.copyWith(
+              status: ScheduleStatus.active,
+              nextDueDate: selectedDate,
+            );
+          }()
+        else
+          existingSchedule,
+    ];
+
+    if (!didUpdateSchedule) {
+      return ItemDetailScheduleResumeResult.failed;
+    }
+
+    try {
+      await _scheduleRepository.saveSchedules(updatedSchedules);
+    } catch (_) {
+      return ItemDetailScheduleResumeResult.failed;
+    }
+
+    await _loadLocalData();
+    return ItemDetailScheduleResumeResult.updated;
   }
 }
 
@@ -190,9 +276,17 @@ ItemDetailData _itemDetailDataFor(
   Item item,
   List<MaintenanceRecord> records,
   List<Schedule> schedules,
+  List<Schedule> maintenanceSchedules,
+  Future<ItemDetailScheduleResumeResult> Function(
+    Schedule schedule,
+    DateTime selectedDate,
+  )
+  resumeMaintenanceSchedule,
 ) {
   final sortedRecords = [...records]..sort((a, b) => b.date.compareTo(a.date));
   final sortedSchedules = [...schedules]
+    ..sort((a, b) => a.nextDueDate.compareTo(b.nextDueDate));
+  final sortedMaintenanceSchedules = [...maintenanceSchedules]
     ..sort((a, b) => a.nextDueDate.compareTo(b.nextDueDate));
 
   return ItemDetailData(
@@ -227,6 +321,21 @@ ItemDetailData _itemDetailDataFor(
           recordType: _labelForRecordType(record.recordType),
           result: _nullableText(record.result) ?? '已記錄',
           detail: _detailDataFor(record),
+        ),
+    ],
+    maintenanceSchedules: [
+      for (final schedule in sortedMaintenanceSchedules)
+        ItemDetailMaintenanceSchedule(
+          id: schedule.id,
+          title: _nullableText(schedule.title) ?? '保養提醒',
+          nextDueDate: _formatDate(schedule.nextDueDate),
+          rawNextDueDate: schedule.nextDueDate,
+          status: _labelForMaintenanceScheduleStatus(schedule),
+          canResume: schedule.status == ScheduleStatus.paused,
+          onReschedule: schedule.status == ScheduleStatus.paused
+              ? (selectedDate) =>
+                    resumeMaintenanceSchedule(schedule, selectedDate)
+              : null,
         ),
     ],
     reminders: [
@@ -330,6 +439,20 @@ String _labelForScheduleStatus(Schedule schedule) {
   );
 
   return dueDate.isAfter(today) ? '尚未到期' : '已到期';
+}
+
+String _labelForMaintenanceScheduleStatus(Schedule schedule) {
+  return switch (schedule.status) {
+    ScheduleStatus.active => '進行中',
+    ScheduleStatus.paused => '已暫停',
+    ScheduleStatus.ended => '已結束',
+  };
+}
+
+bool _isSameDay(DateTime firstDate, DateTime secondDate) {
+  final first = DateTime(firstDate.year, firstDate.month, firstDate.day);
+  final second = DateTime(secondDate.year, secondDate.month, secondDate.day);
+  return first == second;
 }
 
 String? _nullableText(String? value) {
