@@ -330,6 +330,23 @@ void _showReminderDetailSheet(
                     label: const Text('取消提醒'),
                   ),
                 ),
+              ] else if (schedule.cardId == 'manual-expiry-reminder' &&
+                  schedule.status == ScheduleStatus.paused) ...[
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      _reschedulePausedReminder(
+                        sheetContext,
+                        schedule: schedule,
+                        onDateSaved: onDateSaved,
+                      );
+                    },
+                    icon: const Icon(Icons.event_available_outlined),
+                    label: const Text('重新安排並恢復'),
+                  ),
+                ),
               ],
             ],
           ),
@@ -464,6 +481,82 @@ void _showEditReminderTitleSheet(
       );
     },
   ).whenComplete(titleController.dispose);
+}
+
+Future<void> _reschedulePausedReminder(
+  BuildContext context, {
+  required Schedule schedule,
+  required Future<void> Function() onDateSaved,
+}) async {
+  final today = _dateOnly(DateTime.now());
+  final firstDate = today.add(const Duration(days: 1));
+  final initialDate = _dateOnly(schedule.nextDueDate).isAfter(today)
+      ? _dateOnly(schedule.nextDueDate)
+      : firstDate;
+  final selectedDate = await showDatePicker(
+    context: context,
+    initialDate: initialDate,
+    firstDate: firstDate,
+    lastDate: DateTime(2100),
+    helpText: '重新安排並恢復',
+  );
+
+  if (selectedDate == null) {
+    return;
+  }
+
+  final taskRepository = TaskLocalRepository(LocalStorageService());
+  final tasks = await taskRepository.loadTasks();
+  final hasConflictingTask = tasks.any(
+    (task) =>
+        task.scheduleId == schedule.id &&
+        _isSameDay(task.dueDate, selectedDate) &&
+        task.status != TaskStatus.completed &&
+        task.status != TaskStatus.canceled,
+  );
+
+  if (!context.mounted) {
+    return;
+  }
+
+  if (hasConflictingTask) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('這個日期已有待處理提醒，請選擇其他日期'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+    return;
+  }
+
+  final repository = ScheduleLocalRepository(LocalStorageService());
+  final schedules = await repository.loadSchedules();
+  final updatedSchedules = [
+    for (final existingSchedule in schedules)
+      existingSchedule.id == schedule.id &&
+              existingSchedule.cardId == 'manual-expiry-reminder' &&
+              existingSchedule.status == ScheduleStatus.paused
+          ? existingSchedule.copyWith(
+              status: ScheduleStatus.active,
+              nextDueDate: selectedDate,
+            )
+          : existingSchedule,
+  ];
+  await repository.saveSchedules(updatedSchedules);
+  await onDateSaved();
+
+  if (!context.mounted) {
+    return;
+  }
+
+  final messenger = ScaffoldMessenger.of(context);
+  Navigator.of(context).pop();
+  messenger.showSnackBar(
+    const SnackBar(
+      content: Text('提醒已重新安排'),
+      behavior: SnackBarBehavior.floating,
+    ),
+  );
 }
 
 Future<void> _cancelReminder(
@@ -709,6 +802,14 @@ String _statusForSchedule(Schedule schedule) {
   );
 
   return dueDate.isAfter(today) ? '尚未到期' : '已到期';
+}
+
+DateTime _dateOnly(DateTime date) {
+  return DateTime(date.year, date.month, date.day);
+}
+
+bool _isSameDay(DateTime firstDate, DateTime secondDate) {
+  return _dateOnly(firstDate) == _dateOnly(secondDate);
 }
 
 String _formatDate(DateTime date) {
