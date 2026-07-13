@@ -283,38 +283,38 @@ void _showReminderDetailSheet(
               _ReminderDetailRow(label: '所屬項目', value: itemName),
               _ReminderDetailRow(label: '提醒日期', value: dueDate),
               _ReminderDetailRow(label: '狀態', value: status),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    _showEditReminderTitleSheet(
-                      sheetContext,
-                      schedule: schedule,
-                      currentTitle: title,
-                      onTitleSaved: onTitleSaved,
-                    );
-                  },
-                  icon: const Icon(Icons.edit_outlined),
-                  label: const Text('編輯名稱'),
+              if (schedule.status == ScheduleStatus.active) ...[
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      _showEditReminderTitleSheet(
+                        sheetContext,
+                        schedule: schedule,
+                        currentTitle: title,
+                        onTitleSaved: onTitleSaved,
+                      );
+                    },
+                    icon: const Icon(Icons.edit_outlined),
+                    label: const Text('編輯名稱'),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    _editReminderDate(
-                      sheetContext,
-                      schedule: schedule,
-                      onDateSaved: onDateSaved,
-                    );
-                  },
-                  icon: const Icon(Icons.event_outlined),
-                  label: const Text('編輯提醒日期'),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      _editReminderDate(
+                        sheetContext,
+                        schedule: schedule,
+                        onDateSaved: onDateSaved,
+                      );
+                    },
+                    icon: const Icon(Icons.event_outlined),
+                    label: const Text('編輯提醒日期'),
+                  ),
                 ),
-              ),
-              if (schedule.enabled) ...[
                 const SizedBox(height: 8),
                 SizedBox(
                   width: double.infinity,
@@ -691,8 +691,13 @@ String _itemNameForSchedule(Schedule schedule, List<Item> items) {
 }
 
 String _statusForSchedule(Schedule schedule) {
-  if (!schedule.enabled) {
-    return '已取消';
+  switch (schedule.status) {
+    case ScheduleStatus.paused:
+      return '已暫停';
+    case ScheduleStatus.ended:
+      return '已結束';
+    case ScheduleStatus.active:
+      break;
   }
 
   final now = DateTime.now();
