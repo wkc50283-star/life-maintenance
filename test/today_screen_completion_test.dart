@@ -76,6 +76,246 @@ void main() {
     },
   );
 
+  testWidgets('monthly maintenance clamps end of month', (tester) async {
+    final dueDate = DateTime(2026, 1, 31);
+    await _setLocalData(
+      schedules: [
+        _schedule(
+          id: 'schedule-target',
+          cardId: 'card-aircon-filter-cleaning',
+          cycleType: CycleType.monthly,
+          interval: 1,
+          nextDueDate: dueDate,
+        ),
+        _schedule(
+          id: 'schedule-other',
+          cardId: 'card-aircon-filter-cleaning',
+          nextDueDate: dueDate,
+        ),
+      ],
+      tasks: [
+        _task(
+          id: 'task-maintenance',
+          cardId: 'card-aircon-filter-cleaning',
+          scheduleId: 'schedule-target',
+          title: '保養提醒',
+          dueDate: dueDate,
+        ),
+      ],
+    );
+
+    await _completeVisibleTask(tester);
+
+    final tasks = await _storedTasks();
+    expect(_statusFor(tasks, 'task-maintenance'), TaskStatus.completed.name);
+    final records = await _storedRecords();
+    expect(records, hasLength(1));
+    final schedules = await _storedSchedules();
+    expect(_enabledFor(schedules, 'schedule-target'), isTrue);
+    expect(_nextDueDateFor(schedules, 'schedule-target'), DateTime(2026, 2, 28));
+    expect(_nextDueDateFor(schedules, 'schedule-other'), dueDate);
+  });
+
+  testWidgets('quarterly maintenance clamps end of month', (tester) async {
+    final dueDate = DateTime(2026, 1, 31);
+    await _setLocalData(
+      schedules: [
+        _schedule(
+          id: 'schedule-target',
+          cardId: 'card-aircon-filter-cleaning',
+          cycleType: CycleType.quarterly,
+          interval: 1,
+          nextDueDate: dueDate,
+        ),
+        _schedule(
+          id: 'schedule-other',
+          cardId: 'card-aircon-filter-cleaning',
+          nextDueDate: dueDate,
+        ),
+      ],
+      tasks: [
+        _task(
+          id: 'task-maintenance',
+          cardId: 'card-aircon-filter-cleaning',
+          scheduleId: 'schedule-target',
+          title: '保養提醒',
+          dueDate: dueDate,
+        ),
+      ],
+    );
+
+    await _completeVisibleTask(tester);
+
+    final tasks = await _storedTasks();
+    expect(_statusFor(tasks, 'task-maintenance'), TaskStatus.completed.name);
+    final records = await _storedRecords();
+    expect(records, hasLength(1));
+    final schedules = await _storedSchedules();
+    expect(_enabledFor(schedules, 'schedule-target'), isTrue);
+    expect(_nextDueDateFor(schedules, 'schedule-target'), DateTime(2026, 4, 30));
+    expect(_nextDueDateFor(schedules, 'schedule-other'), dueDate);
+  });
+
+  testWidgets('semi annual maintenance clamps end of month', (tester) async {
+    final dueDate = DateTime(2026, 8, 31);
+    await _setLocalData(
+      schedules: [
+        _schedule(
+          id: 'schedule-target',
+          cardId: 'card-aircon-filter-cleaning',
+          cycleType: CycleType.semiAnnual,
+          interval: 1,
+          nextDueDate: dueDate,
+        ),
+        _schedule(
+          id: 'schedule-other',
+          cardId: 'card-aircon-filter-cleaning',
+          nextDueDate: dueDate,
+        ),
+      ],
+      tasks: [
+        _task(
+          id: 'task-maintenance',
+          cardId: 'card-aircon-filter-cleaning',
+          scheduleId: 'schedule-target',
+          title: '保養提醒',
+          dueDate: dueDate,
+        ),
+      ],
+    );
+
+    await _completeVisibleTask(tester);
+
+    final tasks = await _storedTasks();
+    expect(_statusFor(tasks, 'task-maintenance'), TaskStatus.completed.name);
+    final records = await _storedRecords();
+    expect(records, hasLength(1));
+    final schedules = await _storedSchedules();
+    expect(_enabledFor(schedules, 'schedule-target'), isTrue);
+    expect(_nextDueDateFor(schedules, 'schedule-target'), DateTime(2027, 2, 28));
+    expect(_nextDueDateFor(schedules, 'schedule-other'), dueDate);
+  });
+
+  testWidgets('yearly maintenance clamps leap day', (tester) async {
+    final dueDate = DateTime(2024, 2, 29);
+    await _setLocalData(
+      schedules: [
+        _schedule(
+          id: 'schedule-target',
+          cardId: 'card-aircon-filter-cleaning',
+          cycleType: CycleType.yearly,
+          interval: 1,
+          nextDueDate: dueDate,
+        ),
+        _schedule(
+          id: 'schedule-other',
+          cardId: 'card-aircon-filter-cleaning',
+          nextDueDate: dueDate,
+        ),
+      ],
+      tasks: [
+        _task(
+          id: 'task-maintenance',
+          cardId: 'card-aircon-filter-cleaning',
+          scheduleId: 'schedule-target',
+          title: '保養提醒',
+          dueDate: dueDate,
+        ),
+      ],
+    );
+
+    await _completeVisibleTask(tester);
+
+    final tasks = await _storedTasks();
+    expect(_statusFor(tasks, 'task-maintenance'), TaskStatus.completed.name);
+    final records = await _storedRecords();
+    expect(records, hasLength(1));
+    final schedules = await _storedSchedules();
+    expect(_enabledFor(schedules, 'schedule-target'), isTrue);
+    expect(_nextDueDateFor(schedules, 'schedule-target'), DateTime(2025, 2, 28));
+    expect(_nextDueDateFor(schedules, 'schedule-other'), dueDate);
+  });
+
+  testWidgets('zero interval falls back to one cycle', (tester) async {
+    final dueDate = DateTime(2026, 1, 31);
+    await _setLocalData(
+      schedules: [
+        _schedule(
+          id: 'schedule-target',
+          cardId: 'card-aircon-filter-cleaning',
+          cycleType: CycleType.monthly,
+          interval: 0,
+          nextDueDate: dueDate,
+        ),
+        _schedule(
+          id: 'schedule-other',
+          cardId: 'card-aircon-filter-cleaning',
+          nextDueDate: dueDate,
+        ),
+      ],
+      tasks: [
+        _task(
+          id: 'task-maintenance',
+          cardId: 'card-aircon-filter-cleaning',
+          scheduleId: 'schedule-target',
+          title: '保養提醒',
+          dueDate: dueDate,
+        ),
+      ],
+    );
+
+    await _completeVisibleTask(tester);
+
+    final tasks = await _storedTasks();
+    expect(_statusFor(tasks, 'task-maintenance'), TaskStatus.completed.name);
+    final records = await _storedRecords();
+    expect(records, hasLength(1));
+    final schedules = await _storedSchedules();
+    expect(_enabledFor(schedules, 'schedule-target'), isTrue);
+    expect(_nextDueDateFor(schedules, 'schedule-target'), DateTime(2026, 2, 28));
+    expect(_nextDueDateFor(schedules, 'schedule-other'), dueDate);
+  });
+
+  testWidgets('negative interval falls back to one cycle', (tester) async {
+    final dueDate = DateTime(2026, 1, 31);
+    await _setLocalData(
+      schedules: [
+        _schedule(
+          id: 'schedule-target',
+          cardId: 'card-aircon-filter-cleaning',
+          cycleType: CycleType.monthly,
+          interval: -2,
+          nextDueDate: dueDate,
+        ),
+        _schedule(
+          id: 'schedule-other',
+          cardId: 'card-aircon-filter-cleaning',
+          nextDueDate: dueDate,
+        ),
+      ],
+      tasks: [
+        _task(
+          id: 'task-maintenance',
+          cardId: 'card-aircon-filter-cleaning',
+          scheduleId: 'schedule-target',
+          title: '保養提醒',
+          dueDate: dueDate,
+        ),
+      ],
+    );
+
+    await _completeVisibleTask(tester);
+
+    final tasks = await _storedTasks();
+    expect(_statusFor(tasks, 'task-maintenance'), TaskStatus.completed.name);
+    final records = await _storedRecords();
+    expect(records, hasLength(1));
+    final schedules = await _storedSchedules();
+    expect(_enabledFor(schedules, 'schedule-target'), isTrue);
+    expect(_nextDueDateFor(schedules, 'schedule-target'), DateTime(2026, 2, 28));
+    expect(_nextDueDateFor(schedules, 'schedule-other'), dueDate);
+  });
+
   testWidgets(
     'regular maintenance completion sheet defaults to continue cycle',
     (tester) async {
@@ -657,16 +897,20 @@ Schedule _schedule({
   required String id,
   required DateTime nextDueDate,
   String cardId = 'manual-expiry-reminder',
+  CycleType? cycleType,
+  int interval = 1,
   bool enabled = true,
 }) {
   return Schedule(
     id: id,
     itemId: 'item-1',
     cardId: cardId,
-    cycleType: cardId == 'manual-expiry-reminder'
-        ? CycleType.custom
-        : CycleType.monthly,
-    interval: 1,
+    cycleType:
+        cycleType ??
+        (cardId == 'manual-expiry-reminder'
+            ? CycleType.custom
+            : CycleType.monthly),
+    interval: interval,
     startDate: DateTime(2026, 7, 1),
     nextDueDate: nextDueDate,
     title: '合約續約',
