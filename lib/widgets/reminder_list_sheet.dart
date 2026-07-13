@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/enums.dart';
 import '../models/item.dart';
 import '../models/schedule.dart';
+import '../models/task.dart';
 import '../repositories/item_local_repository.dart';
 import '../repositories/schedule_local_repository.dart';
 import '../repositories/task_local_repository.dart';
@@ -506,7 +507,16 @@ Future<void> _reschedulePausedReminder(
   }
 
   final taskRepository = TaskLocalRepository(LocalStorageService());
-  final tasks = await taskRepository.loadTasks();
+  final List<Task> tasks;
+  try {
+    tasks = await taskRepository.loadTasks();
+  } catch (_) {
+    if (!context.mounted) {
+      return;
+    }
+    _showRescheduleFailedMessage(context);
+    return;
+  }
   final hasConflictingTask = tasks.any(
     (task) =>
         task.scheduleId == schedule.id &&
@@ -530,19 +540,52 @@ Future<void> _reschedulePausedReminder(
   }
 
   final repository = ScheduleLocalRepository(LocalStorageService());
-  final schedules = await repository.loadSchedules();
+  final List<Schedule> schedules;
+  try {
+    schedules = await repository.loadSchedules();
+  } catch (_) {
+    if (!context.mounted) {
+      return;
+    }
+    _showRescheduleFailedMessage(context);
+    return;
+  }
+
+  var didUpdateSchedule = false;
   final updatedSchedules = [
     for (final existingSchedule in schedules)
-      existingSchedule.id == schedule.id &&
-              existingSchedule.cardId == 'manual-expiry-reminder' &&
-              existingSchedule.status == ScheduleStatus.paused
-          ? existingSchedule.copyWith(
-              status: ScheduleStatus.active,
-              nextDueDate: selectedDate,
-            )
-          : existingSchedule,
+      if (!didUpdateSchedule &&
+          existingSchedule.id == schedule.id &&
+          existingSchedule.cardId == 'manual-expiry-reminder' &&
+          existingSchedule.status == ScheduleStatus.paused)
+        () {
+          didUpdateSchedule = true;
+          return existingSchedule.copyWith(
+            status: ScheduleStatus.active,
+            nextDueDate: selectedDate,
+          );
+        }()
+      else
+        existingSchedule,
   ];
-  await repository.saveSchedules(updatedSchedules);
+
+  if (!didUpdateSchedule) {
+    if (!context.mounted) {
+      return;
+    }
+    _showRescheduleFailedMessage(context);
+    return;
+  }
+
+  try {
+    await repository.saveSchedules(updatedSchedules);
+  } catch (_) {
+    if (!context.mounted) {
+      return;
+    }
+    _showRescheduleFailedMessage(context);
+    return;
+  }
   await onDateSaved();
 
   if (!context.mounted) {
@@ -553,7 +596,16 @@ Future<void> _reschedulePausedReminder(
   Navigator.of(context).pop();
   messenger.showSnackBar(
     const SnackBar(
-      content: Text('提醒已重新安排'),
+      content: Text('提醒已重新安排並恢復'),
+      behavior: SnackBarBehavior.floating,
+    ),
+  );
+}
+
+void _showRescheduleFailedMessage(BuildContext context) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text('重新安排失敗，請稍後再試'),
       behavior: SnackBarBehavior.floating,
     ),
   );

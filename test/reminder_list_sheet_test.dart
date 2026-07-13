@@ -8,6 +8,8 @@ import 'package:life_maintenance/models/schedule.dart';
 import 'package:life_maintenance/models/task.dart';
 import 'package:life_maintenance/widgets/reminder_list_sheet.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+// ignore: depend_on_referenced_packages
+import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
 
 void main() {
   testWidgets('reminder list shows active paused and ended manual reminders', (
@@ -153,9 +155,12 @@ void main() {
     await tester.tap(find.text('OK'));
     await tester.pumpAndSettle();
 
-    expect(find.text('提醒已重新安排'), findsOneWidget);
+    expect(find.text('提醒已重新安排並恢復'), findsOneWidget);
     final schedules = await _storedSchedules();
-    expect(_statusFor(schedules, 'schedule-paused'), ScheduleStatus.active.name);
+    expect(
+      _statusFor(schedules, 'schedule-paused'),
+      ScheduleStatus.active.name,
+    );
     expect(_nextDueDateFor(schedules, 'schedule-paused'), futureDate);
   });
 
@@ -239,7 +244,10 @@ void main() {
       await tester.pumpAndSettle();
 
       final schedules = await _storedSchedules();
-      expect(_statusFor(schedules, 'schedule-paused'), ScheduleStatus.active.name);
+      expect(
+        _statusFor(schedules, 'schedule-paused'),
+        ScheduleStatus.active.name,
+      );
       expect(_nextDueDateFor(schedules, 'schedule-paused'), futureDate);
     },
   );
@@ -270,8 +278,227 @@ void main() {
     await tester.pumpAndSettle();
 
     final schedules = await _storedSchedules();
-    expect(_statusFor(schedules, 'schedule-paused'), ScheduleStatus.active.name);
+    expect(
+      _statusFor(schedules, 'schedule-paused'),
+      ScheduleStatus.active.name,
+    );
     expect(_nextDueDateFor(schedules, 'schedule-paused'), tomorrow);
+  });
+
+  testWidgets('paused reminder reschedule fails when schedule is missing', (
+    tester,
+  ) async {
+    final now = DateTime.now();
+    final futureDate = DateTime(now.year, now.month, now.day + 2);
+    await _setLocalData(
+      schedules: [
+        _schedule(
+          id: 'schedule-paused',
+          title: '暫停提醒',
+          date: futureDate,
+          status: ScheduleStatus.paused,
+        ),
+        _schedule(id: 'schedule-other', title: '其他提醒', date: futureDate),
+      ],
+    );
+
+    await _openReminderListSheet(tester);
+    await tester.tap(find.text('暫停提醒'));
+    await tester.pumpAndSettle();
+    await _replaceStoredSchedules([
+      _schedule(id: 'schedule-other', title: '其他提醒', date: futureDate),
+    ]);
+    await tester.tap(find.text('重新安排並恢復'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('重新安排失敗，請稍後再試'), findsOneWidget);
+    expect(find.text('事項詳情'), findsOneWidget);
+    expect(find.text('提醒已重新安排並恢復'), findsNothing);
+    final schedules = await _storedSchedules();
+    expect(_statusFor(schedules, 'schedule-other'), ScheduleStatus.active.name);
+  });
+
+  testWidgets('paused reminder reschedule fails when schedule is not paused', (
+    tester,
+  ) async {
+    final now = DateTime.now();
+    final futureDate = DateTime(now.year, now.month, now.day + 2);
+    await _setLocalData(
+      schedules: [
+        _schedule(
+          id: 'schedule-paused',
+          title: '暫停提醒',
+          date: futureDate,
+          status: ScheduleStatus.paused,
+        ),
+      ],
+    );
+
+    await _openReminderListSheet(tester);
+    await tester.tap(find.text('暫停提醒'));
+    await tester.pumpAndSettle();
+    await _replaceStoredSchedules([
+      _schedule(
+        id: 'schedule-paused',
+        title: '暫停提醒',
+        date: futureDate,
+        status: ScheduleStatus.active,
+      ),
+    ]);
+    await tester.tap(find.text('重新安排並恢復'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('重新安排失敗，請稍後再試'), findsOneWidget);
+    expect(find.text('事項詳情'), findsOneWidget);
+    final schedules = await _storedSchedules();
+    expect(
+      _statusFor(schedules, 'schedule-paused'),
+      ScheduleStatus.active.name,
+    );
+    expect(_nextDueDateFor(schedules, 'schedule-paused'), futureDate);
+  });
+
+  testWidgets('paused reminder reschedule fails when card id differs', (
+    tester,
+  ) async {
+    final now = DateTime.now();
+    final futureDate = DateTime(now.year, now.month, now.day + 2);
+    await _setLocalData(
+      schedules: [
+        _schedule(
+          id: 'schedule-paused',
+          title: '暫停提醒',
+          date: futureDate,
+          status: ScheduleStatus.paused,
+        ),
+      ],
+    );
+
+    await _openReminderListSheet(tester);
+    await tester.tap(find.text('暫停提醒'));
+    await tester.pumpAndSettle();
+    await _replaceStoredSchedules([
+      _schedule(
+        id: 'schedule-paused',
+        title: '暫停提醒',
+        date: futureDate,
+        cardId: 'card-aircon-filter-cleaning',
+        status: ScheduleStatus.paused,
+      ),
+    ]);
+    await tester.tap(find.text('重新安排並恢復'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('重新安排失敗，請稍後再試'), findsOneWidget);
+    expect(find.text('事項詳情'), findsOneWidget);
+    final schedules = await _storedSchedules();
+    expect(
+      _statusFor(schedules, 'schedule-paused'),
+      ScheduleStatus.paused.name,
+    );
+    expect(_nextDueDateFor(schedules, 'schedule-paused'), futureDate);
+  });
+
+  testWidgets(
+    'paused reminder reschedule fails when schedule data is invalid',
+    (tester) async {
+      final now = DateTime.now();
+      final futureDate = DateTime(now.year, now.month, now.day + 2);
+      await _setLocalData(
+        schedules: [
+          _schedule(
+            id: 'schedule-paused',
+            title: '暫停提醒',
+            date: futureDate,
+            status: ScheduleStatus.paused,
+          ),
+        ],
+      );
+
+      await _openReminderListSheet(tester);
+      await tester.tap(find.text('暫停提醒'));
+      await tester.pumpAndSettle();
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.setString('schedules', 'not-json');
+      await tester.tap(find.text('重新安排並恢復'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('重新安排失敗，請稍後再試'), findsOneWidget);
+      expect(find.text('事項詳情'), findsOneWidget);
+    },
+  );
+
+  testWidgets('paused reminder reschedule fails when schedule save throws', (
+    tester,
+  ) async {
+    final now = DateTime.now();
+    final futureDate = DateTime(now.year, now.month, now.day + 2);
+    await _setLocalData(
+      schedules: [
+        _schedule(
+          id: 'schedule-paused',
+          title: '暫停提醒',
+          date: futureDate,
+          status: ScheduleStatus.paused,
+        ),
+      ],
+    );
+
+    await _openReminderListSheet(tester);
+    await tester.tap(find.text('暫停提醒'));
+    await tester.pumpAndSettle();
+    SharedPreferencesStorePlatform.instance = _ThrowingPreferencesStore(
+      throwOnSetValue: true,
+    );
+    await tester.tap(find.text('重新安排並恢復'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('重新安排失敗，請稍後再試'), findsOneWidget);
+    expect(find.text('事項詳情'), findsOneWidget);
+    expect(find.text('提醒已重新安排並恢復'), findsNothing);
+  });
+
+  testWidgets('paused reminder reschedule fails when task load throws', (
+    tester,
+  ) async {
+    final now = DateTime.now();
+    final futureDate = DateTime(now.year, now.month, now.day + 2);
+    await _setLocalData(
+      schedules: [
+        _schedule(
+          id: 'schedule-paused',
+          title: '暫停提醒',
+          date: futureDate,
+          status: ScheduleStatus.paused,
+        ),
+      ],
+    );
+
+    await _openReminderListSheet(tester);
+    await tester.tap(find.text('暫停提醒'));
+    await tester.pumpAndSettle();
+    SharedPreferences.resetStatic();
+    SharedPreferencesStorePlatform.instance = _ThrowingPreferencesStore(
+      throwOnGetAll: true,
+    );
+    await tester.tap(find.text('重新安排並恢復'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('重新安排失敗，請稍後再試'), findsOneWidget);
+    expect(find.text('事項詳情'), findsOneWidget);
+    expect(find.text('提醒已重新安排並恢復'), findsNothing);
   });
 }
 
@@ -306,6 +533,14 @@ Future<void> _openReminderListSheet(WidgetTester tester) async {
   );
   await tester.tap(find.text('open'));
   await tester.pumpAndSettle();
+}
+
+Future<void> _replaceStoredSchedules(List<Schedule> schedules) async {
+  final preferences = await SharedPreferences.getInstance();
+  await preferences.setString(
+    'schedules',
+    jsonEncode(schedules.map((schedule) => schedule.toJson()).toList()),
+  );
 }
 
 Item _item() {
@@ -371,4 +606,30 @@ DateTime _nextDueDateFor(List<dynamic> schedules, String id) {
     (schedule) => schedule['id'] == id,
   );
   return DateTime.parse(schedule['nextDueDate'] as String);
+}
+
+class _ThrowingPreferencesStore extends InMemorySharedPreferencesStore {
+  _ThrowingPreferencesStore({
+    this.throwOnGetAll = false,
+    this.throwOnSetValue = false,
+  }) : super.empty();
+
+  final bool throwOnGetAll;
+  final bool throwOnSetValue;
+
+  @override
+  Future<Map<String, Object>> getAll() async {
+    if (throwOnGetAll) {
+      throw Exception('load failed');
+    }
+    return super.getAll();
+  }
+
+  @override
+  Future<bool> setValue(String valueType, String key, Object value) async {
+    if (throwOnSetValue) {
+      throw Exception('save failed');
+    }
+    return super.setValue(valueType, key, value);
+  }
 }
