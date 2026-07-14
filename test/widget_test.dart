@@ -13,6 +13,8 @@ void main() {
     expect(find.text('物品'), findsOneWidget);
     expect(find.text('履歷'), findsOneWidget);
     expect(find.text('設定'), findsOneWidget);
+    expect(find.text('v0.14.0'), findsOneWidget);
+    expect(find.text('v0.9.0'), findsNothing);
     expect(find.byType(NavigationBar), findsOneWidget);
   });
 }

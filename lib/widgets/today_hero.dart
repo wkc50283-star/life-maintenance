@@ -55,7 +55,7 @@ class TodayHero extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: const Text(
-                  'v0.9.0',
+                  'v0.14.0',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
