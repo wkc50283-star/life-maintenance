@@ -15,6 +15,7 @@ void main() {
   ) async {
     final now = DateTime.now();
     final futureDate = DateTime(now.year, now.month, now.day + 2);
+    final pastDate = DateTime(now.year, now.month, now.day - 1);
     await _setLocalData(
       schedules: [
         _schedule(
@@ -22,6 +23,26 @@ void main() {
           title: '手動提醒',
           cardId: 'manual-expiry-reminder',
           nextDueDate: futureDate,
+        ),
+        _schedule(
+          id: 'schedule-manual-due',
+          title: '已到期手動提醒',
+          cardId: 'manual-expiry-reminder',
+          nextDueDate: pastDate,
+        ),
+        _schedule(
+          id: 'schedule-manual-paused',
+          title: '暫停手動提醒',
+          cardId: 'manual-expiry-reminder',
+          nextDueDate: futureDate,
+          status: ScheduleStatus.paused,
+        ),
+        _schedule(
+          id: 'schedule-manual-ended',
+          title: '結束手動提醒',
+          cardId: 'manual-expiry-reminder',
+          nextDueDate: futureDate,
+          status: ScheduleStatus.ended,
         ),
         _schedule(
           id: 'schedule-active',
@@ -50,13 +71,18 @@ void main() {
 
     expect(find.text('需要你記住的事'), findsOneWidget);
     expect(find.text('手動提醒'), findsOneWidget);
+    expect(find.text('已到期手動提醒'), findsOneWidget);
+    expect(find.text('暫停手動提醒'), findsOneWidget);
+    expect(find.text('結束手動提醒'), findsOneWidget);
+    expect(find.text('狀態：尚未到期'), findsOneWidget);
+    expect(find.text('狀態：已到期'), findsOneWidget);
     expect(find.text('保養安排'), findsOneWidget);
     expect(find.text('濾網清潔'), findsOneWidget);
     expect(find.text('冷氣保養'), findsOneWidget);
     expect(find.text('舊排程'), findsOneWidget);
     expect(find.text('狀態：進行中'), findsOneWidget);
-    expect(find.text('狀態：已暫停'), findsOneWidget);
-    expect(find.text('狀態：已結束'), findsOneWidget);
+    expect(find.text('狀態：已暫停'), findsNWidgets(2));
+    expect(find.text('狀態：已結束'), findsNWidgets(2));
     expect(find.text('重新安排並恢復'), findsOneWidget);
   });
 

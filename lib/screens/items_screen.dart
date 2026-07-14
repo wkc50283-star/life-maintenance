@@ -426,8 +426,12 @@ String _formatDate(DateTime date) {
 }
 
 String _labelForScheduleStatus(Schedule schedule) {
-  if (!schedule.enabled) {
-    return '已取消';
+  if (schedule.status == ScheduleStatus.paused) {
+    return '已暫停';
+  }
+
+  if (schedule.status == ScheduleStatus.ended) {
+    return '已結束';
   }
 
   final now = DateTime.now();
