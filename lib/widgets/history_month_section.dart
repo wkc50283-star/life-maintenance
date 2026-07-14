@@ -27,7 +27,39 @@ class HistoryMonthSection extends StatelessWidget {
               ),
             ),
           ),
-          ...children,
+          for (var index = 0; index < children.length; index++)
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(
+                    width: 18,
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 10,
+                          height: 10,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF5D7893),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        if (index != children.length - 1)
+                          Expanded(
+                            child: Container(
+                              width: 2,
+                              margin: const EdgeInsets.only(top: 4),
+                              color: const Color(0xFFD6E2EC),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(child: children[index]),
+                ],
+              ),
+            ),
           const SizedBox(height: 10),
         ],
       ),
