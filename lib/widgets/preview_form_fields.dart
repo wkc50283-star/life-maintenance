@@ -172,12 +172,18 @@ class PreviewTextField extends StatelessWidget {
   final String label;
   final int maxLines;
   final TextEditingController? controller;
+  final bool readOnly;
+  final VoidCallback? onTap;
+  final Widget? suffixIcon;
 
   const PreviewTextField({
     super.key,
     required this.label,
     this.maxLines = 1,
     this.controller,
+    this.readOnly = false,
+    this.onTap,
+    this.suffixIcon,
   });
 
   @override
@@ -185,7 +191,11 @@ class PreviewTextField extends StatelessWidget {
     return TextField(
       controller: controller,
       maxLines: maxLines,
-      decoration: _previewInputDecoration(label),
+      readOnly: readOnly,
+      onTap: onTap,
+      decoration: _previewInputDecoration(
+        label,
+      ).copyWith(suffixIcon: suffixIcon),
     );
   }
 }

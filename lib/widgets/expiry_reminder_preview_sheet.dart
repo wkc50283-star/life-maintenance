@@ -42,6 +42,13 @@ class _ExpiryReminderPreviewFormState
   final TextEditingController _dueDateController = TextEditingController();
   String? _itemId;
 
+  static String _formatDate(DateTime date) {
+    final year = date.year.toString().padLeft(4, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    return '$year-$month-$day';
+  }
+
   @override
   void dispose() {
     _titleController.dispose();
@@ -103,6 +110,26 @@ class _ExpiryReminderPreviewFormState
     );
   }
 
+  Future<void> _pickDueDate(BuildContext context) async {
+    final today = DateTime.now();
+    final initialDate =
+        DateTime.tryParse(_dueDateController.text.trim()) ??
+        DateTime(today.year, today.month, today.day);
+    final selectedDate = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100, 12, 31),
+      helpText: '選擇提醒日期',
+    );
+
+    if (selectedDate == null) {
+      return;
+    }
+
+    _dueDateController.text = _formatDate(selectedDate);
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -149,7 +176,13 @@ class _ExpiryReminderPreviewFormState
           const SizedBox(height: 12),
           PreviewTextField(label: '事項名稱', controller: _titleController),
           const SizedBox(height: 12),
-          PreviewTextField(label: '提醒日期', controller: _dueDateController),
+          PreviewTextField(
+            label: '提醒日期',
+            controller: _dueDateController,
+            readOnly: true,
+            onTap: () => _pickDueDate(context),
+            suffixIcon: const Icon(Icons.calendar_today_outlined),
+          ),
           const SizedBox(height: 20),
           Row(
             children: [
