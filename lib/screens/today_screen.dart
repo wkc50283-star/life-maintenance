@@ -48,7 +48,6 @@ class _TodayScreenState extends State<TodayScreen> {
   final Set<String> _completingTaskIds = <String>{};
   List<Item>? _localItems;
   List<maintenance_task.Task>? _localTasks;
-  bool _hasLocalScheduleOrTaskData = false;
 
   @override
   void initState() {
@@ -86,19 +85,13 @@ class _TodayScreenState extends State<TodayScreen> {
     setState(() {
       _localItems = items;
       _localTasks = updatedTasks;
-      _hasLocalScheduleOrTaskData =
-          schedules.isNotEmpty || updatedTasks.isNotEmpty;
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final localItems = _localItems ?? const <Item>[];
-    final localTasks = _localTasks;
-    final isUsingMockTasks =
-        localTasks == null ||
-        (!_hasLocalScheduleOrTaskData && localTasks.isEmpty);
-    final tasks = isUsingMockTasks ? MockData.tasks : localTasks;
+    final tasks = _localTasks ?? const <maintenance_task.Task>[];
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -142,10 +135,7 @@ class _TodayScreenState extends State<TodayScreen> {
                         return;
                       }
 
-                      _showCompleteRecordSheet(
-                        task,
-                        isUsingMockTasks: isUsingMockTasks,
-                      );
+                      _showCompleteRecordSheet(task);
                     });
                   },
                 );
@@ -153,10 +143,7 @@ class _TodayScreenState extends State<TodayScreen> {
               child: TaskCard(
                 task: _taskCardDataFor(task, localItems: localItems),
                 onComplete: () {
-                  _showCompleteRecordSheet(
-                    task,
-                    isUsingMockTasks: isUsingMockTasks,
-                  );
+                  _showCompleteRecordSheet(task);
                 },
               ),
             ),
@@ -164,15 +151,7 @@ class _TodayScreenState extends State<TodayScreen> {
     );
   }
 
-  Future<void> _showCompleteRecordSheet(
-    maintenance_task.Task task, {
-    required bool isUsingMockTasks,
-  }) async {
-    if (isUsingMockTasks) {
-      await _completeTask(task, isUsingMockTasks: true);
-      return;
-    }
-
+  Future<void> _showCompleteRecordSheet(maintenance_task.Task task) async {
     final recordData = await showCompletionRecordSheet(
       context,
       followUpMode: _isManualExpiryReminderTask(task)
@@ -190,7 +169,6 @@ class _TodayScreenState extends State<TodayScreen> {
 
     await _completeTask(
       task,
-      isUsingMockTasks: isUsingMockTasks,
       workDescription: recordData.workDescription,
       cost: recordData.cost,
       vendorName: recordData.vendorName,
@@ -205,7 +183,6 @@ class _TodayScreenState extends State<TodayScreen> {
 
   Future<void> _completeTask(
     maintenance_task.Task task, {
-    required bool isUsingMockTasks,
     String? workDescription,
     int? cost,
     String? vendorName,
@@ -218,13 +195,6 @@ class _TodayScreenState extends State<TodayScreen> {
         CompletionManualReminderAction.endReminder,
     DateTime? rescheduledDate,
   }) async {
-    if (isUsingMockTasks) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('展示任務無法完成')));
-      return;
-    }
-
     if (_completingTaskIds.contains(task.id)) {
       ScaffoldMessenger.of(
         context,
@@ -299,7 +269,6 @@ class _TodayScreenState extends State<TodayScreen> {
 
         setState(() {
           _localTasks = updatedTasks;
-          _hasLocalScheduleOrTaskData = true;
         });
 
         ScaffoldMessenger.of(
@@ -341,7 +310,6 @@ class _TodayScreenState extends State<TodayScreen> {
 
       setState(() {
         _localTasks = updatedTasks;
-        _hasLocalScheduleOrTaskData = true;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -449,7 +417,9 @@ class _TodayScreenState extends State<TodayScreen> {
             schedule.id == task.scheduleId &&
             schedule.cardId == task.cardId &&
             schedule.status == ScheduleStatus.active) {
-          updatedSchedules.add(schedule.copyWith(status: ScheduleStatus.paused));
+          updatedSchedules.add(
+            schedule.copyWith(status: ScheduleStatus.paused),
+          );
           didUpdateSchedule = true;
         } else {
           updatedSchedules.add(schedule);
@@ -800,12 +770,6 @@ Item? _itemForTask(
   required List<Item> localItems,
 }) {
   for (final item in localItems) {
-    if (item.id == task.itemId) {
-      return item;
-    }
-  }
-
-  for (final item in MockData.items) {
     if (item.id == task.itemId) {
       return item;
     }

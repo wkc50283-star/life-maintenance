@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../data/mock_data.dart';
 import '../models/enums.dart';
 import '../models/item.dart';
 import '../models/maintenance_record.dart';
@@ -59,14 +58,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final localRecords = _localRecords;
-    final records = localRecords == null || localRecords.isEmpty
-        ? MockData.maintenanceRecords
-        : localRecords;
-    final localItems = _localItems;
-    final items = localItems == null || localItems.isEmpty
-        ? MockData.items
-        : [...localItems, ...MockData.items];
+    final records = _localRecords ?? const <MaintenanceRecord>[];
+    final items = _localItems ?? const <Item>[];
     final sections = _historySectionsFrom(records, items);
 
     return ListView(
