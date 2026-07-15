@@ -10,6 +10,37 @@ import 'package:life_maintenance/screens/items_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  testWidgets('items screen shows empty state without mock items', (
+    tester,
+  ) async {
+    SharedPreferences.resetStatic();
+    SharedPreferences.setMockInitialValues({});
+
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: ItemsScreen())),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('目前還沒有項目。'), findsOneWidget);
+    expect(find.text('客廳冷氣'), findsNothing);
+    expect(find.text('機車'), findsNothing);
+    expect(find.text('租屋合約'), findsNothing);
+  });
+
+  testWidgets('item detail uses only local schedules and records', (
+    tester,
+  ) async {
+    await _setLocalData(schedules: const []);
+
+    await _openItemDetail(tester);
+
+    expect(find.text('保養安排'), findsOneWidget);
+    expect(find.text('目前沒有保養安排'), findsOneWidget);
+    expect(find.text('目前尚無處理紀錄'), findsOneWidget);
+    expect(find.text('保養提醒'), findsNothing);
+    expect(find.text('建立冷氣濾網清洗提醒'), findsNothing);
+  });
+
   testWidgets('item detail shows maintenance schedules separately', (
     tester,
   ) async {

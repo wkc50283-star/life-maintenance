@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../data/mock_data.dart';
 import '../models/enums.dart';
 import '../models/item.dart';
 import '../models/maintenance_record.dart';
@@ -71,17 +70,9 @@ class _ItemsScreenState extends State<ItemsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final localItems = _localItems;
-    final isUsingMockItems = localItems == null || localItems.isEmpty;
-    final items = isUsingMockItems ? MockData.items : localItems;
-    final localRecords = _localRecords;
-    final records = isUsingMockItems
-        ? MockData.maintenanceRecords
-        : localRecords ?? <MaintenanceRecord>[];
-    final localSchedules = _localSchedules;
-    final schedules = isUsingMockItems
-        ? MockData.schedules
-        : localSchedules ?? <Schedule>[];
+    final items = _localItems ?? const <Item>[];
+    final records = _localRecords ?? const <MaintenanceRecord>[];
+    final schedules = _localSchedules ?? const <Schedule>[];
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),

@@ -12,6 +12,46 @@ import 'package:life_maintenance/widgets/empty_history_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  testWidgets('history screen shows empty state without mock records', (
+    tester,
+  ) async {
+    SharedPreferences.resetStatic();
+    SharedPreferences.setMockInitialValues({});
+
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: HistoryScreen())),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('目前還沒有履歷紀錄。'), findsOneWidget);
+    expect(find.text('建立冷氣濾網清洗提醒'), findsNothing);
+    expect(find.text('建立機車胎壓檢查提醒'), findsNothing);
+    expect(find.text('建立租屋合約到期提醒'), findsNothing);
+  });
+
+  testWidgets('history does not use mock item names for local records', (
+    tester,
+  ) async {
+    final record = _record(
+      id: 'record-local-missing-item',
+      itemId: 'item-aircon-living-room',
+      recordType: RecordType.regularMaintenance,
+      date: DateTime(2026, 7, 10),
+      title: '本機紀錄',
+      workDescription: '本機處理內容',
+    );
+    await _setLocalData(records: [record], items: const []);
+
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: HistoryScreen())),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('本機紀錄'), findsOneWidget);
+    expect(find.text('未命名物品'), findsOneWidget);
+    expect(find.text('客廳冷氣'), findsNothing);
+  });
+
   testWidgets('history screen shows records as a dated timeline', (
     tester,
   ) async {
@@ -111,15 +151,14 @@ void main() {
 
 Future<void> _setLocalData({
   required List<MaintenanceRecord> records,
+  List<Item>? items,
   List<Schedule> schedules = const [],
   List<Task> tasks = const [],
 }) async {
   SharedPreferences.resetStatic();
+  final storedItems = items ?? [_item('item-a', '冷氣'), _item('item-b', '車子')];
   SharedPreferences.setMockInitialValues({
-    'items': jsonEncode([
-      _item('item-a', '冷氣').toJson(),
-      _item('item-b', '車子').toJson(),
-    ]),
+    'items': jsonEncode(storedItems.map((item) => item.toJson()).toList()),
     'maintenance_records': jsonEncode(
       records.map((record) => record.toJson()).toList(),
     ),

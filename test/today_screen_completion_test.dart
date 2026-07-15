@@ -13,6 +13,29 @@ import 'package:life_maintenance/services/maintenance_task_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  testWidgets('today screen shows empty state without mock tasks', (
+    tester,
+  ) async {
+    SharedPreferences.resetStatic();
+    SharedPreferences.setMockInitialValues({});
+
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: TodayScreen())),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('目前沒有待處理任務。'), findsOneWidget);
+    expect(find.text('冷氣濾網清洗'), findsNothing);
+    expect(find.text('機車胎壓檢查'), findsNothing);
+    expect(find.text('租屋合約到期提醒'), findsNothing);
+
+    final preferences = await SharedPreferences.getInstance();
+    expect(preferences.getString('items'), isNull);
+    expect(preferences.getString('schedules'), isNull);
+    expect(preferences.getString('tasks'), isNull);
+    expect(preferences.getString('maintenance_records'), isNull);
+  });
+
   testWidgets(
     'completing a manual expiry reminder disables only the matching schedule',
     (tester) async {
