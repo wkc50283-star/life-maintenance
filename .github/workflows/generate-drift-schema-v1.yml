@@ -1,0 +1,101 @@
+name: Generate Drift schema v1 artifacts
+
+on:
+  push:
+    branches:
+      - database/drift-schema-v1
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out schema branch
+        uses: actions/checkout@v4
+        with:
+          ref: database/drift-schema-v1
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate Drift code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Compile Drift web worker
+        run: dart compile js -O4 web/drift_worker.dart -o web/drift_worker.dart.js
+
+      - name: Download matching sqlite3 wasm
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          version = '3.3.4'
+          request = urllib.request.Request(
+              'https://api.github.com/repos/simolus3/sqlite3.dart/releases?per_page=100',
+              headers={
+                  'Accept': 'application/vnd.github+json',
+                  'Authorization': f"Bearer {os.environ['GH_TOKEN']}",
+                  'X-GitHub-Api-Version': '2022-11-28',
+                  'User-Agent': 'life-maintenance-schema-generator',
+              },
+          )
+          with urllib.request.urlopen(request) as response:
+              releases = json.load(response)
+
+          download_url = None
+          for release in releases:
+              if version not in release.get('tag_name', ''):
+                  continue
+              for asset in release.get('assets', []):
+                  if asset.get('name') == 'sqlite3.wasm':
+                      download_url = asset.get('browser_download_url')
+                      break
+              if download_url:
+                  break
+
+          if not download_url:
+              raise SystemExit(f'Could not find sqlite3.wasm for sqlite3 {version}')
+
+          asset_request = urllib.request.Request(
+              download_url,
+              headers={'User-Agent': 'life-maintenance-schema-generator'},
+          )
+          with urllib.request.urlopen(asset_request) as response:
+              data = response.read()
+          if len(data) < 100_000:
+              raise SystemExit(f'sqlite3.wasm is unexpectedly small: {len(data)} bytes')
+          with open('web/sqlite3.wasm', 'wb') as output:
+              output.write(data)
+          print(f'Downloaded {len(data)} bytes from {download_url}')
+          PY
+
+      - name: Verify generated artifacts
+        run: |
+          test -s lib/database/app_database.g.dart
+          test -s web/drift_worker.dart.js
+          test -s web/sqlite3.wasm
+          grep -q 'sqlite3:' pubspec.lock
+          grep -q 'drift:' pubspec.lock
+
+      - name: Commit generated artifacts
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pubspec.lock lib/database/app_database.g.dart web/drift_worker.dart.js web/sqlite3.wasm
+          git commit -m "Generate Drift schema v1 artifacts"
+          git push origin HEAD:database/drift-schema-v1
