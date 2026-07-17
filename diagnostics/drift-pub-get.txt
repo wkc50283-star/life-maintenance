@@ -1,0 +1,11 @@
+flutter pub get exit status: 1
+
+Resolving dependencies...
+Because life_maintenance depends on drift 2.34.2 which depends on sqlite3 ^3.4.0, sqlite3 ^3.4.0 is required.
+So, because life_maintenance depends on sqlite3 3.3.4, version solving failed.
+
+
+You can try one of the following suggestions to make the pubspec resolve:
+* Try upgrading your constraint on sqlite3: flutter pub add sqlite3:^3.4.0
+* Consider downgrading your constraint on drift: flutter pub add drift:^2.34.1
+Failed to update packages.
