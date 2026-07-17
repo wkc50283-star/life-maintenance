@@ -31,7 +31,7 @@ class Item {
     return Item(
       id: json['id'] as String,
       name: json['name'] as String,
-      category: ItemCategory.values.byName(json['category'] as String),
+      category: _itemCategoryFromJson(json['category']),
       photoPath: json['photoPath'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
       purchaseDate: json['purchaseDate'] == null
@@ -43,7 +43,7 @@ class Item {
       expectedLifeYears: json['expectedLifeYears'] as int?,
       location: json['location'] as String?,
       note: json['note'] as String?,
-      status: ItemStatus.values.byName(json['status'] as String),
+      status: _itemStatusFromJson(json['status']),
     );
   }
 
@@ -90,4 +90,28 @@ class Item {
       status: status ?? this.status,
     );
   }
+}
+
+ItemCategory _itemCategoryFromJson(Object? value) {
+  if (value is String) {
+    try {
+      return ItemCategory.values.byName(value);
+    } catch (_) {
+      // Preserve the item even when an older or unknown category is encountered.
+    }
+  }
+
+  return ItemCategory.other;
+}
+
+ItemStatus _itemStatusFromJson(Object? value) {
+  if (value is String) {
+    try {
+      return ItemStatus.values.byName(value);
+    } catch (_) {
+      // Legacy data without a recognized status remains active by default.
+    }
+  }
+
+  return ItemStatus.active;
 }
