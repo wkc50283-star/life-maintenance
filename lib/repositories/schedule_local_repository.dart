@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../models/schedule.dart';
+import '../services/local_data_integrity_service.dart';
 import '../services/local_storage_service.dart';
 
 class ScheduleLocalRepository {
@@ -13,22 +14,19 @@ class ScheduleLocalRepository {
   Future<List<Schedule>> loadSchedules() async {
     final rawSchedules = await _storageService.readString(_storageKey);
     if (rawSchedules == null) {
+      LocalDataIntegrityService.instance.clearIssue(_storageKey);
       return <Schedule>[];
     }
 
-    try {
-      final decodedSchedules = jsonDecode(rawSchedules) as List<dynamic>;
-      return decodedSchedules
-          .map(
-            (schedule) => Schedule.fromJson(schedule as Map<String, dynamic>),
-          )
-          .toList();
-    } catch (_) {
-      return <Schedule>[];
-    }
+    return LocalDataIntegrityService.instance.decodeList<Schedule>(
+      storageKey: _storageKey,
+      rawValue: rawSchedules,
+      decodeEntry: Schedule.fromJson,
+    );
   }
 
   Future<void> saveSchedules(List<Schedule> schedules) async {
+    LocalDataIntegrityService.instance.ensureWritesAllowed();
     final encodedSchedules = jsonEncode(
       schedules.map((schedule) => schedule.toJson()).toList(),
     );

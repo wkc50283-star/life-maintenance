@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../models/item.dart';
+import '../services/local_data_integrity_service.dart';
 import '../services/local_storage_service.dart';
 
 class ItemLocalRepository {
@@ -13,20 +14,19 @@ class ItemLocalRepository {
   Future<List<Item>> loadItems() async {
     final rawItems = await _storageService.readString(_storageKey);
     if (rawItems == null) {
+      LocalDataIntegrityService.instance.clearIssue(_storageKey);
       return <Item>[];
     }
 
-    try {
-      final decodedItems = jsonDecode(rawItems) as List<dynamic>;
-      return decodedItems
-          .map((item) => Item.fromJson(item as Map<String, dynamic>))
-          .toList();
-    } catch (_) {
-      return <Item>[];
-    }
+    return LocalDataIntegrityService.instance.decodeList<Item>(
+      storageKey: _storageKey,
+      rawValue: rawItems,
+      decodeEntry: Item.fromJson,
+    );
   }
 
   Future<void> saveItems(List<Item> items) async {
+    LocalDataIntegrityService.instance.ensureWritesAllowed();
     final encodedItems = jsonEncode(
       items.map((item) => item.toJson()).toList(),
     );
