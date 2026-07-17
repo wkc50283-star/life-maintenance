@@ -1,1 +1,0 @@
-Trigger final Drift schema v1 documentation, lockfile, and cleanup.
