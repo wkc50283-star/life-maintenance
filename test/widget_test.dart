@@ -14,7 +14,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('今日'), findsWidgets);
-    expect(find.text('物品'), findsOneWidget);
+    expect(find.text('我的項目'), findsWidgets);
     expect(find.text('履歷'), findsOneWidget);
     expect(find.text('設定'), findsOneWidget);
     expect(find.text('v0.14.0'), findsOneWidget);

@@ -48,7 +48,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('本機紀錄'), findsOneWidget);
-    expect(find.text('未命名物品'), findsOneWidget);
+    expect(find.text('未命名生活項目'), findsOneWidget);
     expect(find.text('客廳冷氣'), findsNothing);
   });
 
@@ -120,7 +120,7 @@ void main() {
     );
     expect(find.text('冷氣'), findsWidgets);
     expect(find.text('車子'), findsOneWidget);
-    expect(find.text('未命名物品'), findsOneWidget);
+    expect(find.text('未命名生活項目'), findsOneWidget);
     expect(find.text('維修'), findsWidgets);
     expect(find.text('保養'), findsWidgets);
     expect(find.text('其他'), findsWidgets);

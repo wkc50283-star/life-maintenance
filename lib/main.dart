@@ -110,7 +110,7 @@ class _MainShellState extends State<MainShell> {
     SettingsScreen(),
   ];
 
-  final List<String> _titles = const ['今日', '物品', '新增', '履歷', '設定'];
+  final List<String> _titles = const ['今日', '我的項目', '新增', '履歷', '設定'];
 
   @override
   void initState() {
@@ -206,7 +206,7 @@ class _MainShellState extends State<MainShell> {
           NavigationDestination(
             icon: Icon(Icons.inventory_2_outlined),
             selectedIcon: Icon(Icons.inventory_2),
-            label: '物品',
+            label: '我的項目',
           ),
           NavigationDestination(
             icon: Icon(Icons.add_circle_outline),

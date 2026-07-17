@@ -100,7 +100,7 @@ void main() {
 
     await _openItemDetail(tester);
 
-    expect(find.text('需要你記住的事'), findsOneWidget);
+    expect(find.text('提醒事項'), findsOneWidget);
     expect(find.text('手動提醒'), findsOneWidget);
     expect(find.text('已到期手動提醒'), findsOneWidget);
     expect(find.text('暫停手動提醒'), findsOneWidget);

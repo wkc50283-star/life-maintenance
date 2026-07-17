@@ -90,8 +90,8 @@ class _PreviewItemDropdownState extends State<PreviewItemDropdown> {
 
     return DropdownButtonFormField<String>(
       initialValue: selectedValue,
-      decoration: _previewInputDecoration('選擇物品'),
-      hint: Text(isDisabled ? '請先建立「先放著」項目' : '請選擇物品'),
+      decoration: _previewInputDecoration('選擇生活項目'),
+      hint: Text(isDisabled ? '請先新增生活項目' : '請選擇生活項目'),
       dropdownColor: const Color(0xFFFFFCF6),
       borderRadius: BorderRadius.circular(16),
       iconEnabledColor: const Color(0xFF5D7893),

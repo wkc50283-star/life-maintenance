@@ -26,7 +26,7 @@ class ItemsHeader extends StatelessWidget {
           ),
           SizedBox(height: 8),
           Text(
-            '一個項目，一組提醒，一份長期紀錄。',
+            '集中管理家電、車輛、房屋、證件與其他生活內容。',
             style: TextStyle(
               color: Color(0xFF687887),
               fontSize: 15,

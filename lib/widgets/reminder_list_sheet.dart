@@ -91,7 +91,7 @@ class _ReminderListSheetState extends State<_ReminderListSheet> {
           ),
           const SizedBox(height: 18),
           Text(
-            '需要你記住的事',
+            '提醒與到期事項',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
               color: const Color(0xFF263746),
               fontWeight: FontWeight.w800,
@@ -156,7 +156,7 @@ class _EmptyReminderState extends StatelessWidget {
         border: Border.all(color: const Color(0xFFE4E0D8)),
       ),
       child: Text(
-        '目前沒有需要你記住的事',
+        '目前沒有已建立的提醒',
         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
           color: const Color(0xFF4D5D6B),
           fontWeight: FontWeight.w700,
@@ -199,7 +199,7 @@ class _ReminderTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '事項名稱',
+              '提醒名稱',
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
                 color: const Color(0xFF5D7893),
                 fontWeight: FontWeight.w800,
@@ -218,7 +218,7 @@ class _ReminderTile extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
-                _ReminderTag(label: '所屬項目：$itemName'),
+                _ReminderTag(label: '所屬生活項目：$itemName'),
                 _ReminderTag(label: '提醒日期：$dueDate'),
                 _ReminderTag(label: '狀態：$status'),
               ],
@@ -273,15 +273,15 @@ void _showReminderDetailSheet(
               ),
               const SizedBox(height: 18),
               Text(
-                '事項詳情',
+                '提醒詳情',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   color: const Color(0xFF263746),
                   fontWeight: FontWeight.w800,
                 ),
               ),
               const SizedBox(height: 18),
-              _ReminderDetailRow(label: '事項名稱', value: title),
-              _ReminderDetailRow(label: '所屬項目', value: itemName),
+              _ReminderDetailRow(label: '提醒名稱', value: title),
+              _ReminderDetailRow(label: '所屬生活項目', value: itemName),
               _ReminderDetailRow(label: '提醒日期', value: dueDate),
               _ReminderDetailRow(label: '狀態', value: status),
               if (schedule.status == ScheduleStatus.active) ...[
@@ -445,7 +445,7 @@ void _showEditReminderTitleSheet(
               TextField(
                 controller: titleController,
                 decoration: InputDecoration(
-                  labelText: '事項名稱',
+                  labelText: '提醒名稱',
                   filled: true,
                   fillColor: const Color(0xFFFFFCF6),
                   border: OutlineInputBorder(
@@ -819,7 +819,7 @@ class _ReminderTag extends StatelessWidget {
 String _titleForSchedule(Schedule schedule) {
   final title = schedule.title?.trim();
   if (title == null || title.isEmpty) {
-    return '需要你記住的事';
+    return '提醒事項';
   }
 
   return title;
@@ -832,7 +832,7 @@ String _itemNameForSchedule(Schedule schedule, List<Item> items) {
     }
   }
 
-  return '項目不存在';
+  return '生活項目不存在';
 }
 
 String _statusForSchedule(Schedule schedule) {

@@ -176,7 +176,7 @@ _HistoryEntryData _historyEntryFor(MaintenanceRecord record, List<Item> items) {
   return _HistoryEntryData(
     date: _formatShortDate(record.date),
     title: record.title,
-    itemName: item?.name ?? '未命名物品',
+    itemName: item?.name ?? '未命名生活項目',
     recordType: _labelForRecordType(record.recordType),
     description: description,
     detailLines: [
@@ -208,7 +208,7 @@ MaintenanceRecordDetailData _detailDataFor(MaintenanceRecord record) {
     result: result,
     rows: [
       MaintenanceRecordDetailRow(label: '紀錄 ID', value: record.id),
-      MaintenanceRecordDetailRow(label: '物品 ID', value: record.itemId),
+      MaintenanceRecordDetailRow(label: '生活項目 ID', value: record.itemId),
       if (_nullableText(record.taskId) != null)
         MaintenanceRecordDetailRow(label: '任務 ID', value: record.taskId!),
       if (_nullableText(record.issueDescription) != null)

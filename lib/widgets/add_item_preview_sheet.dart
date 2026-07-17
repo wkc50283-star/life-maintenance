@@ -54,7 +54,7 @@ class _AddItemPreviewFormState extends State<_AddItemPreviewForm> {
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('請輸入項目名稱'),
+          content: Text('請輸入生活項目名稱'),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -82,7 +82,7 @@ class _AddItemPreviewFormState extends State<_AddItemPreviewForm> {
     Navigator.of(context).pop();
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('已先放著'),
+        content: Text('已新增生活項目'),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -117,7 +117,7 @@ class _AddItemPreviewFormState extends State<_AddItemPreviewForm> {
           ),
           const SizedBox(height: 18),
           Text(
-            '先放著',
+            '新增生活項目',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
               color: const Color(0xFF263746),
               fontWeight: FontWeight.w800,
@@ -125,14 +125,14 @@ class _AddItemPreviewFormState extends State<_AddItemPreviewForm> {
           ),
           const SizedBox(height: 6),
           Text(
-            '先留下名稱，需要時再回來補充或安排。',
+            '先填寫名稱，其他資料可以之後補充。',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: const Color(0xFF687887),
               height: 1.4,
             ),
           ),
           const SizedBox(height: 18),
-          PreviewTextField(label: '項目名稱', controller: _nameController),
+          PreviewTextField(label: '生活項目名稱', controller: _nameController),
           const SizedBox(height: 12),
           PreviewCategoryDropdown(
             value: _category,

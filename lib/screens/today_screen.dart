@@ -659,7 +659,7 @@ void _showManualExpiryReminderDetailSheet(
               ),
               const SizedBox(height: 18),
               Text(
-                '需要你記住的事',
+                '提醒事項',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   color: const Color(0xFF263746),
                   fontWeight: FontWeight.w800,
@@ -669,7 +669,7 @@ void _showManualExpiryReminderDetailSheet(
               _ManualExpiryReminderDetailRow(label: '事項名稱', value: task.title),
               _ManualExpiryReminderDetailRow(
                 label: '所屬項目',
-                value: item?.name ?? '未命名物品',
+                value: item?.name ?? '未命名生活項目',
               ),
               _ManualExpiryReminderDetailRow(
                 label: '提醒日期',
@@ -741,7 +741,7 @@ TaskCardData _taskCardDataFor(
   final isManualExpiryReminder = _isManualExpiryReminderTask(task);
 
   return TaskCardData(
-    itemName: item?.name ?? '未命名物品',
+    itemName: item?.name ?? '未命名生活項目',
     taskName: task.title,
     cycle: '到期 ${_formatDate(task.dueDate)}',
     estimatedTime: isManualExpiryReminder

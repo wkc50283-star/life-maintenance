@@ -104,8 +104,8 @@ void main() {
         today: DateTime(2026, 7, 10),
       );
 
-      expect(tasks[0].title, '需要你記住的事');
-      expect(tasks[1].title, '需要你記住的事');
+      expect(tasks[0].title, '提醒事項');
+      expect(tasks[1].title, '提醒事項');
       expect(tasks[2].title, '保養提醒');
     });
 

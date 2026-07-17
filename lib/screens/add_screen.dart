@@ -16,7 +16,7 @@ class AddScreen extends StatelessWidget {
       children: [
         const SizedBox(height: 8),
         const Text(
-          '你想記住什麼？',
+          '你要新增什麼？',
           style: TextStyle(
             color: Color(0xFF263746),
             fontSize: 28,
@@ -26,20 +26,20 @@ class AddScreen extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         const Text(
-          '先建立一個名稱、提醒或紀錄，讓需要承接的事不再散落在腦中。',
+          '新增生活項目、提醒或完成紀錄，方便之後查看與管理。',
           style: TextStyle(color: Color(0xFF687887), fontSize: 15, height: 1.5),
         ),
         const SizedBox(height: 20),
         AddEntryCard(
           icon: Icons.add_a_photo_outlined,
-          title: '先放著',
-          description: '建立一個可追蹤的名稱，先把責任收進來。',
+          title: '新增生活項目',
+          description: '建立家電、車輛、房屋、證件或其他生活項目。',
           onTap: () => showAddItemPreviewSheet(context),
         ),
         AddEntryCard(
           icon: Icons.event_available_outlined,
-          title: '需要你記住的事',
-          description: '到期日、保固、證件、合約或其他提醒。',
+          title: '新增提醒',
+          description: '設定到期日、保固、證件、合約或其他日期提醒。',
           onTap: () => showExpiryReminderPreviewSheet(context),
         ),
         Align(
@@ -53,8 +53,8 @@ class AddScreen extends StatelessWidget {
         const SizedBox(height: 8),
         AddEntryCard(
           icon: Icons.construction_outlined,
-          title: '完成紀錄',
-          description: '記下處理過什麼、花多少錢、結果如何。',
+          title: '補登完成紀錄',
+          description: '記錄已完成的保養、修理、辦理事項、費用與結果。',
           onTap: () => showMaintenanceRecordPreviewSheet(context),
         ),
       ],

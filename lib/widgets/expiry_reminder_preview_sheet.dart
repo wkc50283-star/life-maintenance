@@ -61,7 +61,7 @@ class _ExpiryReminderPreviewFormState
     if (itemId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('請選擇項目'),
+          content: Text('請選擇生活項目'),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -104,7 +104,7 @@ class _ExpiryReminderPreviewFormState
     Navigator.of(context).pop();
     messenger.showSnackBar(
       const SnackBar(
-        content: Text('需要你記住的事已儲存'),
+        content: Text('提醒已儲存'),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -149,7 +149,7 @@ class _ExpiryReminderPreviewFormState
           ),
           const SizedBox(height: 18),
           Text(
-            '需要你記住的事',
+            '新增提醒',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
               color: const Color(0xFF263746),
               fontWeight: FontWeight.w800,
@@ -157,7 +157,7 @@ class _ExpiryReminderPreviewFormState
           ),
           const SizedBox(height: 6),
           Text(
-            '記下到期日、保固、證件、合約等需要留意的時間，完成後會儲存到本機。',
+            '設定到期日、保固、證件、合約或其他需要留意的日期。',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: const Color(0xFF687887),
               height: 1.4,
@@ -174,7 +174,7 @@ class _ExpiryReminderPreviewFormState
             },
           ),
           const SizedBox(height: 12),
-          PreviewTextField(label: '事項名稱', controller: _titleController),
+          PreviewTextField(label: '提醒名稱', controller: _titleController),
           const SizedBox(height: 12),
           PreviewTextField(
             label: '提醒日期',
