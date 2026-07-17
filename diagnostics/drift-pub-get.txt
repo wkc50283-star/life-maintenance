@@ -1,11 +1,69 @@
-flutter pub get exit status: 1
+flutter pub get exit status: 0
 
 Resolving dependencies...
-Because life_maintenance depends on drift 2.34.2 which depends on sqlite3 ^3.4.0, sqlite3 ^3.4.0 is required.
-So, because life_maintenance depends on sqlite3 3.3.4, version solving failed.
-
-
-You can try one of the following suggestions to make the pubspec resolve:
-* Try upgrading your constraint on sqlite3: flutter pub add sqlite3:^3.4.0
-* Consider downgrading your constraint on drift: flutter pub add drift:^2.34.1
-Failed to update packages.
+Downloading packages...
++ _fe_analyzer_shared 100.0.0 (105.0.0 available)
++ analyzer 13.0.0 (14.1.0 available)
++ args 2.7.0
++ build 4.0.7 (4.0.8 available)
++ build_config 1.3.1
++ build_daemon 4.1.2
++ build_runner 2.15.1 (2.15.2 available)
++ built_collection 5.1.1
++ built_value 8.12.6
+> characters 1.4.1 (was 1.4.0)
++ charcode 1.4.0
++ checked_yaml 2.0.4
++ cli_util 0.5.1
++ code_assets 1.2.1
++ convert 3.1.2
++ crypto 3.0.7
++ dart_style 3.1.9 (3.1.12 available)
++ drift 2.34.2
++ drift_dev 2.34.4
++ drift_flutter 0.3.1
++ fixnum 1.1.1
++ glob 2.1.3
++ graphs 2.3.2
++ hooks 2.0.2 (2.1.0 available)
++ http_multi_server 3.2.2
++ http_parser 4.1.2
++ io 1.0.5
++ jni 1.0.0
++ jni_flutter 1.0.1
++ json_annotation 4.12.0
++ logging 1.3.0
+> matcher 0.12.19 (was 0.12.17) (0.12.20 available)
+> material_color_utilities 0.13.0 (was 0.11.1)
+> meta 1.18.0 (was 1.17.0) (1.19.0 available)
++ mime 2.0.0
++ native_toolchain_c 0.19.2 (0.19.3 available)
++ objective_c 9.4.1
++ package_config 2.2.0 (3.0.0 available)
++ path_provider 2.1.6
++ path_provider_android 2.3.1
++ path_provider_foundation 2.6.0
++ pool 1.5.2
++ pub_semver 2.2.0
++ pubspec_parse 1.5.0
++ recase 4.1.0
++ record_use 0.6.0 (1.0.0 available)
+  shared_preferences_android 2.4.23 (2.4.27 available)
++ shelf 1.4.2
++ shelf_web_socket 3.0.0
++ source_gen 4.2.3
++ sqlcipher_flutter_libs 0.7.0+eol
++ sqlite3 3.4.0
++ sqlite3_flutter_libs 0.6.0+eol
++ sqlparser 0.45.0
++ stream_transform 2.1.1
+> test_api 0.7.11 (was 0.7.7) (0.7.13 available)
++ typed_data 1.4.0
+  vector_math 2.2.0 (2.4.0 available)
++ watcher 1.2.1
++ web_socket 1.0.1
++ web_socket_channel 3.0.3
++ yaml 3.1.3
+Changed 60 dependencies!
+14 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
