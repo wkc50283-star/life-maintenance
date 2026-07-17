@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../models/maintenance_record.dart';
+import '../services/local_data_integrity_service.dart';
 import '../services/local_storage_service.dart';
 
 class MaintenanceRecordLocalRepository {
@@ -13,23 +14,19 @@ class MaintenanceRecordLocalRepository {
   Future<List<MaintenanceRecord>> loadRecords() async {
     final rawRecords = await _storageService.readString(_storageKey);
     if (rawRecords == null) {
+      LocalDataIntegrityService.instance.clearIssue(_storageKey);
       return <MaintenanceRecord>[];
     }
 
-    try {
-      final decodedRecords = jsonDecode(rawRecords) as List<dynamic>;
-      return decodedRecords
-          .map(
-            (record) =>
-                MaintenanceRecord.fromJson(record as Map<String, dynamic>),
-          )
-          .toList();
-    } catch (_) {
-      return <MaintenanceRecord>[];
-    }
+    return LocalDataIntegrityService.instance.decodeList<MaintenanceRecord>(
+      storageKey: _storageKey,
+      rawValue: rawRecords,
+      decodeEntry: MaintenanceRecord.fromJson,
+    );
   }
 
   Future<void> saveRecords(List<MaintenanceRecord> records) async {
+    LocalDataIntegrityService.instance.ensureWritesAllowed();
     final encodedRecords = jsonEncode(
       records.map((record) => record.toJson()).toList(),
     );
