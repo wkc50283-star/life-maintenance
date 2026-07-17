@@ -6,7 +6,7 @@ from pathlib import Path
 import urllib.request
 
 
-SQLITE3_VERSION = "3.3.4"
+SQLITE3_VERSION = "3.4.0"
 SQLITE3_RELEASES_API = (
     "https://api.github.com/repos/simolus3/sqlite3.dart/releases?per_page=100"
 )
