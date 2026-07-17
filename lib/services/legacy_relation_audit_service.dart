@@ -115,7 +115,7 @@ class LegacyRelationAuditService {
     final decoded = _decodeList(rawValue);
     if (decoded == null) {
       return _ParsedDataset<T>(
-        entries: const <T>[],
+        entries: <T>[],
         audit: LegacyDatasetAudit(
           storageKey: storageKey,
           rawEntryCount: rawValue == null ? 0 : 1,
