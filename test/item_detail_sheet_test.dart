@@ -21,7 +21,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('目前還沒有項目。'), findsOneWidget);
+    expect(find.text('目前還沒有生活項目。'), findsOneWidget);
     expect(find.text('客廳冷氣'), findsNothing);
     expect(find.text('機車'), findsNothing);
     expect(find.text('租屋合約'), findsNothing);
@@ -223,7 +223,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('這個日期已有待處理提醒，請選擇其他日期'), findsOneWidget);
-    expect(find.text('項目詳情'), findsOneWidget);
+    expect(find.text('生活項目詳情'), findsOneWidget);
     final schedules = await _storedSchedules();
     expect(
       _statusFor(schedules, 'schedule-paused'),
@@ -311,7 +311,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('重新安排失敗，請稍後再試'), findsOneWidget);
-      expect(find.text('項目詳情'), findsOneWidget);
+      expect(find.text('生活項目詳情'), findsOneWidget);
       final schedules = await _storedSchedules();
       expect(
         _statusFor(schedules, 'schedule-paused'),
