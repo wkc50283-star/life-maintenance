@@ -133,8 +133,8 @@ void main() {
     await tester.tap(find.text('最新紀錄'));
     await tester.pumpAndSettle();
 
-    expect(find.text('任務 ID'), findsOneWidget);
-    expect(find.text('task-new'), findsOneWidget);
+    expect(find.text('任務 ID'), findsNothing);
+    expect(find.text('task-new'), findsNothing);
     expect(await _storedValue('maintenance_records'), beforeRecords);
     expect(await _storedValue('schedules'), beforeSchedules);
     expect(await _storedValue('tasks'), beforeTasks);

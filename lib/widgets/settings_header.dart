@@ -26,7 +26,7 @@ class SettingsHeader extends StatelessWidget {
           ),
           SizedBox(height: 8),
           Text(
-            '提醒時間、安全界線與資料管理。',
+            '本機資料、安全界線與版本資訊。',
             style: TextStyle(
               color: Color(0xFF687887),
               fontSize: 15,
