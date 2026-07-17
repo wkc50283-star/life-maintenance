@@ -1,0 +1,32 @@
+name: Finalize work case model docs
+
+on:
+  push:
+    branches:
+      - model/work-case-foundation
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out model branch
+        uses: actions/checkout@v4
+        with:
+          ref: model/work-case-foundation
+
+      - name: Finalize model documentation
+        run: python3 tool/finalize_work_case_model_docs.py
+
+      - name: Commit documentation baseline
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Finalize work case model baseline documentation"
+          git push origin HEAD:model/work-case-foundation
