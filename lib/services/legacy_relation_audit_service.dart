@@ -10,13 +10,6 @@ import 'local_storage_service.dart';
 class LegacyRelationAuditService {
   const LegacyRelationAuditService(this._storageService);
 
-  static const List<String> _storageKeys = <String>[
-    'items',
-    'schedules',
-    'tasks',
-    'maintenance_records',
-  ];
-
   final LocalStorageService _storageService;
 
   Future<LegacyRelationAuditReport> inspect() async {
