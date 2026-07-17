@@ -1,4 +1,4 @@
-name: Capture catalog analyze failure
+name: Remove mock item fallback
 
 on:
   push:
@@ -9,10 +9,10 @@ permissions:
   contents: write
 
 jobs:
-  capture:
+  fix:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 5
 
     steps:
       - name: Check out catalog branch
@@ -20,31 +20,13 @@ jobs:
         with:
           ref: refactor/maintenance-card-catalog
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
+      - name: Remove mock item fallback
+        run: python3 tool/remove_mock_item_fallback.py
 
-      - name: Install dependencies
-        run: flutter pub get
-
-      - name: Capture analyze output
-        run: |
-          set +e
-          flutter analyze > /tmp/flutter-analyze.log 2>&1
-          status=$?
-          mkdir -p diagnostics
-          {
-            echo "flutter analyze exit status: $status"
-            echo
-            cat /tmp/flutter-analyze.log
-          } > diagnostics/catalog-analyze-failure.txt
-
-      - name: Commit diagnostic report
+      - name: Commit fallback removal
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add diagnostics/catalog-analyze-failure.txt
-          git commit -m "Capture maintenance catalog analyze failure"
+          git add -A
+          git commit -m "Remove remaining mock item fallback"
           git push origin HEAD:refactor/maintenance-card-catalog
