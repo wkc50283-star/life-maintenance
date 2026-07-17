@@ -1,4 +1,4 @@
-name: Capture Drift dependency resolution
+name: Capture Drift analyzer failure
 
 on:
   push:
@@ -12,7 +12,7 @@ jobs:
   capture:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
 
     steps:
       - name: Check out schema branch
@@ -26,22 +26,28 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Capture dependency resolution
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate Drift code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Capture analyzer output
         run: |
           set +e
-          flutter pub get > /tmp/pub-get.log 2>&1
+          flutter analyze > /tmp/analyze.log 2>&1
           status=$?
           mkdir -p diagnostics
           {
-            echo "flutter pub get exit status: $status"
+            echo "flutter analyze exit status: $status"
             echo
-            cat /tmp/pub-get.log
-          } > diagnostics/drift-pub-get.txt
+            cat /tmp/analyze.log
+          } > diagnostics/drift-analyze.txt
 
       - name: Commit diagnostic report
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add diagnostics/drift-pub-get.txt
-          git commit -m "Capture Drift dependency resolution details"
+          git add diagnostics/drift-analyze.txt
+          git commit -m "Capture Drift analyzer failure details"
           git push origin HEAD:database/drift-schema-v1
