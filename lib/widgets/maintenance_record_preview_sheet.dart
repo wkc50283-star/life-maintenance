@@ -141,7 +141,6 @@ class _MaintenanceRecordPreviewFormState
           const SizedBox(height: 18),
           PreviewItemDropdown(
             value: _itemId,
-            allowMockFallback: false,
             onChanged: (itemId) {
               setState(() {
                 _itemId = itemId;

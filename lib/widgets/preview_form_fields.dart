@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../data/mock_data.dart';
 import '../models/item.dart';
 import '../repositories/item_local_repository.dart';
 import '../services/local_storage_service.dart';
@@ -41,12 +40,10 @@ class PreviewItemDropdown extends StatefulWidget {
     super.key,
     this.value,
     this.onChanged,
-    this.allowMockFallback = true,
   });
 
   final String? value;
   final ValueChanged<String?>? onChanged;
-  final bool allowMockFallback;
 
   @override
   State<PreviewItemDropdown> createState() => _PreviewItemDropdownState();
@@ -77,13 +74,8 @@ class _PreviewItemDropdownState extends State<PreviewItemDropdown> {
 
   @override
   Widget build(BuildContext context) {
-    final localItems = _localItems;
-    final items = localItems == null || localItems.isEmpty
-        ? widget.allowMockFallback
-              ? MockData.items
-              : const <Item>[]
-        : localItems;
-    final isDisabled = !widget.allowMockFallback && items.isEmpty;
+    final items = _localItems ?? const <Item>[];
+    final isDisabled = items.isEmpty;
     final selectedValue = items.any((item) => item.id == widget.value)
         ? widget.value
         : null;
