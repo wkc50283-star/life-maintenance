@@ -10,7 +10,6 @@ import '../repositories/maintenance_record_local_repository.dart';
 import '../repositories/schedule_local_repository.dart';
 import '../repositories/task_local_repository.dart';
 import '../services/local_storage_service.dart';
-import '../widgets/items_category_chips.dart';
 import '../widgets/items_header.dart';
 import '../widgets/item_detail_sheet.dart';
 import '../widgets/maintenance_record_detail_sheet.dart';
@@ -18,8 +17,6 @@ import '../widgets/product_item_card.dart';
 
 class ItemsScreen extends StatefulWidget {
   const ItemsScreen({super.key});
-
-  static const _categories = ['全部', '家電', '車輛', '房屋', '保固證件', '其他'];
 
   @override
   State<ItemsScreen> createState() => _ItemsScreenState();
@@ -78,8 +75,6 @@ class _ItemsScreenState extends State<ItemsScreen> {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
         const ItemsHeader(),
-        const SizedBox(height: 18),
-        const ItemsCategoryChips(categories: ItemsScreen._categories),
         const SizedBox(height: 18),
         if (items.isEmpty)
           const _EmptyItemsState()
@@ -353,10 +348,6 @@ MaintenanceRecordDetailData _detailDataFor(MaintenanceRecord record) {
     date: _formatDate(record.date),
     result: result,
     rows: [
-      MaintenanceRecordDetailRow(label: '紀錄 ID', value: record.id),
-      MaintenanceRecordDetailRow(label: '生活項目 ID', value: record.itemId),
-      if (_nullableText(record.taskId) != null)
-        MaintenanceRecordDetailRow(label: '任務 ID', value: record.taskId!),
       if (_nullableText(record.issueDescription) != null)
         MaintenanceRecordDetailRow(
           label: '問題描述',

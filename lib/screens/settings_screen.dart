@@ -10,32 +10,14 @@ class SettingsScreen extends StatelessWidget {
 
   static const _settings = [
     _SettingCardData(
-      title: '預設提醒時間',
-      content: '每天 09:00',
-      icon: Icons.notifications_active_outlined,
-      highlighted: false,
-    ),
-    _SettingCardData(
       title: '安全界線',
       content: '高風險維修不提供 DIY 步驟，請尋求合格專業人員協助。',
       icon: Icons.health_and_safety_outlined,
       highlighted: true,
     ),
     _SettingCardData(
-      title: '資料儲存',
-      content: '目前資料先保存在本機，雲端同步後續版本開放。',
-      icon: Icons.storage_outlined,
-      highlighted: false,
-    ),
-    _SettingCardData(
-      title: '匯出資料',
-      content: '後續可匯出保養與維修紀錄。',
-      icon: Icons.ios_share_outlined,
-      highlighted: false,
-    ),
-    _SettingCardData(
       title: '版本資訊',
-      content: 'v0.9.0 責任流程穩定版',
+      content: 'v0.14.0',
       icon: Icons.info_outline,
       highlighted: false,
     ),

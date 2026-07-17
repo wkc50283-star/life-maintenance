@@ -7,7 +7,6 @@ import '../repositories/item_local_repository.dart';
 import '../repositories/maintenance_record_local_repository.dart';
 import '../services/local_storage_service.dart';
 import '../widgets/empty_history_state.dart';
-import '../widgets/history_category_chips.dart';
 import '../widgets/history_header.dart';
 import '../widgets/history_month_section.dart';
 import '../widgets/history_record_card.dart';
@@ -15,8 +14,6 @@ import '../widgets/maintenance_record_detail_sheet.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
-
-  static const _categories = ['全部', '保養', '維修', '更換', '到期提醒'];
 
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
@@ -66,8 +63,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
         const HistoryHeader(),
-        const SizedBox(height: 18),
-        const HistoryCategoryChips(categories: HistoryScreen._categories),
         const SizedBox(height: 20),
         if (sections.isEmpty)
           const EmptyHistoryState()
@@ -207,10 +202,6 @@ MaintenanceRecordDetailData _detailDataFor(MaintenanceRecord record) {
     date: _formatDate(record.date),
     result: result,
     rows: [
-      MaintenanceRecordDetailRow(label: '紀錄 ID', value: record.id),
-      MaintenanceRecordDetailRow(label: '生活項目 ID', value: record.itemId),
-      if (_nullableText(record.taskId) != null)
-        MaintenanceRecordDetailRow(label: '任務 ID', value: record.taskId!),
       if (_nullableText(record.issueDescription) != null)
         MaintenanceRecordDetailRow(
           label: '問題描述',
