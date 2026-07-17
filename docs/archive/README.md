@@ -19,6 +19,7 @@
 4. `docs/control/04-development-rules.md`
 5. `docs/control/05-acceptance-checklist.md`
 6. `docs/control/06-change-log.md`
+7. `docs/control/07-database-decision.md`
 
 ## PMS 文件
 

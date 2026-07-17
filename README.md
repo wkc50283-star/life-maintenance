@@ -47,9 +47,9 @@
 1. 生活管理文案與入口復原
 2. 假功能與工程欄位清理
 3. 首頁與生活項目頁視覺樣板
-4. 處理案件與多筆進度模型
-5. 階段性重點
-6. 正式資料庫與安全遷移
+4. 處理案件與多筆進度模型（模型基線已完成）
+5. 正式資料庫 schema 與安全遷移
+6. 階段性重點
 
 ## 支援週期
 
@@ -69,10 +69,11 @@
 - Dart
 - Material 3
 - SharedPreferences（現行過渡儲存）
+- Drift + SQLite（正式資料庫已選型，尚未接管資料）
 - GitHub Actions
 - GitHub Pages（Web build）
 
-正式資料庫遷移方向已批准，但資料庫技術選型必須在案件模型與遷移驗證完成後定案。
+正式資料庫已選擇 Drift + SQLite；目前尚未加入 dependency 或遷移資料，下一步只建立空 schema v1 與案件資料表。
 
 ## 本機執行
 
@@ -101,6 +102,7 @@ flutter build web --release
 4. [開發與 Codex 規範](docs/control/04-development-rules.md)
 5. [驗收清單](docs/control/05-acceptance-checklist.md)
 6. [變更與決策紀錄](docs/control/06-change-log.md)
+7. [正式資料庫選型決策](docs/control/07-database-decision.md)
 
 ## 開發規則摘要
 
