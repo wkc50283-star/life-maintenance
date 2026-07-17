@@ -58,7 +58,7 @@ class _MaintenanceRecordPreviewFormState
     if (itemId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('請選擇項目'),
+          content: Text('請選擇生活項目'),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -124,7 +124,7 @@ class _MaintenanceRecordPreviewFormState
           ),
           const SizedBox(height: 18),
           Text(
-            '完成紀錄',
+            '補登完成紀錄',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
               color: const Color(0xFF263746),
               fontWeight: FontWeight.w800,
@@ -132,7 +132,7 @@ class _MaintenanceRecordPreviewFormState
           ),
           const SizedBox(height: 6),
           Text(
-            '記下已完成的處理內容、費用與備註，按下儲存後會保存到本機。',
+            '記錄已完成的保養、修理、辦理事項、費用與結果。',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: const Color(0xFF687887),
               height: 1.4,

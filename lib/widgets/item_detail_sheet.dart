@@ -164,7 +164,7 @@ class _RemindersSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '需要你記住的事',
+            '提醒事項',
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
               color: const Color(0xFF263746),
               fontWeight: FontWeight.w800,
@@ -173,7 +173,7 @@ class _RemindersSection extends StatelessWidget {
           const SizedBox(height: 8),
           if (reminders.isEmpty)
             Text(
-              '目前沒有需要你記住的事',
+              '目前沒有提醒事項',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: const Color(0xFF4D5D6B),
                 fontWeight: FontWeight.w700,

@@ -216,7 +216,7 @@ class _EmptyItemsState extends StatelessWidget {
         border: Border.all(color: const Color(0xFFE4E0D8)),
       ),
       child: Text(
-        '目前還沒有項目。',
+        '目前還沒有生活項目。',
         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
           color: const Color(0xFF687887),
           fontWeight: FontWeight.w600,
@@ -281,7 +281,7 @@ ItemDetailData _itemDetailDataFor(
     ..sort((a, b) => a.nextDueDate.compareTo(b.nextDueDate));
 
   return ItemDetailData(
-    title: '項目詳情',
+    title: '生活項目詳情',
     rows: [
       ItemDetailRow(label: '名稱', value: item.name),
       ItemDetailRow(label: '分類', value: _labelForCategory(item.category)),
@@ -332,7 +332,7 @@ ItemDetailData _itemDetailDataFor(
     reminders: [
       for (final schedule in sortedSchedules)
         ItemDetailReminder(
-          title: _nullableText(schedule.title) ?? '需要你記住的事',
+          title: _nullableText(schedule.title) ?? '提醒事項',
           dueDate: _formatDate(schedule.nextDueDate),
           status: _labelForScheduleStatus(schedule),
         ),
@@ -354,7 +354,7 @@ MaintenanceRecordDetailData _detailDataFor(MaintenanceRecord record) {
     result: result,
     rows: [
       MaintenanceRecordDetailRow(label: '紀錄 ID', value: record.id),
-      MaintenanceRecordDetailRow(label: '物品 ID', value: record.itemId),
+      MaintenanceRecordDetailRow(label: '生活項目 ID', value: record.itemId),
       if (_nullableText(record.taskId) != null)
         MaintenanceRecordDetailRow(label: '任務 ID', value: record.taskId!),
       if (_nullableText(record.issueDescription) != null)

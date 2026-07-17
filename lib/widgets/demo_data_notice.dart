@@ -31,7 +31,7 @@ class DemoDataNotice extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              '物品與保養維修紀錄已可儲存到本機；目前尚未支援雲端同步。',
+              '生活項目與保養維修紀錄已可儲存到本機；目前尚未支援雲端同步。',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: const Color(0xFF4D5D6B),
                 height: 1.45,

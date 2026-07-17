@@ -62,7 +62,7 @@ class MaintenanceTaskService {
     }
 
     if (schedule.cardId == 'manual-expiry-reminder') {
-      return '需要你記住的事';
+      return '提醒事項';
     }
 
     return '保養提醒';
