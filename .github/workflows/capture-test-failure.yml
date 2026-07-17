@@ -1,4 +1,4 @@
-name: Capture wording test failure
+name: Fix remaining direct wording expectations
 
 on:
   push:
@@ -9,10 +9,10 @@ permissions:
   contents: write
 
 jobs:
-  capture:
+  fix:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 5
 
     steps:
       - name: Check out wording branch
@@ -20,35 +20,43 @@ jobs:
         with:
           ref: copy/direct-life-wording
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-
-      - name: Install dependencies
-        run: flutter pub get
-
-      - name: Capture failing test output
+      - name: Replace exact stale expectations
         run: |
-          set +e
-          flutter test > /tmp/flutter-test.log 2>&1
-          status=$?
-          mkdir -p diagnostics
-          {
-            echo "flutter test exit status: $status"
-            echo
-            echo "===== failure-focused lines ====="
-            grep -n -E "TestFailure|Expected:|Actual:|Which:|The following TestFailure|Some tests failed|test/.*\.dart|══|Exception|Error" /tmp/flutter-test.log || true
-            echo
-            echo "===== final 220 lines ====="
-            tail -n 220 /tmp/flutter-test.log
-          } > diagnostics/wording-test-failure.txt
+          python3 - <<'PY'
+          from pathlib import Path
 
-      - name: Commit diagnostic report
+          title_path = Path('test/expiry_reminder_preview_sheet_test.dart')
+          title_text = title_path.read_text(encoding='utf-8')
+          old_title = "return find.widgetWithText(TextField, '事項名稱');"
+          if title_text.count(old_title) != 1:
+              raise SystemExit(
+                  f'Expected one stale reminder-name finder, found {title_text.count(old_title)}'
+              )
+          title_path.write_text(
+              title_text.replace(
+                  old_title,
+                  "return find.widgetWithText(TextField, '提醒名稱');",
+              ),
+              encoding='utf-8',
+          )
+
+          detail_path = Path('test/reminder_list_sheet_test.dart')
+          detail_text = detail_path.read_text(encoding='utf-8')
+          old_detail = "find.text('事項詳情')"
+          if detail_text.count(old_detail) != 9:
+              raise SystemExit(
+                  f'Expected nine stale reminder-detail finders, found {detail_text.count(old_detail)}'
+              )
+          detail_path.write_text(
+              detail_text.replace(old_detail, "find.text('提醒詳情')"),
+              encoding='utf-8',
+          )
+          PY
+
+      - name: Commit corrected expectations
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add diagnostics/wording-test-failure.txt
-          git commit -m "Capture wording test failure details"
+          git add test/expiry_reminder_preview_sheet_test.dart test/reminder_list_sheet_test.dart
+          git commit -m "Update remaining reminder wording expectations"
           git push origin HEAD:copy/direct-life-wording
