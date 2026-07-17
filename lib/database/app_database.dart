@@ -1,8 +1,12 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
+import '../models/work_case.dart';
+import '../models/work_case_enums.dart';
+import '../models/work_case_update.dart';
 import 'tables/work_case_updates.dart';
 import 'tables/work_cases.dart';
+import 'type_converters.dart';
 
 part 'app_database.g.dart';
 
