@@ -76,7 +76,7 @@ void main() {
     id: id,
     itemId: itemId,
     taskId: taskId,
-    recordType: RecordType.maintenance,
+    recordType: RecordType.regularMaintenance,
     date: now,
     title: '完成紀錄',
     createdAt: now,
