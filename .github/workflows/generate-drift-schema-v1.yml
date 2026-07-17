@@ -1,4 +1,4 @@
-name: Capture Drift analyzer failure
+name: Finalize Drift schema v1
 
 on:
   push:
@@ -9,10 +9,10 @@ permissions:
   contents: write
 
 jobs:
-  capture:
+  finalize:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
 
     steps:
       - name: Check out schema branch
@@ -26,28 +26,16 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Install dependencies
+      - name: Resolve and lock dependencies
         run: flutter pub get
 
-      - name: Generate Drift code
-        run: dart run build_runner build --delete-conflicting-outputs
+      - name: Finalize schema documentation and cleanup
+        run: python3 tool/finalize_drift_schema_v1.py
 
-      - name: Capture analyzer output
-        run: |
-          set +e
-          flutter analyze > /tmp/analyze.log 2>&1
-          status=$?
-          mkdir -p diagnostics
-          {
-            echo "flutter analyze exit status: $status"
-            echo
-            cat /tmp/analyze.log
-          } > diagnostics/drift-analyze.txt
-
-      - name: Commit diagnostic report
+      - name: Commit final schema v1 files
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add diagnostics/drift-analyze.txt
-          git commit -m "Capture Drift analyzer failure details"
+          git add -A
+          git commit -m "Finalize Drift schema v1 foundation"
           git push origin HEAD:database/drift-schema-v1
