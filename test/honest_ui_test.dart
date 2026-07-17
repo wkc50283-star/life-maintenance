@@ -56,8 +56,8 @@ void main() {
     expect(find.text('預設提醒時間'), findsNothing);
     expect(find.text('匯出資料'), findsNothing);
     expect(find.text('安全界線'), findsOneWidget);
-    expect(find.text('版本資訊'), findsOneWidget);
-    expect(find.text('v0.14.0'), findsOneWidget);
+    expect(find.text('版本資訊'), findsNothing);
+    expect(find.text('v0.14.0'), findsNothing);
   });
 
   testWidgets('history detail hides internal identifiers', (tester) async {

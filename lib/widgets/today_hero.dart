@@ -40,26 +40,8 @@ class TodayHero extends StatelessWidget {
                   ),
                 ),
                 child: const Icon(
-                  Icons.verified_user_outlined,
+                  Icons.home_outlined,
                   color: Colors.white,
-                ),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.16),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: const Text(
-                  'v0.14.0',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
                 ),
               ),
             ],
@@ -76,7 +58,7 @@ class TodayHero extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '軍規邏輯，民用保養',
+            '管理生活項目、提醒與處理紀錄',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.86),
               fontSize: 15,
