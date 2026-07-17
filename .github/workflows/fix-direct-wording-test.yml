@@ -1,0 +1,56 @@
+name: Fix direct wording test expectations
+
+on:
+  push:
+    branches:
+      - copy/direct-life-wording
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out wording branch
+        uses: actions/checkout@v4
+        with:
+          ref: copy/direct-life-wording
+
+      - name: Correct stale expectations
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('test/item_detail_sheet_test.dart')
+          text = path.read_text(encoding='utf-8')
+
+          old_empty = "expect(find.text('目前還沒有項目。'), findsOneWidget);"
+          old_detail = "expect(find.text('項目詳情'), findsOneWidget);"
+
+          if text.count(old_empty) != 1:
+              raise SystemExit(f'Expected exactly one stale empty-state expectation, found {text.count(old_empty)}')
+          if text.count(old_detail) != 2:
+              raise SystemExit(f'Expected exactly two stale detail expectations, found {text.count(old_detail)}')
+
+          text = text.replace(
+              old_empty,
+              "expect(find.text('目前還沒有生活項目。'), findsOneWidget);",
+          )
+          text = text.replace(
+              old_detail,
+              "expect(find.text('生活項目詳情'), findsOneWidget);",
+          )
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Commit corrected expectations
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add test/item_detail_sheet_test.dart
+          git commit -m "Update remaining life item wording expectations"
+          git push origin HEAD:copy/direct-life-wording
