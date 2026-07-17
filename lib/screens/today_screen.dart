@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../data/mock_data.dart';
+import '../data/maintenance_card_catalog.dart';
 import '../models/enums.dart';
 import '../models/item.dart';
 import '../models/maintenance_card.dart';
@@ -779,13 +779,10 @@ Item? _itemForTask(
 }
 
 MaintenanceCard? _cardForTask(maintenance_task.Task task) {
-  for (final card in MockData.maintenanceCards) {
-    if (card.id == task.cardId) {
-      return card;
-    }
-  }
-
-  return null;
+  return MaintenanceCardCatalog.resolve(
+    cardId: task.cardId,
+    itemId: task.itemId,
+  );
 }
 
 String _labelForStatus(TaskStatus status) {
