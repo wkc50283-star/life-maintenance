@@ -139,9 +139,13 @@ class _MainShellState extends State<MainShell> {
       return;
     }
 
+    final hasIssues = LocalDataIntegrityService.instance.hasIssues;
     setState(() {
       _integrityCheckComplete = true;
-      _hasIntegrityIssues = LocalDataIntegrityService.instance.hasIssues;
+      _hasIntegrityIssues = hasIssues;
+      if (hasIssues) {
+        _currentIndex = 1;
+      }
     });
   }
 
@@ -157,6 +161,9 @@ class _MainShellState extends State<MainShell> {
 
     setState(() {
       _hasIntegrityIssues = hasIssues;
+      if (hasIssues && (_currentIndex == 0 || _currentIndex == 2)) {
+        _currentIndex = 1;
+      }
     });
   }
 
@@ -175,10 +182,10 @@ class _MainShellState extends State<MainShell> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (index) {
-          if (_hasIntegrityIssues && index == 2) {
+          if (_hasIntegrityIssues && (index == 0 || index == 2)) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('本機資料正在保護中，暫時無法新增或修改'),
+                content: Text('本機資料正在保護中，暫時只能查看生活項目、履歷與設定'),
               ),
             );
             return;
