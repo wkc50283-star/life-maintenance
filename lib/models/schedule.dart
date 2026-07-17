@@ -35,14 +35,16 @@ class Schedule {
       id: json['id'] as String,
       itemId: json['itemId'] as String,
       cardId: json['cardId'] as String,
-      cycleType: CycleType.values.byName(json['cycleType'] as String),
-      interval: json['interval'] as int,
+      cycleType: _cycleTypeFromJson(json['cycleType']),
+      interval: (json['interval'] as num).toInt(),
       startDate: DateTime.parse(json['startDate'] as String),
       nextDueDate: DateTime.parse(json['nextDueDate'] as String),
       title: json['title'] as String?,
       reminderTime: json['reminderTime'] as String?,
       status: _statusFromJson(json),
-      strictPeriodMode: json['strictPeriodMode'] as bool,
+      strictPeriodMode: json['strictPeriodMode'] is bool
+          ? json['strictPeriodMode'] as bool
+          : false,
     );
   }
 
@@ -101,6 +103,18 @@ class Schedule {
   }
 }
 
+CycleType _cycleTypeFromJson(Object? value) {
+  if (value is String) {
+    try {
+      return CycleType.values.byName(value);
+    } catch (_) {
+      // Unknown legacy cycle values remain available as a custom schedule.
+    }
+  }
+
+  return CycleType.custom;
+}
+
 ScheduleStatus _statusFromJson(Map<String, dynamic> json) {
   final statusName = json['status'];
   if (statusName is String) {
@@ -111,5 +125,10 @@ ScheduleStatus _statusFromJson(Map<String, dynamic> json) {
     }
   }
 
-  return (json['enabled'] as bool) ? ScheduleStatus.active : ScheduleStatus.ended;
+  final enabled = json['enabled'];
+  if (enabled is bool) {
+    return enabled ? ScheduleStatus.active : ScheduleStatus.ended;
+  }
+
+  return ScheduleStatus.active;
 }
