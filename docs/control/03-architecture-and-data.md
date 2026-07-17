@@ -16,18 +16,45 @@
 
 現有模型不得僅因名稱不完美而全部推翻。任何重構必須先證明資料角色衝突與最小遷移方案。
 
-## 2. 目標新增模型
+## 2. 案件模型基線
 
-### `WorkCase`（暫定技術名稱）
+第一版資料模型已建立；目前只定義角色與 JSON 格式，尚未接入 Repository、正式資料庫或 UI 寫入流程。
+
+### `WorkCase`
 
 代表一件實際處理中的保養、修理、工程或生活事件。
 
-建議欄位：
+正式來源類型 `WorkCaseSourceType`：
 
+- `maintenanceTask`：由某次保養任務開始
+- `generalReminder`：由一般提醒轉入
+- `milestone`：由階段性重點開始
+- `manual`：使用者直接建立
+- `unknown`：未來或未知來源的安全 fallback
+
+正式案件類型 `WorkCaseType`：
+
+- `maintenance`
+- `repair`
+- `construction`
+- `administrative`
+- `other`
+
+正式案件狀態 `WorkCaseStatus`：
+
+- `notStarted`
+- `inProgress`
+- `waiting`
+- `completed`
+- `canceled`
+
+第一版欄位：
+
+- `schemaVersion`
 - `id`
 - `itemId`
 - `sourceType`
-- `sourceId`
+- `sourceId`（手動建立時可空）
 - `caseType`
 - `title`
 - `description`
@@ -35,26 +62,35 @@
 - `startedAt`
 - `status`
 - `createdAt`
+- `updatedAt`
 - `closedAt`
 - `closeResult`
+- `cancellationReason`
 
-### `WorkCaseUpdate`（暫定技術名稱）
+`completed` 與 `canceled` 都屬於結案；取消案件必須能保存取消原因，不得直接消失。
+
+### `WorkCaseUpdate`
 
 代表案件中一筆不可被後續進度覆蓋的實際處理紀錄。
 
-建議欄位：
+第一版欄位：
 
+- `schemaVersion`
 - `id`
 - `workCaseId`
 - `occurredAt`
 - `description`
 - `contactOrVendor`
+- `result`
 - `cost`
 - `partsOrItems`
 - `photoIdentifiers`
+- `waitingReason`
 - `note`
 - `nextAction`
 - `createdAt`
+
+`partsOrItems` 與 `photoIdentifiers` 在模型中以不可修改清單保存。既有進度不得原地改寫；若需更正，未來應新增修正紀錄並保留原始事實。
 
 正式中文介面名稱依情境顯示為保養／修理卡、工程卡、辦理卡或其他生活事件卡；底層角色保持一致。
 
