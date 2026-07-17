@@ -123,9 +123,15 @@ void main() {
 
   test('returns every applicable blocker without repairing data', () async {
     final values = validValues();
+    final duplicateItem = Item(
+      id: 'item-1',
+      name: '重複冷氣',
+      category: ItemCategory.appliance,
+      createdAt: now,
+    ).toJson();
     values['items'] = jsonEncode([
-      {'id': 'item-1'},
-      {'id': 'item-1'},
+      duplicateItem,
+      duplicateItem,
       'broken-entry',
     ]);
     values.remove('backup_v1_items');
