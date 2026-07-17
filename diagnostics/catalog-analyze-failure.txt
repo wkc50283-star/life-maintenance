@@ -1,0 +1,8 @@
+flutter analyze exit status: 1
+
+Analyzing life-maintenance...                                   
+
+  error • Target of URI doesn't exist: '../data/mock_data.dart'. Try creating the file referenced by the URI, or try using a URI for a file that does exist • lib/widgets/preview_form_fields.dart:3:8 • uri_does_not_exist
+  error • Undefined name 'MockData'. Try correcting the name to one that is defined, or defining the name • lib/widgets/preview_form_fields.dart:83:17 • undefined_identifier
+
+2 issues found. (ran in 6.4s)
