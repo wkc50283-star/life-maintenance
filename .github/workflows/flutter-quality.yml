@@ -12,7 +12,7 @@ permissions:
 jobs:
   quality:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - name: Check out repository
@@ -30,6 +30,23 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Generate Drift database code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Compile Drift web worker
+        run: dart compile js -O4 web/drift_worker.dart -o web/drift_worker.dart.js
+
+      - name: Prepare matching sqlite3 wasm
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tool/prepare_drift_web_assets.py
+
+      - name: Verify Drift artifacts
+        run: |
+          test -s lib/database/app_database.g.dart
+          test -s web/drift_worker.dart.js
+          test -s web/sqlite3.wasm
+
       - name: Analyze
         run: flutter analyze
 
@@ -38,3 +55,8 @@ jobs:
 
       - name: Build web
         run: flutter build web --release
+
+      - name: Verify web build contains Drift assets
+        run: |
+          test -s build/web/drift_worker.dart.js
+          test -s build/web/sqlite3.wasm
