@@ -129,7 +129,7 @@ Finder _dateFieldFinder() {
 }
 
 Finder _titleFieldFinder() {
-  return find.widgetWithText(TextField, '事項名稱');
+  return find.widgetWithText(TextField, '提醒名稱');
 }
 
 String _formatDate(DateTime date) {

@@ -77,7 +77,7 @@ void main() {
     await tester.tap(find.text('暫停提醒'));
     await tester.pumpAndSettle();
 
-    expect(find.text('事項詳情'), findsOneWidget);
+    expect(find.text('提醒詳情'), findsOneWidget);
     expect(find.text('已暫停'), findsOneWidget);
     expect(find.text('編輯名稱'), findsNothing);
     expect(find.text('編輯提醒日期'), findsNothing);
@@ -105,7 +105,7 @@ void main() {
     await tester.tap(find.text('結束提醒'));
     await tester.pumpAndSettle();
 
-    expect(find.text('事項詳情'), findsOneWidget);
+    expect(find.text('提醒詳情'), findsOneWidget);
     expect(find.text('已結束'), findsOneWidget);
     expect(find.text('編輯名稱'), findsNothing);
     expect(find.text('編輯提醒日期'), findsNothing);
@@ -126,7 +126,7 @@ void main() {
     await tester.tap(find.text('未到期提醒'));
     await tester.pumpAndSettle();
 
-    expect(find.text('事項詳情'), findsOneWidget);
+    expect(find.text('提醒詳情'), findsOneWidget);
     expect(find.text('編輯名稱'), findsOneWidget);
     expect(find.text('編輯提醒日期'), findsOneWidget);
     expect(find.text('取消提醒'), findsOneWidget);
@@ -314,7 +314,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('重新安排失敗，請稍後再試'), findsOneWidget);
-    expect(find.text('事項詳情'), findsOneWidget);
+    expect(find.text('提醒詳情'), findsOneWidget);
     expect(find.text('提醒已重新安排並恢復'), findsNothing);
     final schedules = await _storedSchedules();
     expect(_statusFor(schedules, 'schedule-other'), ScheduleStatus.active.name);
@@ -353,7 +353,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('重新安排失敗，請稍後再試'), findsOneWidget);
-    expect(find.text('事項詳情'), findsOneWidget);
+    expect(find.text('提醒詳情'), findsOneWidget);
     final schedules = await _storedSchedules();
     expect(
       _statusFor(schedules, 'schedule-paused'),
@@ -396,7 +396,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('重新安排失敗，請稍後再試'), findsOneWidget);
-    expect(find.text('事項詳情'), findsOneWidget);
+    expect(find.text('提醒詳情'), findsOneWidget);
     final schedules = await _storedSchedules();
     expect(
       _statusFor(schedules, 'schedule-paused'),
@@ -432,7 +432,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('重新安排失敗，請稍後再試'), findsOneWidget);
-      expect(find.text('事項詳情'), findsOneWidget);
+      expect(find.text('提醒詳情'), findsOneWidget);
     },
   );
 
@@ -464,7 +464,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('重新安排失敗，請稍後再試'), findsOneWidget);
-    expect(find.text('事項詳情'), findsOneWidget);
+    expect(find.text('提醒詳情'), findsOneWidget);
     expect(find.text('提醒已重新安排並恢復'), findsNothing);
   });
 
@@ -497,7 +497,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('重新安排失敗，請稍後再試'), findsOneWidget);
-    expect(find.text('事項詳情'), findsOneWidget);
+    expect(find.text('提醒詳情'), findsOneWidget);
     expect(find.text('提醒已重新安排並恢復'), findsNothing);
   });
 }
