@@ -1,7 +1,6 @@
 import 'package:drift/drift.dart';
 
 import '../../models/work_case.dart';
-import '../../models/work_case_enums.dart';
 import '../type_converters.dart';
 
 @DataClassName('WorkCaseRow')
