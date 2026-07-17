@@ -1,4 +1,0 @@
-flutter analyze exit status: 0
-
-Analyzing life-maintenance...                                   
-No issues found! (ran in 9.3s)
