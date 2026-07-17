@@ -93,6 +93,18 @@ class LocalDataIntegrityService extends ChangeNotifier {
     return values;
   }
 
+  void reportIssue({
+    required String storageKey,
+    required String message,
+    int invalidEntryCount = 1,
+  }) {
+    _setIssue(
+      storageKey: storageKey,
+      message: message,
+      invalidEntryCount: invalidEntryCount,
+    );
+  }
+
   void ensureWritesAllowed() {
     if (hasIssues) {
       throw const LocalDataWriteBlockedException();
