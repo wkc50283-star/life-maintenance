@@ -19,8 +19,7 @@ migrate_working_dir/
 .idea/
 
 # The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
+# VS Code, so this line is commented out by default.
 #.vscode/
 
 # Flutter/Dart/Pub related
@@ -32,6 +31,11 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+
+# Reproducible Drift artifacts
+/lib/database/app_database.g.dart
+/web/drift_worker.dart.js
+/web/sqlite3.wasm
 
 # Symbolication related
 app.*.symbols

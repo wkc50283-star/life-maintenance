@@ -48,7 +48,7 @@
 2. 假功能與工程欄位清理
 3. 首頁與生活項目頁視覺樣板
 4. 處理案件與多筆進度模型（模型基線已完成）
-5. 正式資料庫 schema 與安全遷移
+5. 正式資料庫 schema v1（案件表已完成，尚未接管資料）
 6. 階段性重點
 
 ## 支援週期
@@ -73,7 +73,7 @@
 - GitHub Actions
 - GitHub Pages（Web build）
 
-正式資料庫已選擇 Drift + SQLite；目前尚未加入 dependency 或遷移資料，下一步只建立空 schema v1 與案件資料表。
+Drift + SQLite schema v1 已建立，目前只包含案件與進度資料表；現有 App 尚未開啟資料庫，也沒有遷移任何 SharedPreferences 資料。
 
 ## 本機執行
 
@@ -85,6 +85,10 @@ flutter run
 ## 驗證
 
 ```bash
+flutter pub get
+dart run build_runner build --delete-conflicting-outputs
+dart compile js -O4 web/drift_worker.dart -o web/drift_worker.dart.js
+python3 tool/prepare_drift_web_assets.py
 flutter analyze
 flutter test
 flutter build web --release
