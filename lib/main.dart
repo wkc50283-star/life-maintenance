@@ -9,6 +9,7 @@ import 'screens/history_screen.dart';
 import 'screens/items_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/today_screen.dart';
+import 'services/local_data_backup_service.dart';
 import 'services/local_data_integrity_service.dart';
 import 'services/local_storage_service.dart';
 
@@ -126,6 +127,7 @@ class _MainShellState extends State<MainShell> {
 
   Future<void> _runIntegrityPreflight() async {
     final storageService = LocalStorageService();
+    await LocalDataBackupService(storageService).createPreMigrationBackups();
     await Future.wait<void>([
       ItemLocalRepository(storageService).loadItems().then((_) {}),
       ScheduleLocalRepository(storageService).loadSchedules().then((_) {}),
