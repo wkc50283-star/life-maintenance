@@ -1,0 +1,54 @@
+name: Capture wording test failure
+
+on:
+  push:
+    branches:
+      - copy/direct-life-wording
+
+permissions:
+  contents: write
+
+jobs:
+  capture:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out wording branch
+        uses: actions/checkout@v4
+        with:
+          ref: copy/direct-life-wording
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Capture failing test output
+        run: |
+          set +e
+          flutter test > /tmp/flutter-test.log 2>&1
+          status=$?
+          mkdir -p diagnostics
+          {
+            echo "flutter test exit status: $status"
+            echo
+            echo "===== failure-focused lines ====="
+            grep -n -E "TestFailure|Expected:|Actual:|Which:|The following TestFailure|Some tests failed|test/.*\.dart|══|Exception|Error" /tmp/flutter-test.log || true
+            echo
+            echo "===== final 220 lines ====="
+            tail -n 220 /tmp/flutter-test.log
+          } > diagnostics/wording-test-failure.txt
+
+      - name: Commit diagnostic report
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add diagnostics/wording-test-failure.txt
+          git commit -m "Capture wording test failure details"
+          git push origin HEAD:copy/direct-life-wording
