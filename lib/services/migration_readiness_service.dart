@@ -41,8 +41,9 @@ class MigrationReadinessService {
       );
     }
 
-    final workCaseCount = await _database.workCases.count().getSingle();
-    final updateCount = await _database.workCaseUpdates.count().getSingle();
+    final workCaseCount = (await _database.select(_database.workCases).get()).length;
+    final updateCount =
+        (await _database.select(_database.workCaseUpdates).get()).length;
 
     return MigrationReadinessReport(
       datasets: List<MigrationDatasetSnapshot>.unmodifiable(datasets),
