@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:life_maintenance/main.dart';
 
@@ -7,7 +8,10 @@ void main() {
   testWidgets('LifeMaintenanceApp shows bottom navigation tabs', (
     tester,
   ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+
     await tester.pumpWidget(const LifeMaintenanceApp());
+    await tester.pumpAndSettle();
 
     expect(find.text('今日'), findsWidgets);
     expect(find.text('物品'), findsOneWidget);
