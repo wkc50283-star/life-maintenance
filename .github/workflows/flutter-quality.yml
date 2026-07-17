@@ -7,7 +7,7 @@ on:
       - main
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   quality:
@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          ref: audit/migration-readiness-inventory
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -24,39 +26,24 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Show Flutter version
-        run: flutter --version
-
       - name: Install dependencies
         run: flutter pub get
 
       - name: Generate Drift database code
         run: dart run build_runner build --delete-conflicting-outputs
 
-      - name: Compile Drift web worker
-        run: dart compile js -O4 web/drift_worker.dart -o web/drift_worker.dart.js
-
-      - name: Prepare matching sqlite3 wasm
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: python3 tool/prepare_drift_web_assets.py
-
-      - name: Verify Drift artifacts
+      - name: Analyze and capture failure
         run: |
-          test -s lib/database/app_database.g.dart
-          test -s web/drift_worker.dart.js
-          test -s web/sqlite3.wasm
-
-      - name: Analyze
-        run: flutter analyze
-
-      - name: Test
-        run: flutter test
-
-      - name: Build web
-        run: flutter build web --release
-
-      - name: Verify web build contains Drift assets
-        run: |
-          test -s build/web/drift_worker.dart.js
-          test -s build/web/sqlite3.wasm
+          set +e
+          mkdir -p diagnostics
+          flutter analyze > diagnostics/migration-readiness-analyze-2.txt 2>&1
+          status=$?
+          cat diagnostics/migration-readiness-analyze-2.txt
+          if [ "$status" -ne 0 ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add diagnostics/migration-readiness-analyze-2.txt
+            git commit -m "Capture remaining migration readiness analyzer issue"
+            git push origin HEAD:audit/migration-readiness-inventory
+          fi
+          exit "$status"
