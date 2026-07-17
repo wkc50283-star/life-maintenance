@@ -15,12 +15,6 @@ class SettingsScreen extends StatelessWidget {
       icon: Icons.health_and_safety_outlined,
       highlighted: true,
     ),
-    _SettingCardData(
-      title: '版本資訊',
-      content: 'v0.14.0',
-      icon: Icons.info_outline,
-      highlighted: false,
-    ),
   ];
 
   @override
