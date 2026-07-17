@@ -7,7 +7,7 @@ on:
       - main
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   quality:
@@ -17,8 +17,6 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-        with:
-          ref: audit/migration-readiness-inventory
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -49,21 +47,8 @@ jobs:
           test -s web/drift_worker.dart.js
           test -s web/sqlite3.wasm
 
-      - name: Analyze and capture failure
-        run: |
-          set +e
-          mkdir -p diagnostics
-          flutter analyze > diagnostics/migration-readiness-analyze.txt 2>&1
-          status=$?
-          cat diagnostics/migration-readiness-analyze.txt
-          if [ "$status" -ne 0 ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add diagnostics/migration-readiness-analyze.txt
-            git commit -m "Capture migration readiness analyzer output"
-            git push origin HEAD:audit/migration-readiness-inventory
-          fi
-          exit "$status"
+      - name: Analyze
+        run: flutter analyze
 
       - name: Test
         run: flutter test
