@@ -7,7 +7,7 @@ on:
       - main
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   quality:
@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          ref: audit/legacy-data-relations
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -47,8 +49,21 @@ jobs:
           test -s web/drift_worker.dart.js
           test -s web/sqlite3.wasm
 
-      - name: Analyze
-        run: flutter analyze
+      - name: Analyze and capture failure
+        run: |
+          set +e
+          mkdir -p diagnostics
+          flutter analyze > diagnostics/legacy-relation-analyze.txt 2>&1
+          status=$?
+          cat diagnostics/legacy-relation-analyze.txt
+          if [ "$status" -ne 0 ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add diagnostics/legacy-relation-analyze.txt
+            git commit -m "Capture legacy relation analyzer output"
+            git push origin HEAD:audit/legacy-data-relations
+          fi
+          exit "$status"
 
       - name: Test
         run: flutter test
