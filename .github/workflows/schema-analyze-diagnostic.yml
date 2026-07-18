@@ -17,4 +17,17 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: dart run build_runner build --delete-conflicting-outputs
-      - run: flutter analyze
+      - name: Capture analyze output
+        shell: bash
+        run: |
+          set +e
+          flutter analyze > analyze-output.txt 2>&1
+          code=$?
+          echo "$code" > analyze-exit-code.txt
+          exit 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: schema-analyze-output
+          path: |
+            analyze-output.txt
+            analyze-exit-code.txt
