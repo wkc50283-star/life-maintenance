@@ -1,7 +1,11 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
+import '../models/attachment.dart';
+import '../models/maintenance_plan.dart';
+import '../models/milestone.dart';
 import '../models/work_case.dart';
+import '../models/work_case_closure.dart';
 import '../models/work_case_enums.dart';
 import '../models/work_case_update.dart';
 import 'tables/attachments.dart';
