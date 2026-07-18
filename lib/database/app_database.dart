@@ -65,7 +65,11 @@ class AppDatabase extends _$AppDatabase {
         },
         onUpgrade: (migrator, from, to) async {
           if (from == 1 && to == 2) {
-            await _migrateV1ToV2(migrator);
+            await customStatement('PRAGMA foreign_keys = OFF');
+            await transaction(() async {
+              await _migrateV1ToV2(migrator);
+              await _throwIfForeignKeyViolations();
+            });
             return;
           }
           throw UnsupportedError(
@@ -77,13 +81,7 @@ class AppDatabase extends _$AppDatabase {
           final versionBefore = details.versionBefore;
           final versionNow = details.versionNow;
           if (versionBefore != null && versionBefore < versionNow) {
-            final violations =
-                await customSelect('PRAGMA foreign_key_check').get();
-            if (violations.isNotEmpty) {
-              throw StateError(
-                'Database migration produced ${violations.length} foreign-key violations.',
-              );
-            }
+            await _throwIfForeignKeyViolations();
           }
         },
       );
@@ -96,10 +94,17 @@ class AppDatabase extends _$AppDatabase {
       'ALTER TABLE work_cases RENAME TO legacy_work_cases_v1',
     );
 
+    await customStatement(
+      'DROP INDEX IF EXISTS work_case_updates_case_occurred_idx',
+    );
+    await customStatement('DROP INDEX IF EXISTS work_cases_item_status_idx');
+    await customStatement('DROP INDEX IF EXISTS work_cases_source_idx');
+    await customStatement('DROP INDEX IF EXISTS work_cases_updated_at_idx');
+
     await migrator.createAll();
 
     const legacyCategoryId = 'system-category-legacy-imported';
-    const nowMicros = "CAST(strftime('%s', 'now') AS INTEGER) * 1000000";
+    const nowTimestamp = "strftime('%Y-%m-%dT%H:%M:%fZ', 'now')";
 
     await customStatement('''
       INSERT INTO item_categories (
@@ -107,7 +112,7 @@ class AppDatabase extends _$AppDatabase {
         status, created_at, updated_at, archived_at
       ) VALUES (
         '$legacyCategoryId', 'legacyImported', NULL, '舊資料匯入', 999,
-        'active', $nowMicros, $nowMicros, NULL
+        'active', $nowTimestamp, $nowTimestamp, NULL
       )
     ''');
 
@@ -161,5 +166,15 @@ class AppDatabase extends _$AppDatabase {
 
     await customStatement('DROP TABLE legacy_work_case_updates_v1');
     await customStatement('DROP TABLE legacy_work_cases_v1');
+  }
+
+  Future<void> _throwIfForeignKeyViolations() async {
+    final violations = await customSelect('PRAGMA foreign_key_check').get();
+    if (violations.isNotEmpty) {
+      throw StateError(
+        'Database migration produced '
+        '${violations.length} foreign-key violations.',
+      );
+    }
   }
 }
