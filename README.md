@@ -1,6 +1,6 @@
 # 生活管理 App
 
-目前版本：**v0.5.0 Foundation**
+目前版本：**v0.5.1 Foundation Runtime Audit**
 
 `life-maintenance` 是一個 Flutter 生活管理 App，目標是管理生活項目、固定週期、到期提醒、階段性重點、突發事項與工程，並保存每一次處理從開始到結束的完整史略。
 
@@ -36,7 +36,7 @@
 
 ## 目前狀態
 
-`v0.5.0` 是基礎架構版，代表產品身分、資料安全、案件模型、Drift 案件 schema 與遷移稽核地基已建立；不代表使用者功能或 UI 已完成。
+`v0.5.1` 是基礎架構稽核版，代表產品身分、資料安全、Drift Schema v2、v1 → v2 migration、Repository 基線與正式 Runtime 資料流控制已建立；不代表使用者功能、舊資料匯入、Repository 切換或正式 UI 已完成。
 
 已完成的資料與治理基礎：
 
@@ -49,16 +49,17 @@
 - 不可變 `backup_v1_*` 原始 JSON 備份
 - WorkCase／WorkCaseUpdate 模型
 - Drift + SQLite 正式選型
-- Drift 案件 schema v1 與 Repository 邊界
+- Drift Schema v2、v1 → v2 migration 與 Repository 邊界
 - 舊資料只讀盤點、關聯稽核與遷移准入閘門
+- 正式 Runtime SharedPreferences 讀寫稽核與禁止雙寫規則
 - 保養項目、排程、任務與案件的資料角色已重新分離
 - Flutter Analyze、Test、Web Build、Drift code generation 與 Web 資產自動 CI
 
 後續依序進行：
 
-1. 建立 MaintenancePlan 與完整 Drift 核心資料表
-2. schema v1 → v2 migration 與回復測試
-3. 新舊資料 dry run、比對與安全遷移
+1. 完成舊資料 converter／dry run 與切換凍結點報告
+2. 建立可回滾 importer 與逐欄、筆數、關聯比對
+3. 依單一 writer 規則切換正式 Repository
 4. 保養／修理卡、工程卡與多筆進度 UI
 5. 階段性重點
 6. 統一史略視圖
@@ -81,12 +82,12 @@
 - Flutter
 - Dart
 - Material 3
-- SharedPreferences（現行過渡儲存）
-- Drift + SQLite（正式資料庫已選型，尚未接管舊資料）
+- SharedPreferences（正式 Runtime 現行唯一資料來源與 writer）
+- Drift + SQLite（Schema v2 與 Repository 已完成，尚未匯入或接管 Runtime）
 - GitHub Actions
 - GitHub Pages（Web build）
 
-Drift + SQLite schema v1 已建立，目前只包含案件與進度資料表；現有 App 尚未正式切換到 Drift，也沒有遷移任何 SharedPreferences 資料。
+Drift + SQLite Schema v2 與 v1 → v2 migration 已建立；現有 App 尚未正式切換到 Drift，也沒有匯入任何 SharedPreferences 資料。
 
 ## 本機執行
 
@@ -126,6 +127,8 @@ flutter build web --release
 11. [地基缺口修正計畫](docs/control/11-foundation-gap-corrections.md)
 12. [生活項目類別策略](docs/control/12-item-category-strategy.md)
 13. [正式產品名詞表](docs/control/13-product-terminology.md)
+14. [首頁與生活項目詳情視覺架構](docs/control/14-home-and-item-detail-visual-architecture.md)
+15. [正式 Runtime 資料流稽核與單一寫入控制](docs/control/15-runtime-data-transition-audit.md)
 
 `docs/control/` 內標示為「正式控制文件」的文件共同生效，不再以固定「六份文件」限制控制範圍。
 
