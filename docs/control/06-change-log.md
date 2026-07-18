@@ -1141,6 +1141,44 @@ Drift code generation、Analyze、全部測試、Web release build 與 Drift Web
 
 ---
 
+## LM-030：v0.5.1 正式 Runtime 資料流稽核與單一寫入控制
+
+日期：2026-07-19
+類型：資料／架構／安全／治理
+
+### 問題與原因
+
+Schema v2、v1 → v2 migration 與 Repository 已建立，但正式 Runtime 仍由 SharedPreferences／LocalRepository 讀寫。若沒有先完整盤點呼叫點、欄位差距與切換紅線，後續接線可能形成雙寫、部分完成、錯誤欄位推論或無法安全 rollback。
+
+### 修改
+
+- 建立正式 Runtime 讀寫證據清單。
+- 列出 Drift Repository coverage、模型欄位 mapping 與資料風險。
+- 凍結單一 writer、只讀雙讀、匯入、切換、rollback 與驗收順序。
+- 將 Foundation patch 版本更新為 v0.5.1。
+
+### 明確未修改
+
+不修改 Dart 程式、Schema、Migration、Repository、SharedPreferences 資料或 UI；不執行匯入與切換。
+
+### 資料影響
+
+無使用者資料讀寫、刪除或搬移。
+
+### 驗收結果
+
+以 PR #202 的 codegen、Analyze、全部測試、Web release build 與 GitHub Actions 結果為準。
+
+### 批准狀態
+
+本條目只批准稽核控制與 v0.5.1 文件基線，不批准下一階段施工。
+
+### PR
+
+- PR #202
+
+---
+
 ## 後續條目模板
 
 ```text
