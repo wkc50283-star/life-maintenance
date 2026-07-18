@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_maintenance/database/app_database.dart';
@@ -39,6 +40,30 @@ void main() {
   tearDown(() async {
     await database.close();
   });
+
+  Future<void> seedItem(String itemId) async {
+    final now = DateTime.utc(2026, 7, 18);
+    await database.into(database.itemCategories).insert(
+          ItemCategoriesCompanion.insert(
+            id: 'category-$itemId',
+            systemCode: const Value('other'),
+            displayName: '其他',
+            status: 'active',
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+    await database.into(database.items).insert(
+          ItemsCompanion.insert(
+            id: itemId,
+            name: '測試生活項目',
+            categoryId: 'category-$itemId',
+            createdAt: now,
+            updatedAt: now,
+            status: 'active',
+          ),
+        );
+  }
 
   test('reports matching source and backup lists without writing', () async {
     final values = <String, String>{};
@@ -120,6 +145,7 @@ void main() {
   });
 
   test('reports Drift counts without changing either data source', () async {
+    await seedItem('item-1');
     await database.into(database.workCases).insert(
       WorkCasesCompanion.insert(
         id: 'case-1',
