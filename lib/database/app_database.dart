@@ -74,8 +74,11 @@ class AppDatabase extends _$AppDatabase {
         },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
-          if (details.wasUpgraded) {
-            final violations = await customSelect('PRAGMA foreign_key_check').get();
+          final versionBefore = details.versionBefore;
+          final versionNow = details.versionNow;
+          if (versionBefore != null && versionBefore < versionNow) {
+            final violations =
+                await customSelect('PRAGMA foreign_key_check').get();
             if (violations.isNotEmpty) {
               throw StateError(
                 'Database migration produced ${violations.length} foreign-key violations.',
@@ -114,7 +117,7 @@ class AppDatabase extends _$AppDatabase {
         purchase_date, warranty_end_date, expected_life_years,
         location, note, status, archived_at
       )
-      SELECT DISTINCT
+      SELECT
         item_id,
         '舊資料項目 ' || item_id,
         '$legacyCategoryId',
