@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'lib/**'
+      - 'test/**'
       - '.github/workflows/schema-analyze-diagnostic.yml'
 
 jobs:
@@ -17,17 +18,20 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: dart run build_runner build --delete-conflicting-outputs
-      - name: Capture analyze output
+      - name: Capture analyze and test output
         shell: bash
         run: |
           set +e
           flutter analyze > analyze-output.txt 2>&1
-          code=$?
-          echo "$code" > analyze-exit-code.txt
+          echo "$?" > analyze-exit-code.txt
+          flutter test > test-output.txt 2>&1
+          echo "$?" > test-exit-code.txt
           exit 0
       - uses: actions/upload-artifact@v4
         with:
-          name: schema-analyze-output
+          name: schema-diagnostic-output
           path: |
             analyze-output.txt
             analyze-exit-code.txt
+            test-output.txt
+            test-exit-code.txt
