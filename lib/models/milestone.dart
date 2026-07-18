@@ -56,7 +56,12 @@ class Milestone {
   final String? workCaseId;
   final String? cancellationReason;
 
-  bool get isReached => status != MilestoneStatus.pending;
+  bool get isReached =>
+      reachedAt != null ||
+      status == MilestoneStatus.reached ||
+      status == MilestoneStatus.acknowledged ||
+      status == MilestoneStatus.inProgress ||
+      status == MilestoneStatus.completed;
 
   bool get isClosed =>
       status == MilestoneStatus.completed ||
