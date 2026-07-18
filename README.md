@@ -9,25 +9,28 @@
 ## 核心架構
 
 ```text
-生活項目
-├── 保養項目
-├── 固定週期
-├── 到期提醒
-├── 階段性重點
-└── 突發事項／工程
-         ↓
-    處理事件卡
-         ↓
-    多筆處理進度
-         ↓
-    完修或結案
-         ↓
-    封存進入史略
+生活項目 Item
+    ↓
+保養項目 MaintenancePlan
+    ↓
+排程 Schedule
+    ↓
+本次提醒 Task
+    ↓
+需要持續處理時建立 WorkCase
+    ↓
+多筆 WorkCaseUpdate
+    ↓
+完修或結案後進入史略
 ```
+
+一般提醒可由 Item 直接建立 Schedule／Task；突發修理、工程或辦理事項也可由 Item 直接建立 WorkCase，不必強迫經過全部階段。
 
 重要區分：
 
-- 保養項目：長期存在的管理規則。
+- 保養項目：附屬於生活項目、長期存在的管理規則。
+- 系統模板：協助建立保養項目，不是使用者真實資料。
+- 排程：只負責時間規則，不代表保養項目本身。
 - 保養／修理卡：一件實際發生、正在處理的事情。
 - 史略：結案後保存的完整過程，不只是最後摘要。
 
@@ -48,16 +51,18 @@
 - Drift + SQLite 正式選型
 - Drift 案件 schema v1 與 Repository 邊界
 - 舊資料只讀盤點、關聯稽核與遷移准入閘門
+- 保養項目、排程、任務與案件的資料角色已重新分離
 - Flutter Analyze、Test、Web Build、Drift code generation 與 Web 資產自動 CI
 
 後續依序進行：
 
-1. 完整 Drift 核心資料表與遷移基礎
-2. 新舊資料 dry run、比對與安全遷移
-3. 保養／修理卡、工程卡與多筆進度 UI
-4. 階段性重點
-5. 統一史略視圖
-6. 正式 UI／UX 與真機驗收
+1. 建立 MaintenancePlan 與完整 Drift 核心資料表
+2. schema v1 → v2 migration 與回復測試
+3. 新舊資料 dry run、比對與安全遷移
+4. 保養／修理卡、工程卡與多筆進度 UI
+5. 階段性重點
+6. 統一史略視圖
+7. 正式 UI／UX 與真機驗收
 
 ## 支援週期
 
@@ -116,6 +121,7 @@ flutter build web --release
 6. [變更與決策紀錄](docs/control/06-change-log.md)
 7. [正式資料庫選型決策](docs/control/07-database-decision.md)
 8. [版本管理規則](docs/control/08-versioning.md)
+9. [核心資料角色修正案](docs/control/09-core-data-roles.md)
 
 ## 開發規則摘要
 
@@ -127,6 +133,7 @@ flutter build web --release
 - UI 必須經手機真機畫面驗收。
 - CI 未通過不得合併。
 - 正式版本唯一來源是 `pubspec.yaml`。
+- Schedule 不得代替 MaintenancePlan。
 
 ## 安全邊界
 
