@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../app/app_composition_root.dart';
 import '../models/enums.dart';
 import '../models/item.dart';
 import '../models/maintenance_record.dart';
@@ -9,7 +10,6 @@ import '../repositories/item_local_repository.dart';
 import '../repositories/maintenance_record_local_repository.dart';
 import '../repositories/schedule_local_repository.dart';
 import '../repositories/task_local_repository.dart';
-import '../services/local_storage_service.dart';
 import '../widgets/items_header.dart';
 import '../widgets/item_detail_sheet.dart';
 import '../widgets/maintenance_record_detail_sheet.dart';
@@ -23,24 +23,27 @@ class ItemsScreen extends StatefulWidget {
 }
 
 class _ItemsScreenState extends State<ItemsScreen> {
-  final ItemLocalRepository _itemRepository = ItemLocalRepository(
-    LocalStorageService(),
-  );
-  final MaintenanceRecordLocalRepository _recordRepository =
-      MaintenanceRecordLocalRepository(LocalStorageService());
-  final ScheduleLocalRepository _scheduleRepository = ScheduleLocalRepository(
-    LocalStorageService(),
-  );
-  final TaskLocalRepository _taskRepository = TaskLocalRepository(
-    LocalStorageService(),
-  );
+  late ItemLocalRepository _itemRepository;
+  late MaintenanceRecordLocalRepository _recordRepository;
+  late ScheduleLocalRepository _scheduleRepository;
+  late TaskLocalRepository _taskRepository;
+  bool _dependenciesInitialized = false;
   List<Item>? _localItems;
   List<MaintenanceRecord>? _localRecords;
   List<Schedule>? _localSchedules;
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_dependenciesInitialized) {
+      return;
+    }
+    final root = AppCompositionScope.of(context);
+    _itemRepository = root.itemRepository;
+    _recordRepository = root.maintenanceRecordRepository;
+    _scheduleRepository = root.scheduleRepository;
+    _taskRepository = root.taskRepository;
+    _dependenciesInitialized = true;
     _loadLocalData();
   }
 

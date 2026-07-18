@@ -1,97 +1,115 @@
 import 'package:flutter/material.dart';
 
-import 'repositories/item_local_repository.dart';
-import 'repositories/maintenance_record_local_repository.dart';
-import 'repositories/schedule_local_repository.dart';
-import 'repositories/task_local_repository.dart';
+import 'app/app_composition_root.dart';
 import 'screens/add_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/items_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/today_screen.dart';
-import 'services/local_data_backup_service.dart';
-import 'services/local_data_integrity_service.dart';
-import 'services/local_storage_service.dart';
 
 void main() {
   runApp(const LifeMaintenanceApp());
 }
 
-class LifeMaintenanceApp extends StatelessWidget {
-  const LifeMaintenanceApp({super.key});
+class LifeMaintenanceApp extends StatefulWidget {
+  const LifeMaintenanceApp({super.key, this.compositionRoot});
+
+  final AppCompositionRoot? compositionRoot;
+
+  @override
+  State<LifeMaintenanceApp> createState() => _LifeMaintenanceAppState();
+}
+
+class _LifeMaintenanceAppState extends State<LifeMaintenanceApp> {
+  late final AppCompositionRoot _compositionRoot =
+      widget.compositionRoot ?? AppCompositionRoot.production();
+  late final bool _ownsCompositionRoot = widget.compositionRoot == null;
+
+  @override
+  void dispose() {
+    if (_ownsCompositionRoot) {
+      _compositionRoot.dispose();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: '生活維護管家',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6F8FAF),
-          brightness: Brightness.light,
-          surface: const Color(0xFFF7F3EA),
-          primary: const Color(0xFF5D7893),
-          secondary: const Color(0xFF8FA4B8),
-        ),
-        scaffoldBackgroundColor: const Color(0xFFF7F3EA),
-        useMaterial3: true,
-        appBarTheme: const AppBarTheme(
-          centerTitle: true,
-          elevation: 0,
-          scrolledUnderElevation: 0,
-          backgroundColor: Color(0xFFF7F3EA),
-          foregroundColor: Color(0xFF263746),
-          titleTextStyle: TextStyle(
-            color: Color(0xFF263746),
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
+    return AppCompositionScope(
+      root: _compositionRoot,
+      child: MaterialApp(
+        title: '生活維護管家',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFF6F8FAF),
+            brightness: Brightness.light,
+            surface: const Color(0xFFF7F3EA),
+            primary: const Color(0xFF5D7893),
+            secondary: const Color(0xFF8FA4B8),
           ),
-        ),
-        cardTheme: CardThemeData(
-          elevation: 0,
-          color: Colors.white,
-          margin: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-            side: const BorderSide(color: Color(0xFFE4E0D8)),
-          ),
-        ),
-        navigationBarTheme: NavigationBarThemeData(
-          backgroundColor: const Color(0xFFFFFCF6),
-          indicatorColor: const Color(0xFFDCE8F2),
-          labelTextStyle: WidgetStateProperty.resolveWith(
-            (states) => TextStyle(
-              color: states.contains(WidgetState.selected)
-                  ? const Color(0xFF263746)
-                  : const Color(0xFF687887),
-              fontWeight: states.contains(WidgetState.selected)
-                  ? FontWeight.w700
-                  : FontWeight.w500,
+          scaffoldBackgroundColor: const Color(0xFFF7F3EA),
+          useMaterial3: true,
+          appBarTheme: const AppBarTheme(
+            centerTitle: true,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            backgroundColor: Color(0xFFF7F3EA),
+            foregroundColor: Color(0xFF263746),
+            titleTextStyle: TextStyle(
+              color: Color(0xFF263746),
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
             ),
           ),
-          iconTheme: WidgetStateProperty.resolveWith(
-            (states) => IconThemeData(
-              color: states.contains(WidgetState.selected)
-                  ? const Color(0xFF5D7893)
-                  : const Color(0xFF7C8995),
+          cardTheme: CardThemeData(
+            elevation: 0,
+            color: Colors.white,
+            margin: EdgeInsets.zero,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: const BorderSide(color: Color(0xFFE4E0D8)),
+            ),
+          ),
+          navigationBarTheme: NavigationBarThemeData(
+            backgroundColor: const Color(0xFFFFFCF6),
+            indicatorColor: const Color(0xFFDCE8F2),
+            labelTextStyle: WidgetStateProperty.resolveWith(
+              (states) => TextStyle(
+                color: states.contains(WidgetState.selected)
+                    ? const Color(0xFF263746)
+                    : const Color(0xFF687887),
+                fontWeight: states.contains(WidgetState.selected)
+                    ? FontWeight.w700
+                    : FontWeight.w500,
+              ),
+            ),
+            iconTheme: WidgetStateProperty.resolveWith(
+              (states) => IconThemeData(
+                color: states.contains(WidgetState.selected)
+                    ? const Color(0xFF5D7893)
+                    : const Color(0xFF7C8995),
+              ),
+            ),
+          ),
+          filledButtonTheme: FilledButtonThemeData(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF5D7893),
+              foregroundColor: Colors.white,
+              textStyle: const TextStyle(fontWeight: FontWeight.w700),
             ),
           ),
         ),
-        filledButtonTheme: FilledButtonThemeData(
-          style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFF5D7893),
-            foregroundColor: Colors.white,
-            textStyle: const TextStyle(fontWeight: FontWeight.w700),
-          ),
-        ),
+        home: MainShell(compositionRoot: _compositionRoot),
       ),
-      home: const MainShell(),
     );
   }
 }
 
 class MainShell extends StatefulWidget {
-  const MainShell({super.key});
+  const MainShell({required this.compositionRoot, super.key});
+
+  final AppCompositionRoot compositionRoot;
 
   @override
   State<MainShell> createState() => _MainShellState();
@@ -115,33 +133,35 @@ class _MainShellState extends State<MainShell> {
   @override
   void initState() {
     super.initState();
-    LocalDataIntegrityService.instance.addListener(_onIntegrityChanged);
+    widget.compositionRoot.localDataIntegrityService.addListener(
+      _onIntegrityChanged,
+    );
     _runIntegrityPreflight();
   }
 
   @override
   void dispose() {
-    LocalDataIntegrityService.instance.removeListener(_onIntegrityChanged);
+    widget.compositionRoot.localDataIntegrityService.removeListener(
+      _onIntegrityChanged,
+    );
     super.dispose();
   }
 
   Future<void> _runIntegrityPreflight() async {
-    final storageService = LocalStorageService();
-    await LocalDataBackupService(storageService).createPreMigrationBackups();
+    final root = widget.compositionRoot;
+    await root.localDataBackupService.createPreMigrationBackups();
     await Future.wait<void>([
-      ItemLocalRepository(storageService).loadItems().then((_) {}),
-      ScheduleLocalRepository(storageService).loadSchedules().then((_) {}),
-      TaskLocalRepository(storageService).loadTasks().then((_) {}),
-      MaintenanceRecordLocalRepository(storageService)
-          .loadRecords()
-          .then((_) {}),
+      root.itemRepository.loadItems().then((_) {}),
+      root.scheduleRepository.loadSchedules().then((_) {}),
+      root.taskRepository.loadTasks().then((_) {}),
+      root.maintenanceRecordRepository.loadRecords().then((_) {}),
     ]);
 
     if (!mounted) {
       return;
     }
 
-    final hasIssues = LocalDataIntegrityService.instance.hasIssues;
+    final hasIssues = root.localDataIntegrityService.hasIssues;
     setState(() {
       _integrityCheckComplete = true;
       _hasIntegrityIssues = hasIssues;
@@ -156,7 +176,8 @@ class _MainShellState extends State<MainShell> {
       return;
     }
 
-    final hasIssues = LocalDataIntegrityService.instance.hasIssues;
+    final hasIssues =
+        widget.compositionRoot.localDataIntegrityService.hasIssues;
     if (_hasIntegrityIssues == hasIssues) {
       return;
     }
@@ -186,9 +207,7 @@ class _MainShellState extends State<MainShell> {
         onDestinationSelected: (index) {
           if (_hasIntegrityIssues && (index == 0 || index == 2)) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('本機資料正在保護中，暫時只能查看生活項目、履歷與設定'),
-              ),
+              const SnackBar(content: Text('本機資料正在保護中，暫時只能查看生活項目、履歷與設定')),
             );
             return;
           }

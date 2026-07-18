@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../app/app_composition_root.dart';
 import '../data/maintenance_card_catalog.dart';
 import '../models/enums.dart';
 import '../models/item.dart';
@@ -11,7 +12,6 @@ import '../repositories/item_local_repository.dart';
 import '../repositories/maintenance_record_local_repository.dart';
 import '../repositories/schedule_local_repository.dart';
 import '../repositories/task_local_repository.dart';
-import '../services/local_storage_service.dart';
 import '../services/maintenance_task_service.dart';
 import '../widgets/completion_record_sheet.dart';
 import '../widgets/empty_tasks_state.dart';
@@ -22,9 +22,9 @@ import '../widgets/today_hero.dart';
 
 class TodayScreen extends StatefulWidget {
   const TodayScreen({super.key, ScheduleLocalRepository? scheduleRepository})
-    : _scheduleRepository = scheduleRepository;
+    : _scheduleRepositoryOverride = scheduleRepository;
 
-  final ScheduleLocalRepository? _scheduleRepository;
+  final ScheduleLocalRepository? _scheduleRepositoryOverride;
 
   @override
   State<TodayScreen> createState() => _TodayScreenState();
@@ -33,25 +33,30 @@ class TodayScreen extends StatefulWidget {
 enum _ScheduleFollowUpResult { updated, notApplicable, failed }
 
 class _TodayScreenState extends State<TodayScreen> {
-  final LocalStorageService _storageService = LocalStorageService();
-  late final ItemLocalRepository _itemRepository = ItemLocalRepository(
-    _storageService,
-  );
-  late final MaintenanceRecordLocalRepository _recordRepository =
-      MaintenanceRecordLocalRepository(_storageService);
-  late final ScheduleLocalRepository _scheduleRepository =
-      widget._scheduleRepository ?? ScheduleLocalRepository(_storageService);
-  late final TaskLocalRepository _taskRepository = TaskLocalRepository(
-    _storageService,
-  );
-  final MaintenanceTaskService _taskService = MaintenanceTaskService();
+  late ItemLocalRepository _itemRepository;
+  late MaintenanceRecordLocalRepository _recordRepository;
+  late ScheduleLocalRepository _scheduleRepository;
+  late TaskLocalRepository _taskRepository;
+  late MaintenanceTaskService _taskService;
+  bool _dependenciesInitialized = false;
   final Set<String> _completingTaskIds = <String>{};
   List<Item>? _localItems;
   List<maintenance_task.Task>? _localTasks;
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_dependenciesInitialized) {
+      return;
+    }
+    final root = AppCompositionScope.of(context);
+    _itemRepository = root.itemRepository;
+    _recordRepository = root.maintenanceRecordRepository;
+    _scheduleRepository =
+        widget._scheduleRepositoryOverride ?? root.scheduleRepository;
+    _taskRepository = root.taskRepository;
+    _taskService = root.maintenanceTaskService;
+    _dependenciesInitialized = true;
     _loadTasks();
   }
 

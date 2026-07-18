@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../app/app_composition_root.dart';
 import '../models/enums.dart';
 import '../models/item.dart';
 import '../models/schedule.dart';
 import '../models/task.dart';
-import '../repositories/item_local_repository.dart';
-import '../repositories/schedule_local_repository.dart';
-import '../repositories/task_local_repository.dart';
-import '../services/local_storage_service.dart';
 
 void showReminderListSheet(BuildContext context) {
   showModalBottomSheet<void>(
@@ -39,24 +36,24 @@ class _ReminderListSheet extends StatefulWidget {
 }
 
 class _ReminderListSheetState extends State<_ReminderListSheet> {
-  final LocalStorageService _storageService = LocalStorageService();
-  late final ScheduleLocalRepository _scheduleRepository =
-      ScheduleLocalRepository(_storageService);
-  late final ItemLocalRepository _itemRepository = ItemLocalRepository(
-    _storageService,
-  );
   List<Schedule>? _schedules;
   List<Item>? _items;
+  bool _dependenciesInitialized = false;
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_dependenciesInitialized) {
+      return;
+    }
+    _dependenciesInitialized = true;
     _loadReminders();
   }
 
   Future<void> _loadReminders() async {
-    final schedules = await _scheduleRepository.loadSchedules();
-    final items = await _itemRepository.loadItems();
+    final root = AppCompositionScope.of(context);
+    final schedules = await root.scheduleRepository.loadSchedules();
+    final items = await root.itemRepository.loadItems();
     if (!mounted) {
       return;
     }
@@ -385,7 +382,9 @@ void _showEditReminderTitleSheet(
           return;
         }
 
-        final repository = ScheduleLocalRepository(LocalStorageService());
+        final repository = AppCompositionScope.of(
+          sheetContext,
+        ).scheduleRepository;
         final schedules = await repository.loadSchedules();
         final updatedSchedules = [
           for (final existingSchedule in schedules)
@@ -489,6 +488,7 @@ Future<void> _reschedulePausedReminder(
   required Schedule schedule,
   required Future<void> Function() onDateSaved,
 }) async {
+  final root = AppCompositionScope.of(context);
   final today = _dateOnly(DateTime.now());
   final firstDate = today.add(const Duration(days: 1));
   final initialDate = _dateOnly(schedule.nextDueDate).isAfter(today)
@@ -506,7 +506,7 @@ Future<void> _reschedulePausedReminder(
     return;
   }
 
-  final taskRepository = TaskLocalRepository(LocalStorageService());
+  final taskRepository = root.taskRepository;
   final List<Task> tasks;
   try {
     tasks = await taskRepository.loadTasks();
@@ -539,7 +539,7 @@ Future<void> _reschedulePausedReminder(
     return;
   }
 
-  final repository = ScheduleLocalRepository(LocalStorageService());
+  final repository = root.scheduleRepository;
   final List<Schedule> schedules;
   try {
     schedules = await repository.loadSchedules();
@@ -616,6 +616,7 @@ Future<void> _cancelReminder(
   required Schedule schedule,
   required Future<void> Function() onReminderCanceled,
 }) async {
+  final root = AppCompositionScope.of(context);
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (dialogContext) {
@@ -640,7 +641,7 @@ Future<void> _cancelReminder(
     return;
   }
 
-  final taskRepository = TaskLocalRepository(LocalStorageService());
+  final taskRepository = root.taskRepository;
   final tasks = await taskRepository.loadTasks();
   final hasPendingTask = tasks.any(
     (task) =>
@@ -663,7 +664,7 @@ Future<void> _cancelReminder(
     return;
   }
 
-  final repository = ScheduleLocalRepository(LocalStorageService());
+  final repository = root.scheduleRepository;
   final schedules = await repository.loadSchedules();
   final updatedSchedules = [
     for (final existingSchedule in schedules)
@@ -690,7 +691,8 @@ Future<void> _editReminderDate(
   required Schedule schedule,
   required Future<void> Function() onDateSaved,
 }) async {
-  final taskRepository = TaskLocalRepository(LocalStorageService());
+  final root = AppCompositionScope.of(context);
+  final taskRepository = root.taskRepository;
   final tasks = await taskRepository.loadTasks();
   final hasUnfinishedTask = tasks.any(
     (task) =>
@@ -725,7 +727,7 @@ Future<void> _editReminderDate(
     return;
   }
 
-  final repository = ScheduleLocalRepository(LocalStorageService());
+  final repository = root.scheduleRepository;
   final schedules = await repository.loadSchedules();
   final updatedSchedules = [
     for (final existingSchedule in schedules)

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../app/app_composition_root.dart';
 import '../models/enums.dart';
 import '../models/maintenance_record.dart';
-import '../repositories/maintenance_record_local_repository.dart';
-import '../services/local_storage_service.dart';
 import 'preview_form_fields.dart';
 
 void showMaintenanceRecordPreviewSheet(BuildContext context) {
@@ -66,7 +65,9 @@ class _MaintenanceRecordPreviewFormState
     }
 
     final now = DateTime.now();
-    final repository = MaintenanceRecordLocalRepository(LocalStorageService());
+    final repository = AppCompositionScope.of(
+      context,
+    ).maintenanceRecordRepository;
     final records = await repository.loadRecords();
     final record = MaintenanceRecord(
       id: now.millisecondsSinceEpoch.toString(),
@@ -140,6 +141,7 @@ class _MaintenanceRecordPreviewFormState
           ),
           const SizedBox(height: 18),
           PreviewItemDropdown(
+            repository: AppCompositionScope.of(context).itemRepository,
             value: _itemId,
             onChanged: (itemId) {
               setState(() {

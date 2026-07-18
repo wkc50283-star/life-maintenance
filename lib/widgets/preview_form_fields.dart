@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../models/item.dart';
 import '../repositories/item_local_repository.dart';
-import '../services/local_storage_service.dart';
 
 class PreviewAdvanceReminderDropdown extends StatelessWidget {
   const PreviewAdvanceReminderDropdown({super.key});
@@ -38,10 +37,12 @@ class PreviewAdvanceReminderDropdown extends StatelessWidget {
 class PreviewItemDropdown extends StatefulWidget {
   const PreviewItemDropdown({
     super.key,
+    required this.repository,
     this.value,
     this.onChanged,
   });
 
+  final ItemLocalRepository repository;
   final String? value;
   final ValueChanged<String?>? onChanged;
 
@@ -50,9 +51,6 @@ class PreviewItemDropdown extends StatefulWidget {
 }
 
 class _PreviewItemDropdownState extends State<PreviewItemDropdown> {
-  final ItemLocalRepository _repository = ItemLocalRepository(
-    LocalStorageService(),
-  );
   List<Item>? _localItems;
 
   @override
@@ -62,7 +60,7 @@ class _PreviewItemDropdownState extends State<PreviewItemDropdown> {
   }
 
   Future<void> _loadItems() async {
-    final items = await _repository.loadItems();
+    final items = await widget.repository.loadItems();
     if (!mounted) {
       return;
     }

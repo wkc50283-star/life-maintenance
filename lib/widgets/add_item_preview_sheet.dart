@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../app/app_composition_root.dart';
 import '../models/enums.dart';
 import '../models/item.dart';
-import '../repositories/item_local_repository.dart';
-import '../services/local_storage_service.dart';
 import 'preview_form_fields.dart';
 
 void showAddItemPreviewSheet(BuildContext context) {
@@ -62,7 +61,7 @@ class _AddItemPreviewFormState extends State<_AddItemPreviewForm> {
     }
 
     final now = DateTime.now();
-    final repository = ItemLocalRepository(LocalStorageService());
+    final repository = AppCompositionScope.of(context).itemRepository;
     final items = await repository.loadItems();
     final item = Item(
       id: now.millisecondsSinceEpoch.toString(),

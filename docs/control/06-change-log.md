@@ -1215,6 +1215,41 @@ Schema v2、v1 → v2 migration 與 Repository 已建立，但正式 Runtime 仍
 
 ---
 
+## LM-032：v0.5.3 正式 Runtime Composition Root
+
+日期：2026-07-19
+類型：架構／安全／測試
+
+### 問題與原因
+
+正式畫面各自建立 LocalRepository 或 LocalStorageService，且 AppDatabase、Drift Schema v2 Repository 與必要 Service 尚未由單一 Runtime 入口管理。這會妨礙後續受控切換，也可能形成不同生命週期或資料來源。
+
+### 修改
+
+- 建立唯一 `AppCompositionRoot`，統一擁有 AppDatabase、完整 Drift Schema v2 Repository 組、現行 LocalRepository 與必要 Service。
+- 以 `AppCompositionScope` 注入正式畫面，移除畫面與 widget 內的 Repository、LocalStorageService 建構。
+- App 啟動前備份與完整性檢查改用同一 Root 依賴。
+- 提供外部 AppDatabase／LocalStorageService 測試注入，並以記憶體 Drift executor 驗證 Root 與 Scope。
+- 將版本更新為 v0.5.3。
+
+### 明確未修改
+
+不執行 SharedPreferences → Drift 匯入，不切換 UI 的正式資料來源，不修改 Schema、Migration、Domain、功能或畫面設計，不新增雙寫或平行流程。
+
+### 資料影響
+
+SharedPreferences 仍是正式 Runtime 唯一資料來源與 writer。Drift Repository 只由 Root 建立，未注入現行 UI、未執行匯入或寫入；本 PR 不搬移、刪除或覆蓋任何使用者資料。
+
+### 驗收結果
+
+以 PR #204 的 codegen、Analyze、全部測試、Web release build 與 GitHub Actions 結果為準。
+
+### PR
+
+- PR #204
+
+---
+
 ## 後續條目模板
 
 ```text

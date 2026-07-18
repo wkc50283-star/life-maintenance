@@ -1,6 +1,6 @@
 # 生活管理 App
 
-目前版本：**v0.5.2 Foundation Safe Importer**
+目前版本：**v0.5.3 Foundation Runtime Composition**
 
 `life-maintenance` 是一個 Flutter 生活管理 App，目標是管理生活項目、固定週期、到期提醒、階段性重點、突發事項與工程，並保存每一次處理從開始到結束的完整史略。
 
@@ -36,7 +36,7 @@
 
 ## 目前狀態
 
-`v0.5.2` 是基礎資料安全版，代表產品身分、Drift Schema v2、Repository 基線、Runtime 資料流控制與 SharedPreferences → Drift 安全匯入機制已建立；匯入器尚未接入 Runtime，也不代表已執行真機匯入、Repository 切換或正式 UI。
+`v0.5.3` 是 Runtime 組裝基礎版，代表產品身分、Drift Schema v2、Repository 基線、安全匯入器與單一 AppCompositionRoot 已建立；匯入器尚未接入 Runtime，畫面仍使用 SharedPreferences 單一資料來源與 writer，也不代表已執行真機匯入、Repository 切換或正式 UI。
 
 已完成的資料與治理基礎：
 
@@ -53,6 +53,7 @@
 - 舊資料只讀盤點、關聯稽核與遷移准入閘門
 - 正式 Runtime SharedPreferences 讀寫稽核與禁止雙寫規則
 - SharedPreferences → Drift v2 dry-run、原子匯入、重跑保護與 rollback 測試
+- AppDatabase、Drift Schema v2 Repository、現行 LocalRepository 與必要 Service 由單一 AppCompositionRoot 建立及注入
 - 保養項目、排程、任務與案件的資料角色已重新分離
 - Flutter Analyze、Test、Web Build、Drift code generation 與 Web 資產自動 CI
 
@@ -83,7 +84,7 @@
 - Flutter
 - Dart
 - Material 3
-- SharedPreferences（正式 Runtime 現行唯一資料來源與 writer）
+- SharedPreferences（正式 Runtime 現行唯一資料來源與 writer，由 AppCompositionRoot 注入）
 - Drift + SQLite（Schema v2、Repository 與安全 importer 已完成，尚未執行匯入或接管 Runtime）
 - GitHub Actions
 - GitHub Pages（Web build）
