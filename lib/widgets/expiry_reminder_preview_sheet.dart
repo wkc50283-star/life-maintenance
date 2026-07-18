@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../app/app_composition_root.dart';
 import '../models/enums.dart';
 import '../models/schedule.dart';
-import '../repositories/schedule_local_repository.dart';
-import '../services/local_storage_service.dart';
 import 'preview_form_fields.dart';
 
 void showExpiryReminderPreviewSheet(BuildContext context) {
@@ -81,7 +80,7 @@ class _ExpiryReminderPreviewFormState
 
     final now = DateTime.now();
     final title = _titleController.text.trim();
-    final repository = ScheduleLocalRepository(LocalStorageService());
+    final repository = AppCompositionScope.of(context).scheduleRepository;
     final schedules = await repository.loadSchedules();
     final schedule = Schedule(
       id: now.millisecondsSinceEpoch.toString(),
@@ -165,6 +164,7 @@ class _ExpiryReminderPreviewFormState
           ),
           const SizedBox(height: 18),
           PreviewItemDropdown(
+            repository: AppCompositionScope.of(context).itemRepository,
             value: _itemId,
             onChanged: (itemId) {
               setState(() {

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../app/app_composition_root.dart';
 import '../models/enums.dart';
 import '../models/item.dart';
 import '../models/maintenance_record.dart';
 import '../repositories/item_local_repository.dart';
 import '../repositories/maintenance_record_local_repository.dart';
-import '../services/local_storage_service.dart';
 import '../widgets/empty_history_state.dart';
 import '../widgets/history_header.dart';
 import '../widgets/history_month_section.dart';
@@ -20,17 +20,22 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
-  final MaintenanceRecordLocalRepository _recordRepository =
-      MaintenanceRecordLocalRepository(LocalStorageService());
-  final ItemLocalRepository _itemRepository = ItemLocalRepository(
-    LocalStorageService(),
-  );
+  late MaintenanceRecordLocalRepository _recordRepository;
+  late ItemLocalRepository _itemRepository;
+  bool _dependenciesInitialized = false;
   List<MaintenanceRecord>? _localRecords;
   List<Item>? _localItems;
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_dependenciesInitialized) {
+      return;
+    }
+    final root = AppCompositionScope.of(context);
+    _recordRepository = root.maintenanceRecordRepository;
+    _itemRepository = root.itemRepository;
+    _dependenciesInitialized = true;
     _loadLocalData();
   }
 
