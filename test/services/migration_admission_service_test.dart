@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_maintenance/database/app_database.dart';
@@ -99,6 +100,29 @@ void main() {
     await database.close();
   });
 
+  Future<void> seedItem(String itemId) async {
+    await database.into(database.itemCategories).insert(
+          ItemCategoriesCompanion.insert(
+            id: 'category-$itemId',
+            systemCode: const Value('appliance'),
+            displayName: '家電',
+            status: 'active',
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+    await database.into(database.items).insert(
+          ItemsCompanion.insert(
+            id: itemId,
+            name: '冷氣',
+            categoryId: 'category-$itemId',
+            createdAt: now,
+            updatedAt: now,
+            status: 'active',
+          ),
+        );
+  }
+
   MigrationAdmissionService serviceFor(_ReadOnlyStorage storage) {
     return MigrationAdmissionService(
       readinessService: MigrationReadinessService(
@@ -178,6 +202,7 @@ void main() {
   });
 
   test('blocks when Drift target tables already contain data', () async {
+    await seedItem('item-1');
     await database.into(database.workCases).insert(
       WorkCasesCompanion.insert(
         id: 'case-1',
