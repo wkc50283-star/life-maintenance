@@ -39,7 +39,18 @@ class WorkCaseClosure {
   final String? nextReminderTaskId;
   final DateTime createdAt;
 
-  bool get needsFollowUp => followUpType != WorkCaseFollowUpType.none;
+  bool get needsFollowUp {
+    switch (followUpType) {
+      case WorkCaseFollowUpType.schedule:
+      case WorkCaseFollowUpType.reminder:
+      case WorkCaseFollowUpType.scheduleAndReminder:
+      case WorkCaseFollowUpType.manual:
+        return true;
+      case WorkCaseFollowUpType.none:
+      case WorkCaseFollowUpType.unknown:
+        return false;
+    }
+  }
 
   bool get createsSchedule =>
       followUpType == WorkCaseFollowUpType.schedule ||
