@@ -1179,6 +1179,42 @@ Schema v2、v1 → v2 migration 與 Repository 已建立，但正式 Runtime 仍
 
 ---
 
+## LM-031：v0.5.2 SharedPreferences → Drift v2 安全匯入器
+
+日期：2026-07-19
+類型：資料／安全／測試
+
+### 問題與原因
+
+正式 Runtime 仍以 SharedPreferences 為單一 writer，但 Schema v2 尚缺少可先 dry-run、完整比對並於失敗時整批 rollback 的安全匯入機制。直接接線或逐筆寫入會形成雙寫、部分完成與既有資料覆蓋風險。
+
+### 修改
+
+- 建立來源唯讀的 SharedPreferences adapter、逐組不可變備份比對與 SHA-256 摘要。
+- 建立 Item、Category、MaintenancePlan／Step、GeneralReminder、Schedule、Task、MaintenanceRecord 與 Attachment 的確定 mapping。
+- 以單一 Drift transaction 寫入，commit 前後驗證逐列內容、foreign key 與 database integrity。
+- 建立 dry-run、重複匯入 no-op、partial／conflict blocker 與中途失敗 rollback。
+- 保留 v1 → v2 migration 的 WorkCase／Update；只允許把可證明的 placeholder Item 更新為原 SharedPreferences Item。
+- 將版本更新為 v0.5.2。
+
+### 明確未修改
+
+不修改 Runtime composition、Repository 接線、UI、Drift Schema、database migration 或 SharedPreferences 內容；不執行真機匯入，不開始下一個 PR。
+
+### 資料影響
+
+匯入器目前沒有 Runtime 呼叫點。dry-run 零寫入；execute 要求來源 writer 已停用。任何失敗整筆 transaction rollback，來源與 `backup_v1_*` 永遠不被匯入器修改。
+
+### 驗收結果
+
+以 PR #203 的 codegen、Analyze、全部測試、Web release build 與 GitHub Actions 結果為準。
+
+### PR
+
+- PR #203
+
+---
+
 ## 後續條目模板
 
 ```text
