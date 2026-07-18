@@ -67,7 +67,9 @@ void main() {
     expect(decoded.schemaVersion, WorkCaseClosure.currentSchemaVersion);
     expect(decoded.totalCost, 0);
     expect(decoded.followUpType, WorkCaseFollowUpType.unknown);
-    expect(decoded.needsFollowUp, isTrue);
+    expect(decoded.needsFollowUp, isFalse);
+    expect(decoded.createsSchedule, isFalse);
+    expect(decoded.createsReminder, isFalse);
     expect(decoded.nextScheduleId, isNull);
     expect(decoded.nextReminderTaskId, isNull);
   });
