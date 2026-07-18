@@ -64,12 +64,99 @@ class AppDatabase extends _$AppDatabase {
           await migrator.createAll();
         },
         onUpgrade: (migrator, from, to) async {
+          if (from == 1 && to == 2) {
+            await _migrateV1ToV2(migrator);
+            return;
+          }
           throw UnsupportedError(
-            'Schema v1 to v2 migration is intentionally blocked until the dedicated migration PR is approved.',
+            'Unsupported database migration: schema $from to $to.',
           );
         },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
+          if (details.wasUpgraded) {
+            final violations = await customSelect('PRAGMA foreign_key_check').get();
+            if (violations.isNotEmpty) {
+              throw StateError(
+                'Database migration produced ${violations.length} foreign-key violations.',
+              );
+            }
+          }
         },
       );
+
+  Future<void> _migrateV1ToV2(Migrator migrator) async {
+    await customStatement(
+      'ALTER TABLE work_case_updates RENAME TO legacy_work_case_updates_v1',
+    );
+    await customStatement(
+      'ALTER TABLE work_cases RENAME TO legacy_work_cases_v1',
+    );
+
+    await migrator.createAll();
+
+    const legacyCategoryId = 'system-category-legacy-imported';
+    const nowMicros = "CAST(strftime('%s', 'now') AS INTEGER) * 1000000";
+
+    await customStatement('''
+      INSERT INTO item_categories (
+        id, system_code, custom_name, display_name, sort_order,
+        status, created_at, updated_at, archived_at
+      ) VALUES (
+        '$legacyCategoryId', 'legacyImported', NULL, '舊資料匯入', 999,
+        'active', $nowMicros, $nowMicros, NULL
+      )
+    ''');
+
+    await customStatement('''
+      INSERT INTO items (
+        id, name, category_id, created_at, updated_at,
+        purchase_date, warranty_end_date, expected_life_years,
+        location, note, status, archived_at
+      )
+      SELECT DISTINCT
+        item_id,
+        '舊資料項目 ' || item_id,
+        '$legacyCategoryId',
+        MIN(created_at),
+        MAX(updated_at),
+        NULL, NULL, NULL, NULL,
+        '由 schema v1 案件資料自動建立；名稱可由使用者後續修正。',
+        'active', NULL
+      FROM legacy_work_cases_v1
+      GROUP BY item_id
+    ''');
+
+    await customStatement('''
+      INSERT INTO work_cases (
+        schema_version, id, item_id, source_type, source_id, case_type,
+        title, description, occurred_at, started_at, status,
+        created_at, updated_at, closed_at, canceled_at,
+        close_result, cancellation_reason
+      )
+      SELECT
+        schema_version, id, item_id, source_type, source_id, case_type,
+        title, description, occurred_at, started_at, status,
+        created_at, updated_at, closed_at,
+        CASE WHEN status = 'canceled' THEN closed_at ELSE NULL END,
+        close_result, cancellation_reason
+      FROM legacy_work_cases_v1
+    ''');
+
+    await customStatement('''
+      INSERT INTO work_case_updates (
+        schema_version, id, work_case_id, occurred_at, description,
+        contact_or_vendor, result, cost, parts_or_items,
+        photo_identifiers, waiting_reason, note, next_action, created_at
+      )
+      SELECT
+        schema_version, id, work_case_id, occurred_at, description,
+        contact_or_vendor, result, cost, parts_or_items,
+        photo_identifiers, waiting_reason, note, next_action, created_at
+      FROM legacy_work_case_updates_v1
+    ''');
+
+    await customStatement('DROP TABLE legacy_work_case_updates_v1');
+    await customStatement('DROP TABLE legacy_work_cases_v1');
+  }
 }
