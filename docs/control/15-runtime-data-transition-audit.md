@@ -421,8 +421,8 @@ Repository 完成不等於 Runtime 已切換。正式接線前仍缺：compositi
 ## 11. 治理衝突與未決阻擋
 
 - `README.md`、`03-architecture-and-data.md`、`07-database-decision.md` 與 `08-legacy-migration-scope.md` 部分段落仍描述 Schema v1／尚未建立 Schema v2；它們是歷史施工狀態，不得用來否定目前已合併的 Schema v2、v1→v2 migration 與 Repository 基線。本文件記錄目前 Runtime 真相，後續治理同步應另開文件 PR。
-- `12-item-category-strategy.md` 的候選段落曾主張 v2 不建立 `item_categories`，但目前已合併 Schema v2 與最新正式交接採獨立 table。匯入前必須正式收斂該候選文件狀態與 legacy mapping；不得由 importer 自行選擇。
-- 目前沒有已批准的 durable cutover marker／import batch identity。正式 importer 或切換 PR 必須先提出最小設計並取得批准；本文件不預先批准新 table、key 或 API。
+- `12-item-category-strategy.md` 的候選段落曾主張 v2 不建立 `item_categories`，但目前已合併 Schema v2。PR #203 依最新 Schema 與正式授權，已在 `16-sharedpreferences-drift-v2-import.md` 收斂 legacy enum → category row mapping；舊候選段落不得反向否定已合併 Schema。
+- PR #203 依禁止 Schema 變更的範圍，採確定性 ID、逐列內容比對與 partial-import blocker 完成重複匯入保護，不新增 durable marker。這只批准 importer 的 idempotency，不等於批准 Runtime cutover marker 或切換。
 - GeneralReminder、Item、Schedule、Task、MaintenanceRecord 的 Repository 邊界目前使用 Drift row，而不是完整 Domain mapper。正式 Runtime 接線前必須決定 boundary，不得讓 UI 直接操作 Database row。
 
 上述阻擋不影響本稽核文件成立，但任何一項未解決都阻擋正式匯入或切換。

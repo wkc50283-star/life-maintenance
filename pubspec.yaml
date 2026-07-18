@@ -1,7 +1,7 @@
 name: life_maintenance
 description: "A Flutter app for managing life items, reminders, maintenance, and records."
 publish_to: 'none'
-version: 0.5.1+2
+version: 0.5.2+3
 
 environment:
   sdk: ^3.10.3
@@ -11,6 +11,7 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^1.0.8
+  crypto: ^3.0.6
   drift: 2.34.2
   drift_flutter: 0.3.1
   shared_preferences: ^2.5.5
