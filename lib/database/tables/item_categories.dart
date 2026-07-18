@@ -33,7 +33,8 @@ class ItemCategories extends Table {
 
   @override
   List<String> get customConstraints => [
-    "CHECK (system_code IS NOT NULL OR trim(custom_name) <> '')",
+    "CHECK ((system_code IS NOT NULL AND trim(system_code) <> '') OR (custom_name IS NOT NULL AND trim(custom_name) <> ''))",
+    "CHECK (system_code IS NULL OR trim(system_code) <> '')",
     "CHECK (custom_name IS NULL OR trim(custom_name) <> '')",
     "CHECK (trim(display_name) <> '')",
   ];
