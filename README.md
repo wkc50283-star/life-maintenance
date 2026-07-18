@@ -1,5 +1,7 @@
 # 生活管理 App
 
+目前版本：**v0.5.0 Foundation**
+
 `life-maintenance` 是一個 Flutter 生活管理 App，目標是管理生活項目、固定週期、到期提醒、階段性重點、突發事項與工程，並保存每一次處理從開始到結束的完整史略。
 
 > 本 repo 不是 PMS。PMS 曾是產品演化中的偏移階段，不再作為目前的產品與開發依據。
@@ -31,25 +33,31 @@
 
 ## 目前狀態
 
-專案正在進行正式產品復原與架構補強。
+`v0.5.0` 是基礎架構版，代表產品身分、資料安全、案件模型、Drift 案件 schema 與遷移稽核地基已建立；不代表使用者功能或 UI 已完成。
 
-已完成的資料安全基礎：
+已完成的資料與治理基礎：
 
+- 生活管理 App 產品定位與控制文件
+- PMS 文件退出正式規格
 - 舊 JSON 欄位與未知 enum 相容
 - 逐筆解析，保留可讀資料
 - 資料異常時全域禁止寫入
 - 啟動前資料完整性檢查
 - 不可變 `backup_v1_*` 原始 JSON 備份
-- Flutter Analyze、Test、Web Build 自動 CI
+- WorkCase／WorkCaseUpdate 模型
+- Drift + SQLite 正式選型
+- Drift 案件 schema v1 與 Repository 邊界
+- 舊資料只讀盤點、關聯稽核與遷移准入閘門
+- Flutter Analyze、Test、Web Build、Drift code generation 與 Web 資產自動 CI
 
 後續依序進行：
 
-1. 生活管理文案與入口復原
-2. 假功能與工程欄位清理
-3. 首頁與生活項目頁視覺樣板
-4. 處理案件與多筆進度模型（模型基線已完成）
-5. 正式資料庫 schema v1（案件表已完成，尚未接管資料）
-6. 階段性重點
+1. 完整 Drift 核心資料表與遷移基礎
+2. 新舊資料 dry run、比對與安全遷移
+3. 保養／修理卡、工程卡與多筆進度 UI
+4. 階段性重點
+5. 統一史略視圖
+6. 正式 UI／UX 與真機驗收
 
 ## 支援週期
 
@@ -69,11 +77,11 @@
 - Dart
 - Material 3
 - SharedPreferences（現行過渡儲存）
-- Drift + SQLite（正式資料庫已選型，尚未接管資料）
+- Drift + SQLite（正式資料庫已選型，尚未接管舊資料）
 - GitHub Actions
 - GitHub Pages（Web build）
 
-Drift + SQLite schema v1 已建立，目前只包含案件與進度資料表；現有 App 尚未開啟資料庫，也沒有遷移任何 SharedPreferences 資料。
+Drift + SQLite schema v1 已建立，目前只包含案件與進度資料表；現有 App 尚未正式切換到 Drift，也沒有遷移任何 SharedPreferences 資料。
 
 ## 本機執行
 
@@ -107,6 +115,7 @@ flutter build web --release
 5. [驗收清單](docs/control/05-acceptance-checklist.md)
 6. [變更與決策紀錄](docs/control/06-change-log.md)
 7. [正式資料庫選型決策](docs/control/07-database-decision.md)
+8. [版本管理規則](docs/control/08-versioning.md)
 
 ## 開發規則摘要
 
@@ -117,6 +126,7 @@ flutter build web --release
 - 資料格式變更前必須備份、測試並提供回復方案。
 - UI 必須經手機真機畫面驗收。
 - CI 未通過不得合併。
+- 正式版本唯一來源是 `pubspec.yaml`。
 
 ## 安全邊界
 
