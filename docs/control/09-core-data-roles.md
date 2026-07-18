@@ -1,6 +1,6 @@
 # 生活管理 App 核心資料角色修正案
 
-狀態：正式控制文件候選  
+狀態：正式控制文件  
 版本：v0.5.0  
 日期：2026-07-18
 
@@ -108,6 +108,7 @@ Item 不應直接保存完整保養週期、某次到期任務或某次修理過
 - `requiredPhotos`
 - `requiredNote`
 - `safetyNotice`
+- `steps`（建立時保存的使用者步驟快照）
 - `status`
 - `createdAt`
 - `updatedAt`
@@ -127,13 +128,9 @@ Schedule 可以屬於：
 
 - MaintenancePlan：週期性保養項目
 - Item：一般到期提醒或日期事項
+- Milestone：達標後需要形成提醒的階段性重點
 
-因此正式 schema 不得只留下模糊的 `cardId`。需建立明確來源角色，例如：
-
-- `sourceType = maintenancePlan | generalReminder`
-- `sourceId`
-
-或使用可被資料庫完整約束的等效設計。
+因此正式 schema 不得只留下模糊的 `cardId`。來源必須依 `ScheduleSourceReference` 與來源一致性契約表示，不得用空字串假裝外鍵，也不得讓多種來源同時存在。
 
 Schedule 保存：
 
@@ -143,7 +140,7 @@ Schedule 保存：
 - 下次到期日
 - 提醒時間
 - 狀態
-- `strictPeriodMode`
+- `anchorPolicy`（正式預設為 `fixedCalendarPeriod`）
 
 Schedule 不保存案件處理進度，也不代表某一次已經發生的任務。
 

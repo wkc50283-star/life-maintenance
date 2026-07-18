@@ -122,6 +122,12 @@ flutter build web --release
 7. [正式資料庫選型決策](docs/control/07-database-decision.md)
 8. [版本管理規則](docs/control/08-versioning.md)
 9. [核心資料角色修正案](docs/control/09-core-data-roles.md)
+10. [修正版 Drift schema v2 設計](docs/control/10-corrected-schema-v2-design.md)
+11. [地基缺口修正計畫](docs/control/11-foundation-gap-corrections.md)
+12. [生活項目類別策略](docs/control/12-item-category-strategy.md)
+13. [正式產品名詞表](docs/control/13-product-terminology.md)
+
+`docs/control/` 內標示為「正式控制文件」的文件共同生效，不再以固定「六份文件」限制控制範圍。
 
 ## 開發規則摘要
 
@@ -134,6 +140,7 @@ flutter build web --release
 - CI 未通過不得合併。
 - 正式版本唯一來源是 `pubspec.yaml`。
 - Schedule 不得代替 MaintenancePlan。
+- 「限－工程」只是假名；正式介面依情境使用突發事項、工程／修繕或辦理事項，底層使用 WorkCase。
 
 ## 安全邊界
 
