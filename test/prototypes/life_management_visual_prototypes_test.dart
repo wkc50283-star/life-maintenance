@@ -6,6 +6,7 @@ void main() {
   testWidgets('home prototype exposes the approved information hierarchy', (
     tester,
   ) async {
+    await _useReviewCanvas(tester);
     await tester.pumpWidget(
       const MaterialApp(home: HomeVisualPrototype()),
     );
@@ -13,32 +14,33 @@ void main() {
     expect(find.text('今天的生活狀態'), findsOneWidget);
     expect(find.text('現在需要處理'), findsOneWidget);
     expect(find.text('浴室牆面持續滲水'), findsOneWidget);
-
-    await _scrollToText(tester, '進行中的案件');
-    await _scrollToText(tester, '階段性重點與大修');
-    await _scrollToText(tester, '最近完成');
+    expect(find.text('進行中的案件'), findsOneWidget);
+    expect(find.text('階段性重點與大修'), findsOneWidget);
+    expect(find.text('最近完成'), findsOneWidget);
   });
 
   testWidgets('item detail prototype separates all formal data roles', (
     tester,
   ) async {
+    await _useReviewCanvas(tester);
     await tester.pumpWidget(
       const MaterialApp(home: ItemDetailVisualPrototype()),
     );
 
     expect(find.text('我的機車'), findsOneWidget);
-    await _scrollToText(tester, '需要注意');
-    await _scrollToText(tester, '保養項目');
-    await _scrollToText(tester, '提醒與排程');
-    await _scrollToText(tester, '階段性重點與大修');
-    await _scrollToText(tester, '進行中案件');
-    await _scrollToText(tester, '史略');
-    await _scrollToText(tester, '基本資料');
+    expect(find.text('需要注意'), findsOneWidget);
+    expect(find.text('保養項目'), findsOneWidget);
+    expect(find.text('提醒與排程'), findsOneWidget);
+    expect(find.text('階段性重點與大修'), findsOneWidget);
+    expect(find.text('進行中案件'), findsOneWidget);
+    expect(find.text('史略'), findsOneWidget);
+    expect(find.text('基本資料'), findsOneWidget);
   });
 
   testWidgets('prototypes are review-only and expose no tappable actions', (
     tester,
   ) async {
+    await _useReviewCanvas(tester);
     await tester.pumpWidget(
       const MaterialApp(home: HomeVisualPrototype()),
     );
@@ -50,12 +52,7 @@ void main() {
   });
 }
 
-Future<void> _scrollToText(WidgetTester tester, String text) async {
-  final target = find.text(text);
-  await tester.scrollUntilVisible(
-    target,
-    260,
-    scrollable: find.byType(Scrollable).first,
-  );
-  expect(target, findsOneWidget);
+Future<void> _useReviewCanvas(WidgetTester tester) async {
+  await tester.binding.setSurfaceSize(const Size(430, 5000));
+  addTearDown(() => tester.binding.setSurfaceSize(null));
 }
