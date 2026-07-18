@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_maintenance/database/app_database.dart';
@@ -10,9 +11,33 @@ void main() {
   late AppDatabase database;
   late DriftWorkCaseRepository repository;
 
-  setUp(() {
+  setUp(() async {
     database = AppDatabase(NativeDatabase.memory());
     repository = DriftWorkCaseRepository(database);
+
+    final now = DateTime.utc(2026, 7, 18);
+    await database.into(database.itemCategories).insert(
+          ItemCategoriesCompanion.insert(
+            id: 'category-1',
+            systemCode: const Value('other'),
+            displayName: '其他',
+            status: 'active',
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+    for (final itemId in const ['item-1', 'item-2']) {
+      await database.into(database.items).insert(
+            ItemsCompanion.insert(
+              id: itemId,
+              name: '測試生活項目 $itemId',
+              categoryId: 'category-1',
+              createdAt: now,
+              updatedAt: now,
+              status: 'active',
+            ),
+          );
+    }
   });
 
   tearDown(() async {

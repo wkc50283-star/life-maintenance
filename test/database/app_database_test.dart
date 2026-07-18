@@ -7,23 +7,58 @@ import 'package:life_maintenance/models/work_case_enums.dart';
 void main() {
   late AppDatabase database;
 
-  setUp(() {
+  setUp(() async {
     database = AppDatabase(NativeDatabase.memory());
+
+    final now = DateTime.utc(2026, 7, 18);
+    await database.into(database.itemCategories).insert(
+          ItemCategoriesCompanion.insert(
+            id: 'category-1',
+            systemCode: const Value('other'),
+            displayName: '其他',
+            status: 'active',
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+    await database.into(database.items).insert(
+          ItemsCompanion.insert(
+            id: 'item-1',
+            name: '測試生活項目',
+            categoryId: 'category-1',
+            createdAt: now,
+            updatedAt: now,
+            status: 'active',
+          ),
+        );
   });
 
   tearDown(() async {
     await database.close();
   });
 
-  test('schema v1 creates both work case tables', () async {
+  test('schema v2 creates the formal life-management tables', () async {
     final rows = await database.customSelect(
       "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name",
     ).get();
     final names = rows.map((row) => row.read<String>('name')).toSet();
 
-    expect(database.schemaVersion, 1);
-    expect(names, contains('work_cases'));
-    expect(names, contains('work_case_updates'));
+    expect(database.schemaVersion, 2);
+    expect(names, containsAll(<String>{
+      'item_categories',
+      'items',
+      'maintenance_plans',
+      'maintenance_plan_steps',
+      'general_reminders',
+      'milestones',
+      'schedules',
+      'tasks',
+      'maintenance_records',
+      'work_cases',
+      'work_case_updates',
+      'work_case_closures',
+      'attachments',
+    }));
   });
 
   test('case and progress round trip preserves ISO datetime precision', () async {
@@ -68,6 +103,24 @@ void main() {
     expect(updateRow.cost, 500);
     expect(updateRow.partsOrItems, ['風扇軸承']);
     expect(updateRow.photoIdentifiers, ['photo-1']);
+  });
+
+  test('foreign key rejects a case without a parent item', () async {
+    final now = DateTime.utc(2026, 7, 18);
+    final insert = database.into(database.workCases).insert(
+          WorkCasesCompanion.insert(
+            id: 'orphan-case',
+            itemId: 'missing-item',
+            sourceType: WorkCaseSourceType.manual,
+            caseType: WorkCaseType.other,
+            title: '不應寫入的孤兒案件',
+            status: WorkCaseStatus.notStarted,
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+
+    await expectLater(insert, throwsA(isA<Exception>()));
   });
 
   test('foreign key rejects progress without a parent case', () async {
@@ -116,6 +169,29 @@ void main() {
     await expectLater(deletion, throwsA(isA<Exception>()));
     expect(await database.select(database.workCases).get(), hasLength(1));
     expect(await database.select(database.workCaseUpdates).get(), hasLength(1));
+  });
+
+  test('deleting an item with a case is restricted', () async {
+    final now = DateTime.utc(2026, 7, 18);
+    await database.into(database.workCases).insert(
+          WorkCasesCompanion.insert(
+            id: 'item-protected-case',
+            itemId: 'item-1',
+            sourceType: WorkCaseSourceType.manual,
+            caseType: WorkCaseType.repair,
+            title: '保護生活項目',
+            status: WorkCaseStatus.inProgress,
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+
+    final deletion = (database.delete(database.items)
+          ..where((table) => table.id.equals('item-1')))
+        .go();
+
+    await expectLater(deletion, throwsA(isA<Exception>()));
+    expect(await database.select(database.items).get(), hasLength(1));
   });
 
   test('transaction rollback leaves no partial case or progress rows', () async {
