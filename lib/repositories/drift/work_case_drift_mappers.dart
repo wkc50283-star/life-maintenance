@@ -21,6 +21,7 @@ extension WorkCaseToCompanion on WorkCase {
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       closedAt: Value(closedAt),
+      canceledAt: Value(canceledAt),
       closeResult: Value(closeResult),
       cancellationReason: Value(cancellationReason),
     );
@@ -44,6 +45,7 @@ extension WorkCaseRowToModel on WorkCaseRow {
       createdAt: createdAt,
       updatedAt: updatedAt,
       closedAt: closedAt,
+      canceledAt: canceledAt,
       closeResult: closeResult,
       cancellationReason: cancellationReason,
     );

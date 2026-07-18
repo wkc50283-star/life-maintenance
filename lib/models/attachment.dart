@@ -7,19 +7,9 @@ enum AttachmentOwnerType {
   unknown,
 }
 
-enum AttachmentKind {
-  photo,
-  document,
-  receipt,
-  other,
-}
+enum AttachmentKind { photo, document, receipt, other }
 
-enum AttachmentState {
-  available,
-  missing,
-  deleted,
-  unknown,
-}
+enum AttachmentState { available, missing, deleted, unknown }
 
 class Attachment {
   const Attachment({
@@ -35,6 +25,7 @@ class Attachment {
     this.byteSize,
     this.capturedAt,
     this.contentHash,
+    this.verifiedAt,
     this.state = AttachmentState.available,
     this.missingAt,
     this.deletedAt,
@@ -55,6 +46,7 @@ class Attachment {
   final int? byteSize;
   final DateTime? capturedAt;
   final String? contentHash;
+  final DateTime? verifiedAt;
   final AttachmentState state;
   final DateTime? missingAt;
   final DateTime? deletedAt;
@@ -86,6 +78,7 @@ class Attachment {
       byteSize: _readNonNegativeInt(json['byteSize']),
       capturedAt: _readNullableDate(json['capturedAt']),
       contentHash: _readNullableString(json['contentHash']),
+      verifiedAt: _readNullableDate(json['verifiedAt']),
       state: _readEnum(
         AttachmentState.values,
         json['state'],
@@ -111,6 +104,7 @@ class Attachment {
       'byteSize': byteSize,
       'capturedAt': capturedAt?.toIso8601String(),
       'contentHash': contentHash,
+      'verifiedAt': verifiedAt?.toIso8601String(),
       'state': state.name,
       'missingAt': missingAt?.toIso8601String(),
       'deletedAt': deletedAt?.toIso8601String(),
@@ -131,6 +125,7 @@ class Attachment {
     Object? byteSize = _notProvided,
     Object? capturedAt = _notProvided,
     Object? contentHash = _notProvided,
+    Object? verifiedAt = _notProvided,
     AttachmentState? state,
     Object? missingAt = _notProvided,
     Object? deletedAt = _notProvided,
@@ -159,6 +154,9 @@ class Attachment {
       contentHash: identical(contentHash, _notProvided)
           ? this.contentHash
           : contentHash as String?,
+      verifiedAt: identical(verifiedAt, _notProvided)
+          ? this.verifiedAt
+          : verifiedAt as DateTime?,
       state: state ?? this.state,
       missingAt: identical(missingAt, _notProvided)
           ? this.missingAt

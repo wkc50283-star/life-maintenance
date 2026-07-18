@@ -16,12 +16,14 @@ class WorkCaseClosure {
     required this.completionSummary,
     required this.totalCost,
     required this.createdAt,
+    DateTime? updatedAt,
     this.schemaVersion = currentSchemaVersion,
     this.followUpType = WorkCaseFollowUpType.none,
     this.followUpNotes,
     this.nextScheduleId,
     this.nextReminderTaskId,
-  }) : assert(totalCost >= 0);
+  }) : updatedAt = updatedAt ?? createdAt,
+       assert(totalCost >= 0);
 
   static const int currentSchemaVersion = 1;
   static const Object _notProvided = Object();
@@ -38,6 +40,7 @@ class WorkCaseClosure {
   final String? nextScheduleId;
   final String? nextReminderTaskId;
   final DateTime createdAt;
+  final DateTime updatedAt;
 
   bool get needsFollowUp {
     switch (followUpType) {
@@ -74,6 +77,7 @@ class WorkCaseClosure {
       nextScheduleId: _readNullableString(json['nextScheduleId']),
       nextReminderTaskId: _readNullableString(json['nextReminderTaskId']),
       createdAt: DateTime.parse(json['createdAt'] as String),
+      updatedAt: _readNullableDate(json['updatedAt']),
     );
   }
 
@@ -91,6 +95,7 @@ class WorkCaseClosure {
       'nextScheduleId': nextScheduleId,
       'nextReminderTaskId': nextReminderTaskId,
       'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
     };
   }
 
@@ -107,6 +112,7 @@ class WorkCaseClosure {
     Object? nextScheduleId = _notProvided,
     Object? nextReminderTaskId = _notProvided,
     DateTime? createdAt,
+    DateTime? updatedAt,
   }) {
     return WorkCaseClosure(
       schemaVersion: schemaVersion ?? this.schemaVersion,
@@ -127,6 +133,7 @@ class WorkCaseClosure {
           ? this.nextReminderTaskId
           : nextReminderTaskId as String?,
       createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 }
@@ -151,6 +158,10 @@ int _readNonNegativeInt(Object? value) {
 
 String? _readNullableString(Object? value) {
   return value is String ? value : null;
+}
+
+DateTime? _readNullableDate(Object? value) {
+  return value is String ? DateTime.tryParse(value) : null;
 }
 
 WorkCaseFollowUpType _readFollowUpType(Object? value) {

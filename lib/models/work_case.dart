@@ -16,6 +16,7 @@ class WorkCase {
     this.occurredAt,
     this.startedAt,
     this.closedAt,
+    this.canceledAt,
     this.closeResult,
     this.cancellationReason,
   });
@@ -37,6 +38,7 @@ class WorkCase {
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? closedAt;
+  final DateTime? canceledAt;
   final String? closeResult;
   final String? cancellationReason;
 
@@ -75,6 +77,7 @@ class WorkCase {
       createdAt: createdAt,
       updatedAt: _readNullableDate(json['updatedAt']) ?? createdAt,
       closedAt: _readNullableDate(json['closedAt']),
+      canceledAt: _readNullableDate(json['canceledAt']),
       closeResult: _readNullableString(json['closeResult']),
       cancellationReason: _readNullableString(json['cancellationReason']),
     );
@@ -96,6 +99,7 @@ class WorkCase {
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
       'closedAt': closedAt?.toIso8601String(),
+      'canceledAt': canceledAt?.toIso8601String(),
       'closeResult': closeResult,
       'cancellationReason': cancellationReason,
     };
@@ -116,6 +120,7 @@ class WorkCase {
     DateTime? createdAt,
     DateTime? updatedAt,
     Object? closedAt = _notProvided,
+    Object? canceledAt = _notProvided,
     Object? closeResult = _notProvided,
     Object? cancellationReason = _notProvided,
   }) {
@@ -144,6 +149,9 @@ class WorkCase {
       closedAt: identical(closedAt, _notProvided)
           ? this.closedAt
           : closedAt as DateTime?,
+      canceledAt: identical(canceledAt, _notProvided)
+          ? this.canceledAt
+          : canceledAt as DateTime?,
       closeResult: identical(closeResult, _notProvided)
           ? this.closeResult
           : closeResult as String?,

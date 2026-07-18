@@ -6,6 +6,7 @@ import 'package:life_maintenance/models/work_case.dart';
 import 'package:life_maintenance/models/work_case_enums.dart';
 import 'package:life_maintenance/models/work_case_update.dart';
 import 'package:life_maintenance/repositories/drift/drift_work_case_repository.dart';
+import 'package:life_maintenance/repositories/repository_constraint_exception.dart';
 
 void main() {
   late AppDatabase database;
@@ -16,7 +17,9 @@ void main() {
     repository = DriftWorkCaseRepository(database);
 
     final now = DateTime.utc(2026, 7, 18);
-    await database.into(database.itemCategories).insert(
+    await database
+        .into(database.itemCategories)
+        .insert(
           ItemCategoriesCompanion.insert(
             id: 'category-1',
             systemCode: const Value('other'),
@@ -27,7 +30,9 @@ void main() {
           ),
         );
     for (final itemId in const ['item-1', 'item-2']) {
-      await database.into(database.items).insert(
+      await database
+          .into(database.items)
+          .insert(
             ItemsCompanion.insert(
               id: itemId,
               name: '測試生活項目 $itemId',
@@ -96,17 +101,16 @@ void main() {
     expect(restored!.toJson(), workCase.toJson());
   });
 
-  test('saveCase updates an existing case instead of duplicating it', () async {
+  test('saveCase updates an open case instead of duplicating it', () async {
     final workCase = buildCase();
-    final completedAt = DateTime.utc(2026, 7, 19, 17);
+    final updatedAt = DateTime.utc(2026, 7, 19, 17);
 
     await repository.saveCase(workCase);
     await repository.saveCase(
       workCase.copyWith(
-        status: WorkCaseStatus.completed,
-        updatedAt: completedAt,
-        closedAt: completedAt,
-        closeResult: '已更換軸承並測試正常',
+        status: WorkCaseStatus.waiting,
+        updatedAt: updatedAt,
+        description: '等待零件到貨',
       ),
     );
 
@@ -114,9 +118,61 @@ void main() {
     final restored = await repository.findCaseById(workCase.id);
 
     expect(rows, hasLength(1));
-    expect(restored!.status, WorkCaseStatus.completed);
-    expect(restored.closeResult, '已更換軸承並測試正常');
+    expect(restored!.status, WorkCaseStatus.waiting);
+    expect(restored.description, '等待零件到貨');
   });
+
+  test('rejects completion without a formal WorkCaseClosure', () async {
+    final workCase = buildCase();
+    await repository.saveCase(workCase);
+
+    await expectLater(
+      repository.saveCase(
+        workCase.copyWith(
+          status: WorkCaseStatus.completed,
+          closedAt: DateTime.utc(2026, 7, 19),
+        ),
+      ),
+      throwsA(anything),
+    );
+
+    expect(
+      (await repository.findCaseById(workCase.id))?.status,
+      WorkCaseStatus.inProgress,
+    );
+  });
+
+  test(
+    'rejects a maintenance case sourced from a non-maintenance Task',
+    () async {
+      await database
+          .into(database.tasks)
+          .insert(
+            TasksCompanion.insert(
+              id: 'manual-task',
+              itemId: 'item-1',
+              sourceType: 'manual',
+              title: '手動提醒',
+              dueDate: DateTime.utc(2026, 7, 18),
+              status: 'pending',
+              createdAt: DateTime.utc(2026, 7, 18),
+              updatedAt: DateTime.utc(2026, 7, 18),
+            ),
+          );
+
+      await expectLater(
+        repository.saveCase(
+          buildCase().copyWith(
+            sourceType: WorkCaseSourceType.maintenanceTask,
+            sourceId: 'manual-task',
+          ),
+        ),
+        throwsA(isA<RepositoryConstraintException>()),
+      );
+
+      expect(await repository.findCaseById('case-1'), isNull);
+    },
+  );
 
   test('lists cases by item with latest updated case first', () async {
     await repository.saveCase(
@@ -177,9 +233,7 @@ void main() {
   test('duplicate initial update rolls back the newly inserted case', () async {
     final update = buildUpdate();
     await repository.saveCase(buildCase(id: 'existing-case'));
-    await repository.appendUpdate(
-      buildUpdate(workCaseId: 'existing-case'),
-    );
+    await repository.appendUpdate(buildUpdate(workCaseId: 'existing-case'));
 
     final newCase = buildCase(id: 'case-1');
 
