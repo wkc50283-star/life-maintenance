@@ -50,8 +50,8 @@ jobs:
       - name: Test
         run: flutter test
 
-      - name: Build web
-        run: flutter build web --release --base-href /life-maintenance/
+      - name: Build latest visual review app
+        run: flutter build web --release -t lib/prototype_main.dart --base-href /life-maintenance/
 
       - name: Check web build artifact
         run: |
