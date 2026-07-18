@@ -96,9 +96,9 @@ class Milestones extends Table {
   List<String> get customConstraints => [
     "CHECK (trim(title) <> '')",
     'CHECK (dependency_milestone_id IS NULL OR dependency_milestone_id <> id)',
-    "CHECK (trigger_type NOT IN ('usageYears', 'mileage', 'usageValue', 'completionCount', 'anomalyCount') OR (threshold_value > 0 AND trim(threshold_unit) <> ''))",
+    "CHECK (trigger_type NOT IN ('usageYears', 'mileage', 'usageValue', 'completionCount', 'anomalyCount') OR (threshold_value IS NOT NULL AND threshold_value > 0 AND threshold_unit IS NOT NULL AND trim(threshold_unit) <> ''))",
     "CHECK (trigger_type <> 'specificDate' OR trigger_date IS NOT NULL)",
     "CHECK (trigger_type <> 'dependencyCompleted' OR dependency_milestone_id IS NOT NULL)",
-    "CHECK (trigger_type <> 'lifeStage' OR trim(life_stage_code) <> '')",
+    "CHECK (trigger_type <> 'lifeStage' OR (life_stage_code IS NOT NULL AND trim(life_stage_code) <> ''))",
   ];
 }
