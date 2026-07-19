@@ -6,7 +6,7 @@ import '../models/item.dart';
 import '../models/maintenance_record.dart';
 import '../models/schedule.dart';
 import '../models/task.dart';
-import '../repositories/item_local_repository.dart';
+import '../repositories/item_read_repository.dart';
 import '../repositories/maintenance_record_local_repository.dart';
 import '../repositories/schedule_local_repository.dart';
 import '../repositories/task_local_repository.dart';
@@ -23,7 +23,7 @@ class ItemsScreen extends StatefulWidget {
 }
 
 class _ItemsScreenState extends State<ItemsScreen> {
-  late ItemLocalRepository _itemRepository;
+  late ItemReadRepository _itemRepository;
   late MaintenanceRecordLocalRepository _recordRepository;
   late ScheduleLocalRepository _scheduleRepository;
   late TaskLocalRepository _taskRepository;
@@ -39,7 +39,7 @@ class _ItemsScreenState extends State<ItemsScreen> {
       return;
     }
     final root = AppCompositionScope.of(context);
-    _itemRepository = root.itemRepository;
+    _itemRepository = root.itemReadRepository;
     _recordRepository = root.maintenanceRecordRepository;
     _scheduleRepository = root.scheduleRepository;
     _taskRepository = root.taskRepository;
@@ -141,6 +141,9 @@ class _ItemsScreenState extends State<ItemsScreen> {
     Schedule selectedSchedule,
     DateTime selectedDate,
   ) async {
+    if (!AppCompositionScope.of(context).legacyWritesEnabled) {
+      return ItemDetailScheduleResumeResult.failed;
+    }
     final List<Task> tasks;
     try {
       tasks = await _taskRepository.loadTasks();

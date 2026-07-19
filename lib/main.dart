@@ -119,6 +119,7 @@ class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
   bool _integrityCheckComplete = false;
   bool _hasIntegrityIssues = false;
+  bool _usesDriftItemRead = false;
 
   final List<Widget> _pages = const [
     TodayScreen(),
@@ -149,13 +150,7 @@ class _MainShellState extends State<MainShell> {
 
   Future<void> _runIntegrityPreflight() async {
     final root = widget.compositionRoot;
-    await root.localDataBackupService.createPreMigrationBackups();
-    await Future.wait<void>([
-      root.itemRepository.loadItems().then((_) {}),
-      root.scheduleRepository.loadSchedules().then((_) {}),
-      root.taskRepository.loadTasks().then((_) {}),
-      root.maintenanceRecordRepository.loadRecords().then((_) {}),
-    ]);
+    final initialization = await root.initialize();
 
     if (!mounted) {
       return;
@@ -165,6 +160,7 @@ class _MainShellState extends State<MainShell> {
     setState(() {
       _integrityCheckComplete = true;
       _hasIntegrityIssues = hasIssues;
+      _usesDriftItemRead = initialization.usesDriftItemRead;
       if (hasIssues) {
         _currentIndex = 1;
       }
@@ -205,6 +201,12 @@ class _MainShellState extends State<MainShell> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (index) {
+          if (_usesDriftItemRead && index == 2) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('資料已安全匯入；新增功能將在正式寫入切換後開放')),
+            );
+            return;
+          }
           if (_hasIntegrityIssues && (index == 0 || index == 2)) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('本機資料正在保護中，暫時只能查看生活項目、履歷與設定')),

@@ -1,11 +1,22 @@
+import 'dart:convert';
+
 import 'package:drift/native.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_maintenance/app/app_composition_root.dart';
 import 'package:life_maintenance/database/app_database.dart';
+import 'package:life_maintenance/models/enums.dart';
+import 'package:life_maintenance/models/item.dart';
+import 'package:life_maintenance/models/legacy_drift_import_report.dart';
+import 'package:life_maintenance/services/local_data_integrity_service.dart';
 import 'package:life_maintenance/services/local_storage_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  setUp(() {
+    LocalDataIntegrityService.instance.resetForTesting();
+  });
+
   test(
     'constructs one database, Drift repository set, and runtime services',
     () async {
@@ -49,4 +60,100 @@ void main() {
     expect(resolved, same(root));
     await root.database.close();
   });
+
+  test(
+    'startup imports once, switches Item reads, and freezes source',
+    () async {
+      final item = Item(
+        id: 'item-1',
+        name: '客廳冷氣',
+        category: ItemCategory.appliance,
+        createdAt: DateTime.utc(2026, 1, 2),
+        location: '客廳',
+      );
+      final rawItems = jsonEncode([item.toJson()]);
+      SharedPreferences.setMockInitialValues({'items': rawItems});
+      final database = AppDatabase(NativeDatabase.memory());
+      final storage = LocalStorageService();
+      final root = AppCompositionRoot(
+        database: database,
+        legacyStorage: storage,
+      );
+
+      final first = await root.initialize();
+
+      expect(first.mode, RuntimeDataMode.driftItemRead);
+      expect(first.importReport?.status, LegacyDriftImportStatus.imported);
+      expect(root.legacyWritesEnabled, isFalse);
+      final importedItems = await root.itemReadRepository.loadItems();
+      expect(importedItems.single.id, item.id);
+      expect(importedItems.single.name, item.name);
+      expect(importedItems.single.category, item.category);
+      expect(importedItems.single.location, item.location);
+      expect(await storage.readString('items'), rawItems);
+      expect(await storage.readString('backup_v1_items'), rawItems);
+      await expectLater(
+        storage.saveString('items', '[]'),
+        throwsA(isA<LegacyStorageReadOnlyException>()),
+      );
+      await expectLater(
+        storage.remove('items'),
+        throwsA(isA<LegacyStorageReadOnlyException>()),
+      );
+
+      final restartedStorage = LocalStorageService();
+      final restartedRoot = AppCompositionRoot(
+        database: database,
+        legacyStorage: restartedStorage,
+      );
+      final restarted = await restartedRoot.initialize();
+      expect(restarted.mode, RuntimeDataMode.driftItemRead);
+      expect(
+        restarted.importReport?.status,
+        LegacyDriftImportStatus.alreadyImported,
+      );
+      expect(
+        (await restartedRoot.itemReadRepository.loadItems()).single.id,
+        item.id,
+      );
+      expect(await restartedStorage.readString('items'), rawItems);
+
+      await database.close();
+    },
+  );
+
+  test(
+    'blocked startup rolls back and keeps legacy runtime writable',
+    () async {
+      final item = Item(
+        id: 'item-1',
+        name: '家中汽車',
+        category: ItemCategory.vehicle,
+        createdAt: DateTime.utc(2026, 2, 3),
+      );
+      final rawItems = jsonEncode([item.toJson()]);
+      SharedPreferences.setMockInitialValues({
+        'items': rawItems,
+        'backup_v1_items': '[]',
+      });
+      final database = AppDatabase(NativeDatabase.memory());
+      final storage = LocalStorageService();
+      final root = AppCompositionRoot(
+        database: database,
+        legacyStorage: storage,
+      );
+
+      final result = await root.initialize();
+
+      expect(result.mode, RuntimeDataMode.legacy);
+      expect(result.importReport?.status, LegacyDriftImportStatus.blocked);
+      expect(root.legacyWritesEnabled, isTrue);
+      expect((await root.itemReadRepository.loadItems()).single.id, item.id);
+      expect(await root.driftRepositories.items.listAll(), isEmpty);
+      await storage.saveString('items', rawItems);
+      expect(await storage.readString('backup_v1_items'), '[]');
+
+      await database.close();
+    },
+  );
 }

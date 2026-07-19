@@ -1,22 +1,26 @@
 import 'package:flutter/widgets.dart';
 
 import '../database/app_database.dart';
+import '../models/legacy_drift_import_report.dart';
+import '../repositories/drift/drift_item_read_repository.dart';
 import '../repositories/drift/drift_schema_v2_repositories.dart';
 import '../repositories/item_local_repository.dart';
+import '../repositories/item_read_repository.dart';
 import '../repositories/maintenance_record_local_repository.dart';
 import '../repositories/schedule_local_repository.dart';
 import '../repositories/task_local_repository.dart';
 import '../services/local_data_backup_service.dart';
 import '../services/local_data_integrity_service.dart';
+import '../services/legacy_drift_import_service.dart';
 import '../services/local_storage_service.dart';
 import '../services/maintenance_task_service.dart';
 
 /// Owns the process-wide runtime dependencies.
 ///
-/// The legacy repositories remain the active runtime data source until a later
-/// controlled cutover. Drift repositories are constructed here but are not
-/// injected into the current UI in this release.
+/// Legacy repositories remain available only for roles that have not completed
+/// a controlled cutover. Item reads switch to Drift after verified import.
 abstract interface class AppRuntimeDependencies {
+  ItemReadRepository get itemReadRepository;
   ItemLocalRepository get itemRepository;
   MaintenanceRecordLocalRepository get maintenanceRecordRepository;
   ScheduleLocalRepository get scheduleRepository;
@@ -24,11 +28,13 @@ abstract interface class AppRuntimeDependencies {
   LocalDataBackupService get localDataBackupService;
   LocalDataIntegrityService get localDataIntegrityService;
   MaintenanceTaskService get maintenanceTaskService;
+  bool get legacyWritesEnabled;
 }
 
 class LegacyRuntimeDependencies implements AppRuntimeDependencies {
   LegacyRuntimeDependencies(LocalStorageService legacyStorage)
-    : itemRepository = ItemLocalRepository(legacyStorage),
+    : _legacyStorage = legacyStorage,
+      itemRepository = ItemLocalRepository(legacyStorage),
       maintenanceRecordRepository = MaintenanceRecordLocalRepository(
         legacyStorage,
       ),
@@ -38,6 +44,10 @@ class LegacyRuntimeDependencies implements AppRuntimeDependencies {
       localDataIntegrityService = LocalDataIntegrityService.instance,
       maintenanceTaskService = MaintenanceTaskService();
 
+  final LocalStorageService _legacyStorage;
+
+  @override
+  ItemReadRepository get itemReadRepository => itemRepository;
   @override
   final ItemLocalRepository itemRepository;
   @override
@@ -52,6 +62,19 @@ class LegacyRuntimeDependencies implements AppRuntimeDependencies {
   final LocalDataIntegrityService localDataIntegrityService;
   @override
   final MaintenanceTaskService maintenanceTaskService;
+  @override
+  bool get legacyWritesEnabled => _legacyStorage.writesEnabled;
+}
+
+enum RuntimeDataMode { legacy, driftItemRead }
+
+class RuntimeInitializationResult {
+  const RuntimeInitializationResult({required this.mode, this.importReport});
+
+  final RuntimeDataMode mode;
+  final LegacyDriftImportReport? importReport;
+
+  bool get usesDriftItemRead => mode == RuntimeDataMode.driftItemRead;
 }
 
 class AppCompositionRoot implements AppRuntimeDependencies {
@@ -60,7 +83,10 @@ class AppCompositionRoot implements AppRuntimeDependencies {
     required LocalStorageService legacyStorage,
     this.ownsDatabase = false,
   }) : driftRepositories = DriftSchemaV2Repositories(database),
-       _runtime = LegacyRuntimeDependencies(legacyStorage);
+       _legacyStorage = legacyStorage,
+       _runtime = LegacyRuntimeDependencies(legacyStorage) {
+    _itemReadRepository = _runtime.itemRepository;
+  }
 
   factory AppCompositionRoot.production() => AppCompositionRoot(
     database: AppDatabase.defaults(),
@@ -70,9 +96,54 @@ class AppCompositionRoot implements AppRuntimeDependencies {
 
   final AppDatabase database;
   final DriftSchemaV2Repositories driftRepositories;
+  final LocalStorageService _legacyStorage;
   final LegacyRuntimeDependencies _runtime;
   final bool ownsDatabase;
+  late ItemReadRepository _itemReadRepository;
+  Future<RuntimeInitializationResult>? _initialization;
 
+  Future<RuntimeInitializationResult> initialize() =>
+      _initialization ??= _initialize();
+
+  Future<RuntimeInitializationResult> _initialize() async {
+    await localDataBackupService.createPreMigrationBackups();
+    await Future.wait<void>([
+      itemRepository.loadItems().then((_) {}),
+      scheduleRepository.loadSchedules().then((_) {}),
+      taskRepository.loadTasks().then((_) {}),
+      maintenanceRecordRepository.loadRecords().then((_) {}),
+    ]);
+    if (localDataIntegrityService.hasIssues) {
+      return const RuntimeInitializationResult(mode: RuntimeDataMode.legacy);
+    }
+
+    _legacyStorage.disableWrites();
+    try {
+      final report = await LegacyDriftImportService(
+        database: database,
+        source: SharedPreferencesLegacyImportSource(_legacyStorage),
+      ).execute(sourceWritesAreDisabled: true);
+      _itemReadRepository = DriftItemReadRepository(driftRepositories);
+      return RuntimeInitializationResult(
+        mode: RuntimeDataMode.driftItemRead,
+        importReport: report,
+      );
+    } on LegacyDriftImportException catch (error) {
+      _legacyStorage.enableWrites();
+      _itemReadRepository = _runtime.itemRepository;
+      return RuntimeInitializationResult(
+        mode: RuntimeDataMode.legacy,
+        importReport: error.report,
+      );
+    } catch (_) {
+      _legacyStorage.enableWrites();
+      _itemReadRepository = _runtime.itemRepository;
+      return const RuntimeInitializationResult(mode: RuntimeDataMode.legacy);
+    }
+  }
+
+  @override
+  ItemReadRepository get itemReadRepository => _itemReadRepository;
   @override
   ItemLocalRepository get itemRepository => _runtime.itemRepository;
   @override
@@ -91,6 +162,8 @@ class AppCompositionRoot implements AppRuntimeDependencies {
   @override
   MaintenanceTaskService get maintenanceTaskService =>
       _runtime.maintenanceTaskService;
+  @override
+  bool get legacyWritesEnabled => _legacyStorage.writesEnabled;
 
   Future<void> dispose() async {
     if (ownsDatabase) {

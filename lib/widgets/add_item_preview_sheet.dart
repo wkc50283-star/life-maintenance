@@ -61,8 +61,9 @@ class _AddItemPreviewFormState extends State<_AddItemPreviewForm> {
     }
 
     final now = DateTime.now();
-    final repository = AppCompositionScope.of(context).itemRepository;
-    final items = await repository.loadItems();
+    final root = AppCompositionScope.of(context);
+    final repository = root.itemRepository;
+    final items = await root.itemReadRepository.loadItems();
     final item = Item(
       id: now.millisecondsSinceEpoch.toString(),
       name: name,
