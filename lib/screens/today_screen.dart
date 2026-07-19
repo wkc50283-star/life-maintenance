@@ -46,6 +46,7 @@ class _TodayScreenState extends State<TodayScreen> {
   List<_OpenCaseOverview> _openCases = const [];
   List<Milestone> _activeMilestones = const [];
   List<_RecentCompletion> _recentCompletions = const [];
+  Object? _loadError;
 
   @override
   void didChangeDependencies() {
@@ -74,6 +75,15 @@ class _TodayScreenState extends State<TodayScreen> {
   }
 
   Future<void> _loadOverview() async {
+    try {
+      await _loadOverviewData();
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _loadError = error);
+    }
+  }
+
+  Future<void> _loadOverviewData() async {
     final items = await _itemRepository.loadItems();
     final schedules = await _scheduleRepository.loadSchedules();
     final tasks = await _taskRepository.loadTasks();
@@ -152,11 +162,18 @@ class _TodayScreenState extends State<TodayScreen> {
       _openCases = openCases;
       _activeMilestones = milestones;
       _recentCompletions = completions.take(3).toList(growable: false);
+      _loadError = null;
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_loadError != null) {
+      return _OverviewLoadFailure(onRetry: _retryOverview);
+    }
+    if (_localItems == null || _localTasks == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
     final localItems = _localItems ?? const <Item>[];
     final today = _dateOnly(DateTime.now());
     final reminders = (_localTasks ?? const <maintenance_task.Task>[])
@@ -284,6 +301,40 @@ class _TodayScreenState extends State<TodayScreen> {
       ),
     );
     await _loadOverview();
+  }
+
+  void _retryOverview() {
+    setState(() => _loadError = null);
+    _loadOverview();
+  }
+}
+
+class _OverviewLoadFailure extends StatelessWidget {
+  const _OverviewLoadFailure({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.refresh_outlined, size: 40),
+            const SizedBox(height: 12),
+            Text(
+              '暫時無法讀取生活總覽。',
+              style: Theme.of(context).textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton(onPressed: onRetry, child: const Text('重新讀取')),
+          ],
+        ),
+      ),
+    );
   }
 }
 

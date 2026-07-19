@@ -1883,6 +1883,38 @@ Task 已正式切換至 Drift，但畫面仍使用舊保養卡預覽，無法查
 
 ---
 
+## LM-051：v0.5.22 UI Audit
+
+日期：2026-07-19
+狀態：已核准施工，待 PR #223 驗收
+
+### 變更內容
+
+- 逐頁稽核 overflow、SafeArea、Loading／Empty／Error、字級、間距、圖示與深色系統環境。
+- App Runtime 初始化失敗時顯示不洩漏技術資訊的 Error／Retry，不再永久停在 Loading。
+- 生活總覽與史略新增真實 Loading 與 Error／Retry，載入完成前不再誤顯示空資料。
+- 新增 320×568、1.3 放大字體、系統深色環境、五個主分頁與錯誤重試 Widget Gate。
+- 完成 390×844 與 320×568 實際 Web 手機預覽。
+- 版本更新為 v0.5.22。
+
+### 明確未修改
+
+不新增功能、不重畫 UI，不修改 Schema、Migration、Domain、Repository、資料或正式生命週期；不展開完整 dark palette 改版、不做無關重構、不開始下一個 PR。
+
+### 資料影響與回復
+
+沒有資料讀寫、搬移或格式變更，不需要資料 rollback。回復只需還原 UI state、tests、文件與版本變更。
+
+### 驗收依據
+
+以 PR #223 的手機／大字／狀態 Widget tests、codegen 無差異、Analyze、全部測試、Web release build、手機預覽與 GitHub Actions 為準。
+
+### 追蹤
+
+- PR #223
+
+---
+
 ## 後續條目模板
 
 ```text
