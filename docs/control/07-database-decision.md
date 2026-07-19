@@ -1,9 +1,11 @@
 # 生活管理 App 正式資料庫選型決策
 
-狀態：已批准，尚未開始實作  
+狀態：已批准；實作已完成
 決策日期：2026-07-18  
 最後證據檢查：2026-07-18  
 下次例行檢查：2026-10-18，或在加入 dependency／升級主要版本前重新檢查
+
+> 現行 Runtime 基線（v0.5.20）：本 ADR 的分階段施工限制保留為決策歷史。Drift Schema v2、Repository、受控匯入與 Legacy Runtime 退休已完成；正式 Runtime 現況以 `25-legacy-runtime-retirement.md` 與 `33-architecture-audit.md` 為準。
 
 ## 1. 決策
 
