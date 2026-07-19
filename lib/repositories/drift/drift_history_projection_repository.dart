@@ -1,10 +1,7 @@
-import 'dart:convert';
-
 import 'package:drift/drift.dart';
 
 import '../../database/app_database.dart';
 import '../../models/attachment.dart';
-import '../../models/enums.dart';
 import '../../models/history_projection.dart';
 import '../../models/maintenance_record.dart';
 import '../../models/milestone.dart';
@@ -14,6 +11,7 @@ import '../../models/work_case_enums.dart';
 import '../attachment_repository.dart';
 import '../history_projection_repository.dart';
 import '../repository_constraint_exception.dart';
+import 'drift_maintenance_record_repository.dart';
 import 'schema_v2_drift_mappers.dart';
 import 'work_case_drift_mappers.dart';
 
@@ -235,46 +233,8 @@ class DriftHistoryProjectionRepository implements HistoryProjectionRepository {
     updatedAt: row.updatedAt,
   );
 
-  MaintenanceRecord _record(MaintenanceRecordRow row) => MaintenanceRecord(
-    id: row.id,
-    itemId: row.itemId,
-    taskId: row.taskId,
-    recordType: _recordType(row.recordType),
-    date: row.date,
-    title: row.title,
-    issueDescription: row.issueDescription,
-    workDescription: row.workDescription,
-    partsChanged: _stringList(row.partsChanged),
-    cost: row.cost,
-    vendorName: row.vendorName,
-    warrantyUntil: row.warrantyUntil,
-    result: row.result,
-    note: row.note,
-    createdAt: row.createdAt,
-  );
-
-  RecordType _recordType(String value) {
-    for (final type in RecordType.values) {
-      if (type.name == value) {
-        return type;
-      }
-    }
-    return RecordType.other;
-  }
-
-  List<String> _stringList(String? value) {
-    if (value == null) {
-      return const [];
-    }
-    try {
-      final decoded = jsonDecode(value);
-      return decoded is List
-          ? decoded.whereType<String>().toList(growable: false)
-          : const [];
-    } on FormatException {
-      return const [];
-    }
-  }
+  MaintenanceRecord _record(MaintenanceRecordRow row) =>
+      row.toMaintenanceRecord();
 
   bool _isTerminalMilestone(Milestone milestone) =>
       milestone.status == MilestoneStatus.completed ||
