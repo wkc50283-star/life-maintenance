@@ -2,6 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:life_maintenance/services/local_data_backup_service.dart';
 import 'package:life_maintenance/services/local_data_integrity_service.dart';
 import 'package:life_maintenance/services/local_storage_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
 
 void main() {
   final integrityService = LocalDataIntegrityService.instance;
@@ -51,6 +53,34 @@ void main() {
     expect(storage.values['items'], 'raw-items');
     expect(storage.values['backup_v1_items'], isNull);
   });
+
+  test('a platform-rejected backup write is treated as a failure', () async {
+    final previousStore = SharedPreferencesStorePlatform.instance;
+    addTearDown(() {
+      SharedPreferences.resetStatic();
+      SharedPreferencesStorePlatform.instance = previousStore;
+    });
+    SharedPreferencesStorePlatform.instance = _RejectingPreferencesStore();
+    SharedPreferences.resetStatic();
+
+    await expectLater(
+      LocalStorageService().writeBackupIfAbsent('backup_v1_items', 'raw-items'),
+      throwsStateError,
+    );
+
+    SharedPreferences.resetStatic();
+    final preferences = await SharedPreferences.getInstance();
+    expect(preferences.containsKey('backup_v1_items'), isFalse);
+  });
+}
+
+class _RejectingPreferencesStore extends InMemorySharedPreferencesStore {
+  _RejectingPreferencesStore() : super.empty();
+
+  @override
+  Future<bool> setValue(String valueType, String key, Object value) async {
+    return false;
+  }
 }
 
 class _FakeLocalStorageService extends LocalStorageService {
