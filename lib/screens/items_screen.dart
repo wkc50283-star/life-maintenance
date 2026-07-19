@@ -7,7 +7,7 @@ import '../models/maintenance_record.dart';
 import '../models/schedule.dart';
 import '../models/task.dart';
 import '../repositories/item_read_repository.dart';
-import '../repositories/maintenance_record_local_repository.dart';
+import '../repositories/maintenance_record_repository.dart';
 import '../repositories/schedule_repository.dart';
 import '../repositories/task_repository.dart';
 import '../widgets/items_header.dart';
@@ -24,7 +24,7 @@ class ItemsScreen extends StatefulWidget {
 
 class _ItemsScreenState extends State<ItemsScreen> {
   late ItemReadRepository _itemRepository;
-  late MaintenanceRecordLocalRepository _recordRepository;
+  late MaintenanceRecordRepository _recordRepository;
   late ScheduleRepository _scheduleRepository;
   late TaskRepository _taskRepository;
   bool _dependenciesInitialized = false;
@@ -55,7 +55,7 @@ class _ItemsScreenState extends State<ItemsScreen> {
 
   Future<void> _loadLocalData() async {
     final items = await _itemRepository.loadItems();
-    final records = await _recordRepository.loadRecords();
+    final records = await _recordRepository.listAll();
     final schedules = await _scheduleRepository.loadSchedules();
     if (!mounted) {
       return;
@@ -142,7 +142,7 @@ class _ItemsScreenState extends State<ItemsScreen> {
     DateTime selectedDate,
   ) async {
     final root = AppCompositionScope.of(context);
-    if (!root.legacyWritesEnabled && !root.usesDriftPlanning) {
+    if (!root.formalWritesEnabled) {
       return ItemDetailScheduleResumeResult.failed;
     }
     final List<Task> tasks;

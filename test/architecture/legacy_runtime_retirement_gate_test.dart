@@ -9,6 +9,7 @@ import 'package:life_maintenance/models/enums.dart';
 import 'package:life_maintenance/models/item.dart';
 import 'package:life_maintenance/models/maintenance_record.dart';
 import 'package:life_maintenance/repositories/drift/drift_item_read_repository.dart';
+import 'package:life_maintenance/repositories/drift/drift_safe_read_only_runtime.dart';
 import 'package:life_maintenance/repositories/drift/drift_schedule_runtime_repository.dart';
 import 'package:life_maintenance/repositories/drift/drift_task_runtime_repository.dart';
 import 'package:life_maintenance/services/local_data_integrity_service.dart';
@@ -58,25 +59,18 @@ void main() {
     expect(violations, isEmpty);
   });
 
-  test('known legacy UI dependencies remain explicit retirement blockers', () {
+  test('formal UI has no MaintenanceRecordLocalRepository dependency', () {
     final references = <String>{};
     for (final directory in const ['lib/screens', 'lib/widgets']) {
       for (final file in _dartFiles(directory)) {
         final source = file.readAsStringSync();
-        if (source.contains('MaintenanceRecordLocalRepository') ||
-            source.contains('.maintenanceRecordRepository') ||
-            source.contains('.itemRepository')) {
+        if (source.contains('MaintenanceRecordLocalRepository')) {
           references.add(_relative(file.path));
         }
       }
     }
 
-    expect(references, {
-      'lib/screens/history_screen.dart',
-      'lib/screens/items_screen.dart',
-      'lib/widgets/add_item_preview_sheet.dart',
-      'lib/widgets/maintenance_record_preview_sheet.dart',
-    });
+    expect(references, isEmpty);
   });
 
   test(
@@ -96,14 +90,13 @@ void main() {
         database: database,
         legacyStorage: storage,
       );
-
       final initialized = await root.initialize();
 
       expect(initialized.mode, RuntimeDataMode.driftMaintenanceRecords);
       expect(root.itemReadRepository, isA<DriftItemReadRepository>());
       expect(root.scheduleRepository, isA<DriftScheduleRuntimeRepository>());
       expect(root.taskRepository, isA<DriftTaskRuntimeRepository>());
-      expect(root.formalMaintenanceRecordRepository, isNotNull);
+      expect(root.maintenanceRecordRepository, isNotNull);
       expect(root.legacyWritesEnabled, isFalse);
 
       final legacyBefore = await _legacySnapshot(storage);
@@ -111,13 +104,8 @@ void main() {
         root.itemRepository.saveItems(const []),
         throwsA(isA<LegacyStorageReadOnlyException>()),
       );
-      await expectLater(
-        root.maintenanceRecordRepository.saveRecords(const []),
-        throwsA(isA<LegacyStorageReadOnlyException>()),
-      );
-
       final completedAt = DateTime.utc(2026, 7, 19, 12);
-      await root.formalMaintenanceRecordRepository!.createSimpleRecord(
+      await root.maintenanceRecordRepository.createSimpleRecord(
         MaintenanceRecord(
           id: 'record-runtime',
           itemId: item.id,
@@ -139,7 +127,7 @@ void main() {
       expect(restartResult.mode, RuntimeDataMode.driftMaintenanceRecords);
       expect(restarted.legacyWritesEnabled, isFalse);
       expect(
-        (await restarted.formalMaintenanceRecordRepository!.findById(
+        (await restarted.maintenanceRecordRepository.findById(
           'record-runtime',
         ))?.title,
         '完成簡單清潔',
@@ -150,7 +138,7 @@ void main() {
   );
 
   test(
-    'failed admission returns the complete legacy recovery runtime',
+    'failed admission keeps Drift readable and every writer disabled',
     () async {
       final item = Item(
         id: 'item-1',
@@ -169,21 +157,99 @@ void main() {
         database: database,
         legacyStorage: storage,
       );
+      final driftTime = DateTime.utc(2026, 1, 1);
+      await root.driftRepositories.itemCategories.save(
+        ItemCategoryRow(
+          id: 'drift-category',
+          systemCode: 'other',
+          displayName: '其他',
+          sortOrder: 0,
+          status: 'active',
+          createdAt: driftTime,
+          updatedAt: driftTime,
+        ),
+      );
+      await root.driftRepositories.items.save(
+        ItemRow(
+          id: 'drift-item',
+          name: 'Drift 安全資料',
+          categoryId: 'drift-category',
+          status: 'active',
+          createdAt: driftTime,
+          updatedAt: driftTime,
+        ),
+      );
 
       final initialized = await root.initialize();
 
-      expect(initialized.mode, RuntimeDataMode.legacy);
-      expect(root.legacyWritesEnabled, isTrue);
-      expect(root.formalMaintenanceRecordRepository, isNull);
+      expect(initialized.mode, RuntimeDataMode.driftSafeReadOnly);
+      expect(root.legacyWritesEnabled, isFalse);
+      expect(root.formalWritesEnabled, isFalse);
+      expect(
+        root.maintenanceRecordRepository,
+        isA<DriftSafeReadOnlyMaintenanceRecordRepository>(),
+      );
       expect(root.workCaseRuntime, isNull);
-      expect(root.historyProjectionRepository, isNull);
-      expect(await root.itemRepository.loadItems(), hasLength(1));
-      expect(await database.select(database.items).get(), isEmpty);
+      expect(root.historyProjectionRepository, isNotNull);
+      expect(
+        (await root.itemReadRepository.loadItems()).single.id,
+        'drift-item',
+      );
+      expect(
+        (await database.select(database.items).get()).single.id,
+        'drift-item',
+      );
+      await expectLater(
+        root.itemRepository.saveItems(const []),
+        throwsA(isA<LegacyStorageReadOnlyException>()),
+      );
+      await expectLater(
+        root.scheduleRepository.saveSchedules(const []),
+        throwsA(isA<Exception>()),
+      );
+      await expectLater(
+        root.taskRepository.saveGeneratedTasks(const []),
+        throwsA(isA<Exception>()),
+      );
+      await expectLater(
+        root.maintenanceRecordRepository.createSimpleRecord(
+          MaintenanceRecord(
+            id: 'blocked-record',
+            itemId: item.id,
+            recordType: RecordType.other,
+            date: DateTime.utc(2026, 7, 19),
+            title: '不得寫入',
+            createdAt: DateTime.utc(2026, 7, 19),
+          ),
+        ),
+        throwsA(isA<Exception>()),
+      );
+      await expectLater(
+        storage.saveString('items', rawItems),
+        throwsA(isA<LegacyStorageReadOnlyException>()),
+      );
       expect(await storage.readString('items'), rawItems);
       expect(await storage.readString('backup_v1_items'), '[]');
       await database.close();
     },
   );
+
+  test('backup failure also closes every legacy writer', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    final storage = _FailingBackupStorage();
+    final root = AppCompositionRoot(database: database, legacyStorage: storage);
+
+    final initialized = await root.initialize();
+
+    expect(initialized.mode, RuntimeDataMode.driftSafeReadOnly);
+    expect(root.legacyWritesEnabled, isFalse);
+    expect(root.formalWritesEnabled, isFalse);
+    await expectLater(
+      storage.saveString('items', '[]'),
+      throwsA(isA<LegacyStorageReadOnlyException>()),
+    );
+    await database.close();
+  });
 }
 
 List<File> _dartFiles(String path) => Directory(path)
@@ -209,4 +275,17 @@ Future<Map<String, String?>> _legacySnapshot(
     'backup_v1_maintenance_records',
   ];
   return {for (final key in keys) key: await storage.readString(key)};
+}
+
+class _FailingBackupStorage extends LocalStorageService {
+  @override
+  Future<String?> readString(String key) async => key == 'items' ? '[]' : null;
+
+  @override
+  Future<void> saveString(String key, String value) async {
+    if (!writesEnabled) {
+      return super.saveString(key, value);
+    }
+    throw StateError('backup write failed');
+  }
 }

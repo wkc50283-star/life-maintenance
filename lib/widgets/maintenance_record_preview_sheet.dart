@@ -68,7 +68,6 @@ class _MaintenanceRecordPreviewFormState
     final repository = AppCompositionScope.of(
       context,
     ).maintenanceRecordRepository;
-    final records = await repository.loadRecords();
     final record = MaintenanceRecord(
       id: now.millisecondsSinceEpoch.toString(),
       itemId: itemId,
@@ -81,7 +80,7 @@ class _MaintenanceRecordPreviewFormState
       createdAt: now,
     );
 
-    await repository.saveRecords([...records, record]);
+    await repository.createSimpleRecord(record);
 
     if (!context.mounted) {
       return;

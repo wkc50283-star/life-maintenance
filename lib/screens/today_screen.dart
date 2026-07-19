@@ -31,6 +31,7 @@ class _TodayScreenState extends State<TodayScreen> {
   late ScheduleRepository _scheduleRepository;
   late TaskRepository _taskRepository;
   late MaintenanceTaskService _taskService;
+  late bool _formalWritesEnabled;
   bool _dependenciesInitialized = false;
   List<Item>? _localItems;
   List<maintenance_task.Task>? _localTasks;
@@ -47,6 +48,7 @@ class _TodayScreenState extends State<TodayScreen> {
         widget._scheduleRepositoryOverride ?? root.scheduleRepository;
     _taskRepository = root.taskRepository;
     _taskService = root.maintenanceTaskService;
+    _formalWritesEnabled = root.formalWritesEnabled;
     _dependenciesInitialized = true;
     _loadTasks();
   }
@@ -66,10 +68,10 @@ class _TodayScreenState extends State<TodayScreen> {
       existingTasks: tasks,
       today: DateTime.now(),
     );
-    if (generatedTasks.isNotEmpty) {
+    if (generatedTasks.isNotEmpty && _formalWritesEnabled) {
       await _taskRepository.saveGeneratedTasks(generatedTasks);
     }
-    final currentTasks = generatedTasks.isEmpty
+    final currentTasks = generatedTasks.isEmpty || !_formalWritesEnabled
         ? tasks
         : await _taskRepository.loadTasks();
 

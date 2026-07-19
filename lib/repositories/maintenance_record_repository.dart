@@ -8,6 +8,8 @@ import '../models/maintenance_record.dart';
 abstract interface class MaintenanceRecordRepository {
   Future<MaintenanceRecord?> findById(String id);
 
+  Future<List<MaintenanceRecord>> listAll();
+
   Future<List<MaintenanceRecord>> listForItem(String itemId);
 
   /// Records a simple, manually confirmed fact with no Task or case process.
