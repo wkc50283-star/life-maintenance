@@ -1948,6 +1948,36 @@ Task 已正式切換至 Drift，但畫面仍使用舊保養卡預覽，無法查
 
 ---
 
+## LM-053：v0.5.24 Data Integrity Audit
+
+日期：2026-07-20
+狀態：已核准施工，待 PR #225 驗收
+
+### 變更內容
+
+- 稽核 transaction／rollback、FK／UNIQUE、匯入、備份、回復與 crash recovery。
+- 修正 SharedPreferences 平台拒絕不可變備份寫入時仍被誤判成功的阻擋性問題。
+- 新增 FK／UNIQUE metadata、`foreign_key_check`、`integrity_check` 與檔案資料庫重啟防回歸 Gate。
+- 版本更新為 v0.5.24。
+
+### 明確未修改
+
+不修改 UI、Schema、Migration、Domain 或正式生命週期；不新增功能、不搬移或刪除資料、不做無關重構、不開始下一個 PR。
+
+### 資料影響與回復
+
+沒有 Schema 或資料格式變更。備份寫入遭拒時現在會明確失敗，既有完整性 Gate 因而阻擋匯入；來源與 `backup_v1_*` 仍不刪除、不覆寫。程式回復只需還原 service、tests、文件與版本。
+
+### 驗收依據
+
+以 PR #225 的備份拒絕、transaction rollback、檔案 DB 重啟、FK／UNIQUE、`foreign_key_check`、`integrity_check` Gate、codegen 無差異、Analyze、全部測試、Web release build 與 GitHub Actions 為準。
+
+### 追蹤
+
+- PR #225
+
+---
+
 ## 後續條目模板
 
 ```text

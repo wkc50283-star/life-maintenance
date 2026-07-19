@@ -17,7 +17,10 @@ class LocalStorageService {
     }
     final preferences = await SharedPreferences.getInstance();
     if (!preferences.containsKey(key)) {
-      await preferences.setString(key, value);
+      final persisted = await preferences.setString(key, value);
+      if (!persisted) {
+        throw StateError('The immutable recovery backup could not be saved.');
+      }
     }
   }
 }
