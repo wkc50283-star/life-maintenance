@@ -15,6 +15,7 @@ import 'package:life_maintenance/repositories/schedule_local_repository.dart';
 import 'package:life_maintenance/repositories/schedule_repository.dart';
 import 'package:life_maintenance/repositories/task_local_repository.dart';
 import 'package:life_maintenance/repositories/task_repository.dart';
+import 'package:life_maintenance/repositories/task_reminder_runtime.dart';
 import 'package:life_maintenance/repositories/work_case_runtime.dart';
 import 'package:life_maintenance/services/local_storage_service.dart';
 import 'package:life_maintenance/services/maintenance_task_service.dart';
@@ -49,6 +50,8 @@ class TestRuntimeDependencies implements AppRuntimeDependencies {
   DriftMilestoneRepository? get milestoneRepository => null;
   @override
   late final TaskRepository taskRepository;
+  @override
+  TaskReminderRuntime? get taskReminderRuntime => null;
   @override
   WorkCaseRuntime? get workCaseRuntime => null;
   @override

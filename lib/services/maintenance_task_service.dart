@@ -21,7 +21,9 @@ class MaintenanceTaskService {
       final hasExistingTask = existingTasks.any(
         (task) =>
             task.scheduleId == schedule.id &&
-            task.dueDate == schedule.nextDueDate,
+            (task.dueDate == schedule.nextDueDate ||
+                (_isMutable(task.status) &&
+                    !task.dueDate.isBefore(schedule.nextDueDate))),
       );
 
       if (hasExistingTask) {
@@ -46,6 +48,9 @@ class MaintenanceTaskService {
 
     return generatedTasks;
   }
+
+  bool _isMutable(TaskStatus status) =>
+      status != TaskStatus.completed && status != TaskStatus.canceled;
 
   DateTime _dateOnly(DateTime date) {
     return DateTime(date.year, date.month, date.day);

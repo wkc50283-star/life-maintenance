@@ -136,6 +136,66 @@ void main() {
       expect(tasks, isEmpty);
     });
 
+    test('does not recreate the original occurrence after Task reschedule', () {
+      final service = MaintenanceTaskService();
+      final originalDueDate = DateTime(2026, 7, 10);
+      final tasks = service.generateDueTasks(
+        schedules: [
+          _schedule(
+            id: 'schedule-contract',
+            title: '租約續約',
+            nextDueDate: originalDueDate,
+          ),
+        ],
+        existingTasks: [
+          Task(
+            id: 'imported-task',
+            itemId: 'item-contract',
+            cardId: 'manual-expiry-reminder',
+            scheduleId: 'schedule-contract',
+            title: '租約續約',
+            dueDate: originalDueDate.add(const Duration(days: 14)),
+            status: TaskStatus.pending,
+          ),
+        ],
+        today: originalDueDate,
+      );
+
+      expect(tasks, isEmpty);
+    });
+
+    test(
+      'a terminal earlier occurrence does not block the next occurrence',
+      () {
+        final service = MaintenanceTaskService();
+        final nextDueDate = DateTime(2026, 8, 10);
+        final tasks = service.generateDueTasks(
+          schedules: [
+            _schedule(
+              id: 'schedule-contract',
+              title: '租約續約',
+              nextDueDate: nextDueDate,
+            ),
+          ],
+          existingTasks: [
+            Task(
+              id: 'completed-task',
+              itemId: 'item-contract',
+              cardId: 'manual-expiry-reminder',
+              scheduleId: 'schedule-contract',
+              title: '租約續約',
+              dueDate: DateTime(2026, 7, 10),
+              status: TaskStatus.completed,
+            ),
+          ],
+          today: nextDueDate,
+        );
+
+        expect(tasks, hasLength(1));
+        expect(tasks.single.dueDate, nextDueDate);
+      },
+    );
+
     test('does not collapse distinct dueDate times on the same day', () {
       final service = MaintenanceTaskService();
       final dueDate = DateTime(2026, 7, 10, 9);

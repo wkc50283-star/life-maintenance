@@ -27,6 +27,7 @@ void main() {
       expect(root.itemReadRepository, isNotNull);
       expect(root.maintenanceRecordRepository, isNotNull);
       expect(root.workCaseRuntime, isNotNull);
+      expect(root.taskReminderRuntime, isNotNull);
       expect(root.historyProjectionRepository, isNotNull);
       expect(root.attachmentRuntime, isNotNull);
       expect(root.maintenanceTaskService, isNotNull);

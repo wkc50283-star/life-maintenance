@@ -9,12 +9,14 @@ import '../repositories/drift/drift_maintenance_record_repository.dart';
 import '../repositories/drift/drift_schedule_runtime_repository.dart';
 import '../repositories/drift/drift_schema_v2_repositories.dart';
 import '../repositories/drift/drift_task_runtime_repository.dart';
+import '../repositories/drift/drift_task_reminder_runtime.dart';
 import '../repositories/drift/drift_work_case_runtime.dart';
 import '../repositories/history_projection_repository.dart';
 import '../repositories/item_read_repository.dart';
 import '../repositories/maintenance_record_repository.dart';
 import '../repositories/schedule_repository.dart';
 import '../repositories/task_repository.dart';
+import '../repositories/task_reminder_runtime.dart';
 import '../repositories/work_case_runtime.dart';
 import '../services/maintenance_task_service.dart';
 
@@ -31,6 +33,7 @@ abstract interface class AppRuntimeDependencies {
   DriftGeneralReminderRepository? get generalReminderRepository;
   DriftMilestoneRepository? get milestoneRepository;
   TaskRepository get taskRepository;
+  TaskReminderRuntime? get taskReminderRuntime;
   WorkCaseRuntime? get workCaseRuntime;
   HistoryProjectionRepository? get historyProjectionRepository;
   AttachmentRuntime? get attachmentRuntime;
@@ -74,6 +77,11 @@ class AppCompositionRoot implements AppRuntimeDependencies {
       workCases: driftRepositories.workCases,
       closures: driftRepositories.workCaseClosures,
     );
+    taskReminderRuntime = DriftTaskReminderRuntime(
+      database: database,
+      repositories: driftRepositories,
+      workCaseRuntime: workCaseRuntime,
+    );
     attachmentRuntime = DriftAttachmentRuntime(driftRepositories.attachments);
     historyProjectionRepository = DriftHistoryProjectionRepository(
       database: database,
@@ -105,6 +113,8 @@ class AppCompositionRoot implements AppRuntimeDependencies {
       driftRepositories.milestones;
   @override
   late final TaskRepository taskRepository;
+  @override
+  late final TaskReminderRuntime taskReminderRuntime;
   @override
   late final WorkCaseRuntime workCaseRuntime;
   @override
