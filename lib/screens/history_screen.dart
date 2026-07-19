@@ -5,7 +5,7 @@ import '../models/enums.dart';
 import '../models/item.dart';
 import '../models/maintenance_record.dart';
 import '../repositories/item_read_repository.dart';
-import '../repositories/maintenance_record_local_repository.dart';
+import '../repositories/maintenance_record_repository.dart';
 import '../widgets/empty_history_state.dart';
 import '../widgets/history_header.dart';
 import '../widgets/history_month_section.dart';
@@ -20,7 +20,7 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
-  late MaintenanceRecordLocalRepository _recordRepository;
+  late MaintenanceRecordRepository _recordRepository;
   late ItemReadRepository _itemRepository;
   bool _dependenciesInitialized = false;
   List<MaintenanceRecord>? _localRecords;
@@ -46,7 +46,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Future<void> _loadLocalData() async {
-    final records = await _recordRepository.loadRecords();
+    final records = await _recordRepository.listAll();
     final items = await _itemRepository.loadItems();
     if (!mounted) {
       return;

@@ -5,6 +5,8 @@
 日期：2026-07-19
 適用 PR：#210
 
+> 歷史基線：本文件記錄 v0.5.9／PR #210 建立正式 MaintenanceRecord Runtime 時的注入策略。自 v0.5.11／PR #212 起，Items／History 統一讀取 Drift，啟動失敗改進入 Drift 唯讀安全狀態；現行規則以 `24-drift-safe-runtime-and-maintenance-record-read-cutover.md` 為準。
+
 ## 1. 正式角色
 
 MaintenanceRecord 是已完成的簡單處理事實，不是案件、案件進度或正式案件結案。

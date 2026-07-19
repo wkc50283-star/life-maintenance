@@ -24,6 +24,15 @@ class DriftMaintenanceRecordRuntimeRepository
   }
 
   @override
+  Future<List<MaintenanceRecord>> listAll() async {
+    final query = _database.select(_database.maintenanceRecords)
+      ..orderBy([(table) => OrderingTerm.desc(table.date)]);
+    return (await query.get())
+        .map((row) => row.toMaintenanceRecord())
+        .toList(growable: false);
+  }
+
+  @override
   Future<List<MaintenanceRecord>> listForItem(String itemId) async {
     await _requireItem(itemId);
     final query = _database.select(_database.maintenanceRecords)

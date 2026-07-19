@@ -92,7 +92,7 @@ void main() {
       expect(first.usesDriftWorkCases, isTrue);
       expect(first.usesDriftHistoryAttachments, isTrue);
       expect(first.usesDriftMaintenanceRecords, isTrue);
-      expect(root.formalMaintenanceRecordRepository, isNotNull);
+      expect(root.maintenanceRecordRepository, isNotNull);
       expect(root.workCaseRuntime, isNotNull);
       expect(root.historyProjectionRepository, isNotNull);
       expect(root.attachmentRuntime, isNotNull);
@@ -196,7 +196,7 @@ void main() {
   );
 
   test(
-    'blocked startup rolls back and keeps legacy runtime writable',
+    'blocked startup enters Drift safe mode and keeps legacy read only',
     () async {
       final item = Item(
         id: 'item-1',
@@ -218,15 +218,19 @@ void main() {
 
       final result = await root.initialize();
 
-      expect(result.mode, RuntimeDataMode.legacy);
+      expect(result.mode, RuntimeDataMode.driftSafeReadOnly);
       expect(root.workCaseRuntime, isNull);
-      expect(root.historyProjectionRepository, isNull);
+      expect(root.historyProjectionRepository, isNotNull);
       expect(root.attachmentRuntime, isNull);
       expect(result.importReport?.status, LegacyDriftImportStatus.blocked);
-      expect(root.legacyWritesEnabled, isTrue);
-      expect((await root.itemReadRepository.loadItems()).single.id, item.id);
+      expect(root.legacyWritesEnabled, isFalse);
+      expect(root.formalWritesEnabled, isFalse);
+      expect(await root.itemReadRepository.loadItems(), isEmpty);
       expect(await root.driftRepositories.items.listAll(), isEmpty);
-      await storage.saveString('items', rawItems);
+      await expectLater(
+        storage.saveString('items', rawItems),
+        throwsA(isA<LegacyStorageReadOnlyException>()),
+      );
       expect(await storage.readString('backup_v1_items'), '[]');
 
       await database.close();

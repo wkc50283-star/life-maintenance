@@ -5,6 +5,8 @@
 日期：2026-07-19
 適用 PR：#211
 
+> 歷史稽核：本文件保留 v0.5.10／PR #211 當時的 blocker 與證據。PR #212 已解除 MaintenanceRecord Local read 及 Legacy writer fallback 阻擋；v0.5.11 現行 Runtime、rollback 與 Gate 規則以 `24-drift-safe-runtime-and-maintenance-record-read-cutover.md` 為準。
+
 ## 1. 結論
 
 本次依 `lib/main.dart` 正式入口，完整掃描 `lib/app`、`lib/screens`、`lib/widgets`、`lib/services`、`lib/repositories` 與全部 `test`。

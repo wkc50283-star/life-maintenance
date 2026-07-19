@@ -5,6 +5,8 @@
 日期：2026-07-19
 適用 PR：#205
 
+> 歷史基線：本文件記錄 v0.5.4／PR #205 的初始 rollback 設計。自 v0.5.11／PR #212 起，啟動驗證失敗不得恢復 Legacy writer，正式規則改由 `24-drift-safe-runtime-and-maintenance-record-read-cutover.md` 控制。
+
 ## 1. 正式範圍
 
 App 啟動時由唯一 `AppCompositionRoot` 先建立不可變備份、解析四組舊來源並執行既有安全 importer。只有 importer 回報 `imported` 或 `alreadyImported`，才把 ItemCategory／Item 的正式 read repository 切換為 Drift。

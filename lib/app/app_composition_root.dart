@@ -6,6 +6,7 @@ import '../repositories/drift/drift_item_read_repository.dart';
 import '../repositories/drift/drift_attachment_runtime.dart';
 import '../repositories/drift/drift_history_projection_repository.dart';
 import '../repositories/drift/drift_maintenance_record_repository.dart';
+import '../repositories/drift/drift_safe_read_only_runtime.dart';
 import '../repositories/drift/drift_schedule_runtime_repository.dart';
 import '../repositories/drift/drift_schema_v2_repositories.dart';
 import '../repositories/drift/drift_task_runtime_repository.dart';
@@ -29,13 +30,13 @@ import '../services/maintenance_task_service.dart';
 
 /// Owns the process-wide runtime dependencies.
 ///
-/// Legacy repositories remain available only for roles that have not completed
-/// a controlled cutover. Item reads switch to Drift after verified import.
+/// Production reads and writes use Drift after admission. Legacy repositories
+/// remain only for preflight parsing, immutable backup, and test injection; an
+/// admission failure activates Drift read-only mode instead of a legacy writer.
 abstract interface class AppRuntimeDependencies {
   ItemReadRepository get itemReadRepository;
   ItemLocalRepository get itemRepository;
-  MaintenanceRecordLocalRepository get maintenanceRecordRepository;
-  MaintenanceRecordRepository? get formalMaintenanceRecordRepository;
+  MaintenanceRecordRepository get maintenanceRecordRepository;
   ScheduleRepository get scheduleRepository;
   DriftMaintenancePlanRepository? get maintenancePlanRepository;
   DriftGeneralReminderRepository? get generalReminderRepository;
@@ -49,6 +50,7 @@ abstract interface class AppRuntimeDependencies {
   MaintenanceTaskService get maintenanceTaskService;
   bool get legacyWritesEnabled;
   bool get usesDriftPlanning;
+  bool get formalWritesEnabled;
 }
 
 class LegacyRuntimeDependencies implements AppRuntimeDependencies {
@@ -72,8 +74,6 @@ class LegacyRuntimeDependencies implements AppRuntimeDependencies {
   final ItemLocalRepository itemRepository;
   @override
   final MaintenanceRecordLocalRepository maintenanceRecordRepository;
-  @override
-  MaintenanceRecordRepository? get formalMaintenanceRecordRepository => null;
   @override
   final ScheduleLocalRepository scheduleRepository;
   @override
@@ -100,10 +100,13 @@ class LegacyRuntimeDependencies implements AppRuntimeDependencies {
   bool get legacyWritesEnabled => _legacyStorage.writesEnabled;
   @override
   bool get usesDriftPlanning => false;
+  @override
+  bool get formalWritesEnabled => true;
 }
 
 enum RuntimeDataMode {
   legacy,
+  driftSafeReadOnly,
   driftItemRead,
   driftPlanning,
   driftTasks,
@@ -119,6 +122,8 @@ class RuntimeInitializationResult {
   final LegacyDriftImportReport? importReport;
 
   bool get usesDriftItemRead => mode != RuntimeDataMode.legacy;
+
+  bool get isDriftSafeReadOnly => mode == RuntimeDataMode.driftSafeReadOnly;
 
   bool get usesDriftPlanning =>
       mode == RuntimeDataMode.driftPlanning ||
@@ -154,9 +159,22 @@ class AppCompositionRoot implements AppRuntimeDependencies {
   }) : driftRepositories = DriftSchemaV2Repositories(database),
        _legacyStorage = legacyStorage,
        _runtime = LegacyRuntimeDependencies(legacyStorage) {
+    _driftItemReadRepository = DriftItemReadRepository(driftRepositories);
+    _driftScheduleRepository = DriftScheduleRuntimeRepository(
+      database: database,
+      repositories: driftRepositories,
+    );
+    _driftTaskRepository = DriftTaskRuntimeRepository(
+      database: database,
+      repositories: driftRepositories,
+    );
+    _driftMaintenanceRecordRepository = DriftMaintenanceRecordRuntimeRepository(
+      database,
+    );
     _itemReadRepository = _runtime.itemRepository;
     _scheduleRepository = _runtime.scheduleRepository;
     _taskRepository = _runtime.taskRepository;
+    _maintenanceRecordRepository = _runtime.maintenanceRecordRepository;
   }
 
   factory AppCompositionRoot.production() => AppCompositionRoot(
@@ -173,29 +191,38 @@ class AppCompositionRoot implements AppRuntimeDependencies {
   late ItemReadRepository _itemReadRepository;
   late ScheduleRepository _scheduleRepository;
   late TaskRepository _taskRepository;
+  late MaintenanceRecordRepository _maintenanceRecordRepository;
+  late final DriftItemReadRepository _driftItemReadRepository;
+  late final DriftScheduleRuntimeRepository _driftScheduleRepository;
+  late final DriftTaskRuntimeRepository _driftTaskRepository;
+  late final DriftMaintenanceRecordRuntimeRepository
+  _driftMaintenanceRecordRepository;
   WorkCaseRuntime? _workCaseRuntime;
   HistoryProjectionRepository? _historyProjectionRepository;
   AttachmentRuntime? _attachmentRuntime;
-  MaintenanceRecordRepository? _formalMaintenanceRecordRepository;
+  bool _formalWritesEnabled = false;
   Future<RuntimeInitializationResult>? _initialization;
 
   Future<RuntimeInitializationResult> initialize() =>
       _initialization ??= _initialize();
 
   Future<RuntimeInitializationResult> _initialize() async {
-    await localDataBackupService.createPreMigrationBackups();
-    await Future.wait<void>([
-      itemRepository.loadItems().then((_) {}),
-      scheduleRepository.loadSchedules().then((_) {}),
-      _runtime.taskRepository.loadTasks().then((_) {}),
-      maintenanceRecordRepository.loadRecords().then((_) {}),
-    ]);
-    if (localDataIntegrityService.hasIssues) {
-      return const RuntimeInitializationResult(mode: RuntimeDataMode.legacy);
-    }
-
-    _legacyStorage.disableWrites();
     try {
+      await localDataBackupService.createPreMigrationBackups();
+      await Future.wait<void>([
+        itemRepository.loadItems().then((_) {}),
+        scheduleRepository.loadSchedules().then((_) {}),
+        _runtime.taskRepository.loadTasks().then((_) {}),
+        _runtime.maintenanceRecordRepository.loadRecords().then((_) {}),
+      ]);
+      if (localDataIntegrityService.hasIssues) {
+        _activateDriftSafeReadOnly();
+        return const RuntimeInitializationResult(
+          mode: RuntimeDataMode.driftSafeReadOnly,
+        );
+      }
+
+      _legacyStorage.disableWrites();
       final report =
           await LegacyDriftImportService(
             database: database,
@@ -204,15 +231,10 @@ class AppCompositionRoot implements AppRuntimeDependencies {
             sourceWritesAreDisabled: true,
             allowVerifiedPlanningMutations: true,
           );
-      _itemReadRepository = DriftItemReadRepository(driftRepositories);
-      _scheduleRepository = DriftScheduleRuntimeRepository(
-        database: database,
-        repositories: driftRepositories,
-      );
-      _taskRepository = DriftTaskRuntimeRepository(
-        database: database,
-        repositories: driftRepositories,
-      );
+      _itemReadRepository = _driftItemReadRepository;
+      _scheduleRepository = _driftScheduleRepository;
+      _taskRepository = _driftTaskRepository;
+      _maintenanceRecordRepository = _driftMaintenanceRecordRepository;
       _workCaseRuntime = DriftWorkCaseRuntime(
         database: database,
         workCases: driftRepositories.workCases,
@@ -225,36 +247,42 @@ class AppCompositionRoot implements AppRuntimeDependencies {
         database: database,
         attachments: driftRepositories.attachments,
       );
-      _formalMaintenanceRecordRepository =
-          DriftMaintenanceRecordRuntimeRepository(database);
+      _formalWritesEnabled = true;
       return RuntimeInitializationResult(
         mode: RuntimeDataMode.driftMaintenanceRecords,
         importReport: report,
       );
     } on LegacyDriftImportException catch (error) {
-      _legacyStorage.enableWrites();
-      _itemReadRepository = _runtime.itemRepository;
-      _scheduleRepository = _runtime.scheduleRepository;
-      _taskRepository = _runtime.taskRepository;
-      _workCaseRuntime = null;
-      _historyProjectionRepository = null;
-      _attachmentRuntime = null;
-      _formalMaintenanceRecordRepository = null;
+      _activateDriftSafeReadOnly();
       return RuntimeInitializationResult(
-        mode: RuntimeDataMode.legacy,
+        mode: RuntimeDataMode.driftSafeReadOnly,
         importReport: error.report,
       );
     } catch (_) {
-      _legacyStorage.enableWrites();
-      _itemReadRepository = _runtime.itemRepository;
-      _scheduleRepository = _runtime.scheduleRepository;
-      _taskRepository = _runtime.taskRepository;
-      _workCaseRuntime = null;
-      _historyProjectionRepository = null;
-      _attachmentRuntime = null;
-      _formalMaintenanceRecordRepository = null;
-      return const RuntimeInitializationResult(mode: RuntimeDataMode.legacy);
+      _activateDriftSafeReadOnly();
+      return const RuntimeInitializationResult(
+        mode: RuntimeDataMode.driftSafeReadOnly,
+      );
     }
+  }
+
+  void _activateDriftSafeReadOnly() {
+    _legacyStorage.disableWrites();
+    _itemReadRepository = _driftItemReadRepository;
+    _scheduleRepository = DriftSafeReadOnlyScheduleRepository(
+      _driftScheduleRepository,
+    );
+    _taskRepository = DriftSafeReadOnlyTaskRepository(_driftTaskRepository);
+    _maintenanceRecordRepository = DriftSafeReadOnlyMaintenanceRecordRepository(
+      _driftMaintenanceRecordRepository,
+    );
+    _workCaseRuntime = null;
+    _attachmentRuntime = null;
+    _historyProjectionRepository = DriftHistoryProjectionRepository(
+      database: database,
+      attachments: driftRepositories.attachments,
+    );
+    _formalWritesEnabled = false;
   }
 
   @override
@@ -262,11 +290,8 @@ class AppCompositionRoot implements AppRuntimeDependencies {
   @override
   ItemLocalRepository get itemRepository => _runtime.itemRepository;
   @override
-  MaintenanceRecordLocalRepository get maintenanceRecordRepository =>
-      _runtime.maintenanceRecordRepository;
-  @override
-  MaintenanceRecordRepository? get formalMaintenanceRecordRepository =>
-      _formalMaintenanceRecordRepository;
+  MaintenanceRecordRepository get maintenanceRecordRepository =>
+      _maintenanceRecordRepository;
   @override
   ScheduleRepository get scheduleRepository => _scheduleRepository;
   @override
@@ -301,6 +326,8 @@ class AppCompositionRoot implements AppRuntimeDependencies {
   @override
   bool get usesDriftPlanning =>
       _scheduleRepository is DriftScheduleRuntimeRepository;
+  @override
+  bool get formalWritesEnabled => _formalWritesEnabled;
 
   Future<void> dispose() async {
     if (ownsDatabase) {

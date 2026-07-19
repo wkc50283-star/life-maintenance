@@ -1,6 +1,6 @@
 # 生活管理 App
 
-目前版本：**v0.5.10 Legacy Runtime Retirement Gate Audit**
+目前版本：**v0.5.11 Drift Safe Runtime Gate**
 
 `life-maintenance` 是一個 Flutter 生活管理 App，目標是管理生活項目、固定週期、到期提醒、階段性重點、突發事項與工程，並保存每一次處理從開始到結束的完整史略。
 
@@ -36,7 +36,7 @@
 
 ## 目前狀態
 
-`v0.5.10` 完成 Legacy Runtime 最終稽核與退休 Gate。成功 cutover 後 Drift 是唯一正式 domain writer，SharedPreferences 與不可變備份不雙寫、不刪除或覆蓋，冷啟動會重新驗證 admission 後維持 Drift Runtime。因 Items／History 仍有舊完成紀錄讀取，以及完整 rollback 仍需要舊來源，退休 Gate 尚未通過，不得刪除 Legacy Runtime。
+`v0.5.11` 解除 Legacy Runtime writer fallback：Items／History 的 MaintenanceRecord 讀取統一由正式 Drift Repository 提供；啟動驗證失敗時進入 Drift 唯讀安全狀態，不再恢復舊 Runtime writer。SharedPreferences 與不可變 `backup_v1_*` 只保留為唯讀回復來源，不雙寫、不刪除或覆蓋；Legacy 程式本版仍保留，不執行刪除。
 
 已完成的資料與治理基礎：
 
@@ -60,6 +60,7 @@
 - 正式唯讀 History Projection 與 Attachment managed identifier／owner／生命週期 Runtime
 - MaintenanceRecord 正式 Drift Runtime、簡單 Task 完成 transaction 與 WorkCaseClosure 邊界
 - Legacy Runtime 全量引用稽核、唯一 writer／冷啟動／rollback 防回歸 Gate
+- Items／History 的 MaintenanceRecord Drift read cutover 與啟動失敗 Drift 唯讀安全狀態
 - Flutter Analyze、Test、Web Build、Drift code generation 與 Web 資產自動 CI
 
 後續依序進行：
@@ -67,7 +68,7 @@
 1. 完成真實裝置來源唯讀與匯入預覽驗收
 2. 保養／修理卡、工程卡與多筆進度 UI
 3. 階段性重點
-4. 將既有史略畫面切換至正式 Projection
+4. 擴充正式史略畫面的案件、附件與排序呈現
 5. 正式 UI／UX 與真機驗收
 
 ## 支援週期
