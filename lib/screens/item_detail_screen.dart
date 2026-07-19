@@ -13,6 +13,7 @@ import '../models/schedule.dart';
 import '../models/work_case.dart';
 import '../models/work_case_enums.dart';
 import '../models/work_case_update.dart';
+import 'formal_planning_screens.dart';
 
 class ItemDetailScreen extends StatefulWidget {
   const ItemDetailScreen({super.key, required this.item});
@@ -135,7 +136,17 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('生活項目詳情')),
+      appBar: AppBar(
+        title: const Text('生活項目詳情'),
+        actions: [
+          if (formalPlanningEditor(context) != null)
+            IconButton(
+              tooltip: '編輯生活項目',
+              onPressed: _editItem,
+              icon: const Icon(Icons.edit_outlined),
+            ),
+        ],
+      ),
       body: switch ((_snapshot, _loadError)) {
         (null, null) => const Center(child: CircularProgressIndicator()),
         (null, _) => _LoadFailure(onRetry: _retry),
@@ -150,6 +161,16 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
   void _retry() {
     setState(() => _loadError = null);
     _load();
+  }
+
+  Future<void> _editItem() async {
+    final editor = formalPlanningEditor(context);
+    final value = await editor?.findItem(widget.item.id);
+    if (!mounted || value == null) return;
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => ItemFormScreen(value: value)),
+    );
+    if (changed == true && mounted) Navigator.pop(context, true);
   }
 }
 
@@ -181,6 +202,11 @@ class _ItemDetailBody extends StatelessWidget {
         _DetailSection(
           title: '保養項目',
           icon: Icons.home_repair_service_outlined,
+          onManage: () => _openPlanning(
+            context,
+            PlanningContentKind.maintenancePlan,
+            item.id,
+          ),
           child: snapshot.plans.isEmpty
               ? const _EmptyMessage('目前沒有保養項目。')
               : Column(
@@ -198,6 +224,8 @@ class _ItemDetailBody extends StatelessWidget {
         _DetailSection(
           title: '一般提醒',
           icon: Icons.notifications_none_rounded,
+          onManage: () =>
+              _openPlanning(context, PlanningContentKind.reminder, item.id),
           child: snapshot.reminders.isEmpty
               ? const _EmptyMessage('目前沒有一般提醒。')
               : Column(
@@ -216,6 +244,8 @@ class _ItemDetailBody extends StatelessWidget {
         _DetailSection(
           title: '提醒與排程',
           icon: Icons.event_repeat_outlined,
+          onManage: () =>
+              _openPlanning(context, PlanningContentKind.schedule, item.id),
           child: snapshot.schedules.isEmpty
               ? const _EmptyMessage('目前沒有排程。')
               : Column(
@@ -233,6 +263,8 @@ class _ItemDetailBody extends StatelessWidget {
         _DetailSection(
           title: '階段性重點／大修',
           icon: Icons.flag_outlined,
+          onManage: () =>
+              _openPlanning(context, PlanningContentKind.milestone, item.id),
           child: snapshot.milestones.isEmpty
               ? const _EmptyMessage('目前沒有階段性重點或大修。')
               : Column(
@@ -472,11 +504,13 @@ class _DetailSection extends StatelessWidget {
     required this.title,
     required this.icon,
     required this.child,
+    this.onManage,
   });
 
   final String title;
   final IconData icon;
   final Widget child;
+  final VoidCallback? onManage;
 
   @override
   Widget build(BuildContext context) {
@@ -496,13 +530,17 @@ class _DetailSection extends StatelessWidget {
               children: [
                 Icon(icon, color: const Color(0xFF5D7893)),
                 const SizedBox(width: 10),
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: const Color(0xFF263746),
-                    fontWeight: FontWeight.w900,
+                Expanded(
+                  child: Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: const Color(0xFF263746),
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
+                if (onManage != null)
+                  TextButton(onPressed: onManage, child: const Text('管理')),
               ],
             ),
             const SizedBox(height: 14),
@@ -687,6 +725,18 @@ List<Attachment> _attachmentsFrom(HistoryProjection? history) {
     }
   }
   return attachments;
+}
+
+Future<void> _openPlanning(
+  BuildContext context,
+  PlanningContentKind kind,
+  String itemId,
+) {
+  return Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => PlanningContentScreen(kind: kind, initialItemId: itemId),
+    ),
+  );
 }
 
 String _planDetail(MaintenancePlan plan, List<Schedule> schedules) {

@@ -73,11 +73,14 @@ class _ItemsScreenState extends State<ItemsScreen> {
               location: item.location ?? '未設定',
               dateLine: _dateLineForItem(item),
               icon: _iconForCategory(item.category),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => ItemDetailScreen(item: item),
-                ),
-              ),
+              onTap: () async {
+                final changed = await Navigator.of(context).push<bool>(
+                  MaterialPageRoute<bool>(
+                    builder: (_) => ItemDetailScreen(item: item),
+                  ),
+                );
+                if (changed == true) await _loadItems();
+              },
             ),
       ],
     );
