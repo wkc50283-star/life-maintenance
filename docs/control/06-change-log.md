@@ -1978,6 +1978,37 @@ Task 已正式切換至 Drift，但畫面仍使用舊保養卡預覽，無法查
 
 ---
 
+## LM-054：v0.5.25 Performance Audit
+
+日期：2026-07-20
+狀態：已核准施工，待 PR #226 驗收
+
+### 變更內容
+
+- 以 80 個 Item、400 個 Task、400 筆 History 記錄與 800 筆 Attachment metadata 稽核正式 Drift Runtime。
+- 驗證首頁與史略在手機尺寸下的大量資料載入、連續捲動、時間與記憶體界線。
+- 以 `EXPLAIN QUERY PLAN` 鎖定 Task、MaintenanceRecord、Attachment 與 WorkCase 正式索引。
+- 新增可由 CI 重跑的效能防回歸 Gate；未發現需要修改 production code 的阻擋性瓶頸。
+- 版本更新為 v0.5.25。
+
+### 明確未修改
+
+不修改 UI、Schema、Migration、Domain、Runtime 或正式生命週期；不新增功能、cache、API、資料表或平行流程，不做無關重構、不開始下一個 PR。
+
+### 資料影響與回復
+
+沒有正式資料讀寫、Schema 或資料格式變更。壓力資料只存在於測試的記憶體資料庫，測試結束即關閉。程式回復只需還原 tests、文件與版本。
+
+### 驗收依據
+
+以 PR #226 的大量資料 query-plan、查詢時間、首頁／史略載入與捲動、RSS 記憶體 Gate、codegen 無差異、Analyze、全部測試、Web release build 與 GitHub Actions 為準。
+
+### 追蹤
+
+- PR #226
+
+---
+
 ## 後續條目模板
 
 ```text
