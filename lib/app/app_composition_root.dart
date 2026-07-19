@@ -3,11 +3,15 @@ import 'package:flutter/widgets.dart';
 import '../database/app_database.dart';
 import '../models/legacy_drift_import_report.dart';
 import '../repositories/drift/drift_item_read_repository.dart';
+import '../repositories/drift/drift_attachment_runtime.dart';
+import '../repositories/drift/drift_history_projection_repository.dart';
 import '../repositories/drift/drift_schedule_runtime_repository.dart';
 import '../repositories/drift/drift_schema_v2_repositories.dart';
 import '../repositories/drift/drift_task_runtime_repository.dart';
 import '../repositories/drift/drift_work_case_runtime.dart';
 import '../repositories/item_local_repository.dart';
+import '../repositories/attachment_runtime.dart';
+import '../repositories/history_projection_repository.dart';
 import '../repositories/item_read_repository.dart';
 import '../repositories/maintenance_record_local_repository.dart';
 import '../repositories/schedule_local_repository.dart';
@@ -35,6 +39,8 @@ abstract interface class AppRuntimeDependencies {
   DriftMilestoneRepository? get milestoneRepository;
   TaskRepository get taskRepository;
   WorkCaseRuntime? get workCaseRuntime;
+  HistoryProjectionRepository? get historyProjectionRepository;
+  AttachmentRuntime? get attachmentRuntime;
   LocalDataBackupService get localDataBackupService;
   LocalDataIntegrityService get localDataIntegrityService;
   MaintenanceTaskService get maintenanceTaskService;
@@ -76,6 +82,10 @@ class LegacyRuntimeDependencies implements AppRuntimeDependencies {
   @override
   WorkCaseRuntime? get workCaseRuntime => null;
   @override
+  HistoryProjectionRepository? get historyProjectionRepository => null;
+  @override
+  AttachmentRuntime? get attachmentRuntime => null;
+  @override
   final LocalDataBackupService localDataBackupService;
   @override
   final LocalDataIntegrityService localDataIntegrityService;
@@ -93,6 +103,7 @@ enum RuntimeDataMode {
   driftPlanning,
   driftTasks,
   driftWorkCases,
+  driftHistoryAttachments,
 }
 
 class RuntimeInitializationResult {
@@ -106,13 +117,20 @@ class RuntimeInitializationResult {
   bool get usesDriftPlanning =>
       mode == RuntimeDataMode.driftPlanning ||
       mode == RuntimeDataMode.driftTasks ||
-      mode == RuntimeDataMode.driftWorkCases;
+      mode == RuntimeDataMode.driftWorkCases ||
+      mode == RuntimeDataMode.driftHistoryAttachments;
 
   bool get usesDriftTasks =>
       mode == RuntimeDataMode.driftTasks ||
-      mode == RuntimeDataMode.driftWorkCases;
+      mode == RuntimeDataMode.driftWorkCases ||
+      mode == RuntimeDataMode.driftHistoryAttachments;
 
-  bool get usesDriftWorkCases => mode == RuntimeDataMode.driftWorkCases;
+  bool get usesDriftWorkCases =>
+      mode == RuntimeDataMode.driftWorkCases ||
+      mode == RuntimeDataMode.driftHistoryAttachments;
+
+  bool get usesDriftHistoryAttachments =>
+      mode == RuntimeDataMode.driftHistoryAttachments;
 }
 
 class AppCompositionRoot implements AppRuntimeDependencies {
@@ -143,6 +161,8 @@ class AppCompositionRoot implements AppRuntimeDependencies {
   late ScheduleRepository _scheduleRepository;
   late TaskRepository _taskRepository;
   WorkCaseRuntime? _workCaseRuntime;
+  HistoryProjectionRepository? _historyProjectionRepository;
+  AttachmentRuntime? _attachmentRuntime;
   Future<RuntimeInitializationResult>? _initialization;
 
   Future<RuntimeInitializationResult> initialize() =>
@@ -184,8 +204,15 @@ class AppCompositionRoot implements AppRuntimeDependencies {
         workCases: driftRepositories.workCases,
         closures: driftRepositories.workCaseClosures,
       );
+      _attachmentRuntime = DriftAttachmentRuntime(
+        driftRepositories.attachments,
+      );
+      _historyProjectionRepository = DriftHistoryProjectionRepository(
+        database: database,
+        attachments: driftRepositories.attachments,
+      );
       return RuntimeInitializationResult(
-        mode: RuntimeDataMode.driftWorkCases,
+        mode: RuntimeDataMode.driftHistoryAttachments,
         importReport: report,
       );
     } on LegacyDriftImportException catch (error) {
@@ -194,6 +221,8 @@ class AppCompositionRoot implements AppRuntimeDependencies {
       _scheduleRepository = _runtime.scheduleRepository;
       _taskRepository = _runtime.taskRepository;
       _workCaseRuntime = null;
+      _historyProjectionRepository = null;
+      _attachmentRuntime = null;
       return RuntimeInitializationResult(
         mode: RuntimeDataMode.legacy,
         importReport: error.report,
@@ -204,6 +233,8 @@ class AppCompositionRoot implements AppRuntimeDependencies {
       _scheduleRepository = _runtime.scheduleRepository;
       _taskRepository = _runtime.taskRepository;
       _workCaseRuntime = null;
+      _historyProjectionRepository = null;
+      _attachmentRuntime = null;
       return const RuntimeInitializationResult(mode: RuntimeDataMode.legacy);
     }
   }
@@ -230,6 +261,11 @@ class AppCompositionRoot implements AppRuntimeDependencies {
   TaskRepository get taskRepository => _taskRepository;
   @override
   WorkCaseRuntime? get workCaseRuntime => _workCaseRuntime;
+  @override
+  HistoryProjectionRepository? get historyProjectionRepository =>
+      _historyProjectionRepository;
+  @override
+  AttachmentRuntime? get attachmentRuntime => _attachmentRuntime;
   @override
   LocalDataBackupService get localDataBackupService =>
       _runtime.localDataBackupService;

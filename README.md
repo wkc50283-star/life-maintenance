@@ -1,6 +1,6 @@
 # 生活管理 App
 
-目前版本：**v0.5.7 Formal WorkCase Runtime**
+目前版本：**v0.5.8 History Projection and Attachment Runtime**
 
 `life-maintenance` 是一個 Flutter 生活管理 App，目標是管理生活項目、固定週期、到期提醒、階段性重點、突發事項與工程，並保存每一次處理從開始到結束的完整史略。
 
@@ -36,7 +36,7 @@
 
 ## 目前狀態
 
-`v0.5.7` 在受控匯入驗證後開放正式 WorkCase Runtime。案件可由正式 Task 或使用者手動建立，保存多筆不可覆寫的 WorkCaseUpdate，並以唯一 WorkCaseClosure 與案件終止狀態的單一 transaction 正式結案。所有來源、後續關聯與案件必須屬於同一 Item；Task 仍只是提醒，History 仍只是投影，SharedPreferences 與不可變備份維持唯讀。
+`v0.5.8` 在受控匯入驗證後提供正式唯讀 History Projection 與 Attachment Runtime。History 由 WorkCase、WorkCaseUpdate、WorkCaseClosure、MaintenanceRecord、Task、Milestone 與 Attachment 即時組合，不新增 History table 或 writer；附件只接受正式 Owner 與穩定 managed identifier，保存 MIME、Hash、狀態及遺失／刪除時間。SharedPreferences 與不可變備份維持唯讀。
 
 已完成的資料與治理基礎：
 
@@ -57,6 +57,7 @@
 - 啟動時受控匯入、失敗 rollback、重啟零寫入驗證與 ItemCategory／Item Drift 讀取切換
 - MaintenancePlan、GeneralReminder、Milestone、Schedule 的 Drift Runtime Repository、source contract、anchor policy 與 transaction 切換
 - 保養項目、排程、任務與案件的資料角色已重新分離
+- 正式唯讀 History Projection 與 Attachment managed identifier／owner／生命週期 Runtime
 - Flutter Analyze、Test、Web Build、Drift code generation 與 Web 資產自動 CI
 
 後續依序進行：
@@ -66,7 +67,7 @@
 3. 開放正式 Drift mutation
 4. 保養／修理卡、工程卡與多筆進度 UI
 5. 階段性重點
-6. 統一史略視圖
+6. 將既有史略畫面切換至正式 Projection
 7. 正式 UI／UX 與真機驗收
 
 ## 支援週期

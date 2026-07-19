@@ -8,6 +8,7 @@ import '../../models/milestone.dart';
 import '../../models/milestone_enums.dart';
 import '../../models/work_case_closure.dart';
 import '../../models/work_case_enums.dart';
+import '../attachment_repository.dart';
 import '../repository_constraint_exception.dart';
 import '../work_case_closure_repository.dart';
 import 'drift_work_case_repository.dart';
@@ -814,17 +815,19 @@ class DriftWorkCaseClosureRepository implements WorkCaseClosureRepository {
   }
 }
 
-class DriftAttachmentRepository {
+class DriftAttachmentRepository implements AttachmentRepository {
   DriftAttachmentRepository(this._database);
 
   final AppDatabase _database;
 
+  @override
   Future<Attachment?> findById(String id) async {
     final query = _database.select(_database.attachments)
       ..where((table) => table.id.equals(id));
     return (await query.getSingleOrNull())?.toModel();
   }
 
+  @override
   Future<List<Attachment>> listForOwner(
     AttachmentOwnerType ownerType,
     String ownerId,
@@ -839,6 +842,7 @@ class DriftAttachmentRepository {
     return (await query.get()).map((row) => row.toModel()).toList();
   }
 
+  @override
   Future<void> create(Attachment attachment) async {
     await _database.transaction(() async {
       if (attachment.ownerType == AttachmentOwnerType.unknown) {
@@ -852,6 +856,7 @@ class DriftAttachmentRepository {
           'Attachment identifier and MIME type are required.',
         );
       }
+      _requireManagedAttachmentIdentifier(attachment.storageIdentifier);
       if (attachment.state != AttachmentState.available ||
           attachment.missingAt != null ||
           attachment.deletedAt != null) {
@@ -866,45 +871,68 @@ class DriftAttachmentRepository {
     });
   }
 
-  Future<void> verify(String id, DateTime verifiedAt) async {
-    final attachment = await _requireAttachment(id);
-    if (attachment.isDeleted) {
-      throw const RepositoryConstraintException(
-        'A deleted Attachment cannot be verified.',
+  @override
+  Future<void> markAvailable(String id, DateTime verifiedAt) async {
+    await _database.transaction(() async {
+      final attachment = await _requireAttachment(id);
+      if (attachment.isDeleted) {
+        throw const RepositoryConstraintException(
+          'A deleted Attachment cannot become available.',
+        );
+      }
+      _requireLifecycleTime(attachment, verifiedAt);
+      await (_database.update(
+        _database.attachments,
+      )..where((table) => table.id.equals(id))).write(
+        AttachmentsCompanion(
+          state: const Value('available'),
+          verifiedAt: Value(verifiedAt),
+          missingAt: const Value(null),
+        ),
       );
-    }
-    await (_database.update(_database.attachments)
-          ..where((table) => table.id.equals(id)))
-        .write(AttachmentsCompanion(verifiedAt: Value(verifiedAt)));
+    });
   }
 
+  @override
   Future<void> markMissing(String id, DateTime missingAt) async {
-    final attachment = await _requireAttachment(id);
-    if (attachment.isDeleted) {
-      throw const RepositoryConstraintException(
-        'A deleted Attachment cannot become missing.',
+    await _database.transaction(() async {
+      final attachment = await _requireAttachment(id);
+      if (attachment.isDeleted) {
+        throw const RepositoryConstraintException(
+          'A deleted Attachment cannot become missing.',
+        );
+      }
+      _requireLifecycleTime(attachment, missingAt);
+      await (_database.update(
+        _database.attachments,
+      )..where((table) => table.id.equals(id))).write(
+        AttachmentsCompanion(
+          state: const Value('missing'),
+          missingAt: Value(missingAt),
+        ),
       );
-    }
-    await (_database.update(
-      _database.attachments,
-    )..where((table) => table.id.equals(id))).write(
-      AttachmentsCompanion(
-        state: const Value('missing'),
-        missingAt: Value(missingAt),
-      ),
-    );
+    });
   }
 
+  @override
   Future<void> markDeleted(String id, DateTime deletedAt) async {
-    await _requireAttachment(id);
-    await (_database.update(
-      _database.attachments,
-    )..where((table) => table.id.equals(id))).write(
-      AttachmentsCompanion(
-        state: const Value('deleted'),
-        deletedAt: Value(deletedAt),
-      ),
-    );
+    await _database.transaction(() async {
+      final attachment = await _requireAttachment(id);
+      if (attachment.isDeleted) {
+        throw const RepositoryConstraintException(
+          'A deleted Attachment is immutable.',
+        );
+      }
+      _requireLifecycleTime(attachment, deletedAt);
+      await (_database.update(
+        _database.attachments,
+      )..where((table) => table.id.equals(id))).write(
+        AttachmentsCompanion(
+          state: const Value('deleted'),
+          deletedAt: Value(deletedAt),
+        ),
+      );
+    });
   }
 
   Future<Attachment> _requireAttachment(String id) async {
@@ -913,6 +941,14 @@ class DriftAttachmentRepository {
       throw RepositoryConstraintException('Attachment $id does not exist.');
     }
     return attachment;
+  }
+
+  void _requireLifecycleTime(Attachment attachment, DateTime occurredAt) {
+    if (occurredAt.isBefore(attachment.createdAt)) {
+      throw const RepositoryConstraintException(
+        'Attachment lifecycle time cannot precede creation.',
+      );
+    }
   }
 }
 
@@ -1135,6 +1171,23 @@ Future<void> _requireAttachmentOwner(
     throw RepositoryConstraintException(
       'Attachment owner ${attachment.ownerType.name}/${attachment.ownerId} '
       'does not exist.',
+    );
+  }
+}
+
+void _requireManagedAttachmentIdentifier(String identifier) {
+  final normalized = identifier.trim();
+  final looksLikeAbsolutePath =
+      normalized.startsWith('/') ||
+      normalized.startsWith(r'\\') ||
+      RegExp(r'^[A-Za-z]:[\\/]').hasMatch(normalized);
+  final looksLikePlatformUri =
+      normalized.startsWith('file:') ||
+      normalized.startsWith('content:') ||
+      normalized.startsWith('ph:');
+  if (looksLikeAbsolutePath || looksLikePlatformUri) {
+    throw const RepositoryConstraintException(
+      'Attachment requires a stable managed identifier, not a platform path.',
     );
   }
 }
