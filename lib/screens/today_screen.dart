@@ -5,15 +5,11 @@ import '../data/maintenance_card_catalog.dart';
 import '../models/enums.dart';
 import '../models/item.dart';
 import '../models/maintenance_card.dart';
-import '../models/maintenance_record.dart';
-import '../models/schedule.dart';
 import '../models/task.dart' as maintenance_task;
 import '../repositories/item_read_repository.dart';
-import '../repositories/maintenance_record_local_repository.dart';
 import '../repositories/schedule_repository.dart';
-import '../repositories/task_local_repository.dart';
+import '../repositories/task_repository.dart';
 import '../services/maintenance_task_service.dart';
-import '../widgets/completion_record_sheet.dart';
 import '../widgets/empty_tasks_state.dart';
 import '../widgets/maintenance_card_preview_sheet.dart';
 import '../widgets/task_card.dart';
@@ -30,16 +26,12 @@ class TodayScreen extends StatefulWidget {
   State<TodayScreen> createState() => _TodayScreenState();
 }
 
-enum _ScheduleFollowUpResult { updated, notApplicable, failed }
-
 class _TodayScreenState extends State<TodayScreen> {
   late ItemReadRepository _itemRepository;
-  late MaintenanceRecordLocalRepository _recordRepository;
   late ScheduleRepository _scheduleRepository;
-  late TaskLocalRepository _taskRepository;
+  late TaskRepository _taskRepository;
   late MaintenanceTaskService _taskService;
   bool _dependenciesInitialized = false;
-  final Set<String> _completingTaskIds = <String>{};
   List<Item>? _localItems;
   List<maintenance_task.Task>? _localTasks;
 
@@ -51,7 +43,6 @@ class _TodayScreenState extends State<TodayScreen> {
     }
     final root = AppCompositionScope.of(context);
     _itemRepository = root.itemReadRepository;
-    _recordRepository = root.maintenanceRecordRepository;
     _scheduleRepository =
         widget._scheduleRepositoryOverride ?? root.scheduleRepository;
     _taskRepository = root.taskRepository;
@@ -67,9 +58,6 @@ class _TodayScreenState extends State<TodayScreen> {
   }
 
   Future<void> _loadTasks() async {
-    final legacyWritesEnabled = AppCompositionScope.of(
-      context,
-    ).legacyWritesEnabled;
     final items = await _itemRepository.loadItems();
     final schedules = await _scheduleRepository.loadSchedules();
     final tasks = await _taskRepository.loadTasks();
@@ -78,13 +66,12 @@ class _TodayScreenState extends State<TodayScreen> {
       existingTasks: tasks,
       today: DateTime.now(),
     );
-    final updatedTasks = generatedTasks.isEmpty
-        ? tasks
-        : <maintenance_task.Task>[...tasks, ...generatedTasks];
-
-    if (generatedTasks.isNotEmpty && legacyWritesEnabled) {
-      await _taskRepository.saveTasks(updatedTasks);
+    if (generatedTasks.isNotEmpty) {
+      await _taskRepository.saveGeneratedTasks(generatedTasks);
     }
+    final currentTasks = generatedTasks.isEmpty
+        ? tasks
+        : await _taskRepository.loadTasks();
 
     if (!mounted) {
       return;
@@ -92,7 +79,7 @@ class _TodayScreenState extends State<TodayScreen> {
 
     setState(() {
       _localItems = items;
-      _localTasks = legacyWritesEnabled ? updatedTasks : tasks;
+      _localTasks = currentTasks;
     });
   }
 
@@ -126,7 +113,6 @@ class _TodayScreenState extends State<TodayScreen> {
 
                 final item = _itemForTask(task, localItems: localItems);
                 final card = _cardForTask(task);
-
                 showMaintenanceCardPreview(
                   context,
                   card: card,
@@ -137,503 +123,15 @@ class _TodayScreenState extends State<TodayScreen> {
                   riskLevelLabel: card == null
                       ? ''
                       : _labelForRiskLevel(card.riskLevel),
-                  onCompleteSteps: () {
-                    Future<void>.delayed(Duration.zero, () {
-                      if (!mounted) {
-                        return;
-                      }
-
-                      _showCompleteRecordSheet(task);
-                    });
-                  },
                 );
               },
               child: TaskCard(
                 task: _taskCardDataFor(task, localItems: localItems),
-                onComplete: () {
-                  _showCompleteRecordSheet(task);
-                },
               ),
             ),
       ],
     );
   }
-
-  Future<void> _showCompleteRecordSheet(maintenance_task.Task task) async {
-    if (!AppCompositionScope.of(context).legacyWritesEnabled) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('完成操作將在正式 Drift 寫入切換後開放')));
-      return;
-    }
-    final recordData = await showCompletionRecordSheet(
-      context,
-      followUpMode: _isManualExpiryReminderTask(task)
-          ? CompletionFollowUpMode.manualReminder
-          : CompletionFollowUpMode.maintenanceSchedule,
-    );
-
-    if (recordData == null) {
-      return;
-    }
-
-    if (!mounted) {
-      return;
-    }
-
-    await _completeTask(
-      task,
-      workDescription: recordData.workDescription,
-      cost: recordData.cost,
-      vendorName: recordData.vendorName,
-      partsChanged: recordData.partsChanged,
-      note: recordData.note,
-      result: recordData.result,
-      scheduleAction: recordData.scheduleAction,
-      manualReminderAction: recordData.manualReminderAction,
-      rescheduledDate: recordData.rescheduledDate,
-    );
-  }
-
-  Future<void> _completeTask(
-    maintenance_task.Task task, {
-    String? workDescription,
-    int? cost,
-    String? vendorName,
-    List<String> partsChanged = const [],
-    String? note,
-    String? result,
-    CompletionScheduleAction scheduleAction =
-        CompletionScheduleAction.continueCycle,
-    CompletionManualReminderAction manualReminderAction =
-        CompletionManualReminderAction.endReminder,
-    DateTime? rescheduledDate,
-  }) async {
-    if (_completingTaskIds.contains(task.id)) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('此任務正在完成')));
-      return;
-    }
-
-    _completingTaskIds.add(task.id);
-
-    try {
-      if (_isManualExpiryReminderTask(task) &&
-          manualReminderAction == CompletionManualReminderAction.reschedule) {
-        if (rescheduledDate == null) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('請選擇新的提醒日期')));
-          return;
-        }
-
-        if (!_isAfterToday(rescheduledDate)) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('請選擇新的提醒日期')));
-          return;
-        }
-
-        if (_hasConflictingManualReminderTask(task, rescheduledDate)) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('這個日期已有待處理提醒，請選擇其他日期')));
-          return;
-        }
-      }
-
-      final localTasks = _localTasks;
-      if (localTasks == null) {
-        return;
-      }
-
-      final taskIndex = localTasks.indexWhere(
-        (localTask) => localTask.id == task.id,
-      );
-      if (taskIndex == -1) {
-        return;
-      }
-
-      final currentTask = localTasks[taskIndex];
-      if (currentTask.status == TaskStatus.completed) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('此任務已完成')));
-        return;
-      }
-
-      final now = DateTime.now();
-      final updatedTasks = <maintenance_task.Task>[...localTasks];
-      updatedTasks[taskIndex] = currentTask.copyWith(
-        status: TaskStatus.completed,
-        completedAt: now,
-        overdue: false,
-      );
-
-      await _taskRepository.saveTasks(updatedTasks);
-      final records = await _recordRepository.loadRecords();
-      final hasExistingRecord = records.any(
-        (record) => record.taskId == task.id,
-      );
-      if (hasExistingRecord) {
-        if (!mounted) {
-          return;
-        }
-
-        setState(() {
-          _localTasks = updatedTasks;
-        });
-
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('此任務已完成')));
-        return;
-      }
-
-      final updatedRecords = <MaintenanceRecord>[
-        ...records,
-        MaintenanceRecord(
-          id: now.millisecondsSinceEpoch.toString(),
-          itemId: task.itemId,
-          taskId: task.id,
-          recordType: _recordTypeForTask(task),
-          date: now,
-          title: task.title,
-          createdAt: now,
-          workDescription: workDescription,
-          partsChanged: partsChanged,
-          cost: cost,
-          vendorName: vendorName,
-          result: result ?? '已完成',
-          note: note ?? _recordNoteForTask(task),
-        ),
-      ];
-      await _recordRepository.saveRecords(updatedRecords);
-      final scheduleFollowUpResult = _isManualExpiryReminderTask(task)
-          ? await _completeManualReminderScheduleFollowUp(
-              task,
-              manualReminderAction,
-              rescheduledDate,
-            )
-          : await _completeMaintenanceScheduleFollowUp(task, scheduleAction);
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _localTasks = updatedTasks;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            scheduleFollowUpResult == _ScheduleFollowUpResult.updated
-                ? '已完成任務並建立紀錄，可到履歷查看'
-                : '已完成並建立紀錄，但後續安排未更新',
-          ),
-        ),
-      );
-    } finally {
-      _completingTaskIds.remove(task.id);
-    }
-  }
-
-  Future<_ScheduleFollowUpResult> _disableCompletedManualReminderSchedule(
-    maintenance_task.Task task,
-  ) async {
-    if (!_isManualExpiryReminderTask(task) || task.scheduleId.isEmpty) {
-      return _ScheduleFollowUpResult.notApplicable;
-    }
-
-    try {
-      final schedules = await _scheduleRepository.loadSchedules();
-      var didUpdateSchedule = false;
-      final updatedSchedules = <Schedule>[];
-      for (final schedule in schedules) {
-        if (!didUpdateSchedule &&
-            schedule.id == task.scheduleId &&
-            schedule.cardId == 'manual-expiry-reminder' &&
-            schedule.enabled) {
-          updatedSchedules.add(schedule.copyWith(enabled: false));
-          didUpdateSchedule = true;
-        } else {
-          updatedSchedules.add(schedule);
-        }
-      }
-
-      if (!didUpdateSchedule) {
-        return _ScheduleFollowUpResult.notApplicable;
-      }
-
-      await _scheduleRepository.saveSchedules(updatedSchedules);
-      return _ScheduleFollowUpResult.updated;
-    } catch (_) {
-      // Completing the task and creating the record are the durable actions.
-      // Schedule cleanup must not roll those back if local data is unavailable.
-      return _ScheduleFollowUpResult.failed;
-    }
-  }
-
-  Future<_ScheduleFollowUpResult> _rescheduleCompletedManualReminderSchedule(
-    maintenance_task.Task task,
-    DateTime? rescheduledDate,
-  ) async {
-    if (!_isManualExpiryReminderTask(task) ||
-        task.scheduleId.isEmpty ||
-        rescheduledDate == null) {
-      return _ScheduleFollowUpResult.notApplicable;
-    }
-
-    try {
-      final schedules = await _scheduleRepository.loadSchedules();
-      var didUpdateSchedule = false;
-      final updatedSchedules = <Schedule>[];
-      for (final schedule in schedules) {
-        if (!didUpdateSchedule &&
-            schedule.id == task.scheduleId &&
-            schedule.cardId == task.cardId &&
-            schedule.enabled) {
-          updatedSchedules.add(schedule.copyWith(nextDueDate: rescheduledDate));
-          didUpdateSchedule = true;
-        } else {
-          updatedSchedules.add(schedule);
-        }
-      }
-
-      if (!didUpdateSchedule) {
-        return _ScheduleFollowUpResult.notApplicable;
-      }
-
-      await _scheduleRepository.saveSchedules(updatedSchedules);
-      return _ScheduleFollowUpResult.updated;
-    } catch (_) {
-      // Completing the task and creating the record are the durable actions.
-      // Schedule follow-up must not roll those back if local data is unavailable.
-      return _ScheduleFollowUpResult.failed;
-    }
-  }
-
-  Future<_ScheduleFollowUpResult> _pauseCompletedSchedule(
-    maintenance_task.Task task,
-  ) async {
-    if (task.scheduleId.isEmpty) {
-      return _ScheduleFollowUpResult.notApplicable;
-    }
-
-    try {
-      final schedules = await _scheduleRepository.loadSchedules();
-      var didUpdateSchedule = false;
-      final updatedSchedules = <Schedule>[];
-      for (final schedule in schedules) {
-        if (!didUpdateSchedule &&
-            schedule.id == task.scheduleId &&
-            schedule.cardId == task.cardId &&
-            schedule.status == ScheduleStatus.active) {
-          updatedSchedules.add(
-            schedule.copyWith(status: ScheduleStatus.paused),
-          );
-          didUpdateSchedule = true;
-        } else {
-          updatedSchedules.add(schedule);
-        }
-      }
-
-      if (!didUpdateSchedule) {
-        return _ScheduleFollowUpResult.notApplicable;
-      }
-
-      await _scheduleRepository.saveSchedules(updatedSchedules);
-      return _ScheduleFollowUpResult.updated;
-    } catch (_) {
-      // Completing the task and creating the record are the durable actions.
-      // Schedule follow-up must not roll those back if local data is unavailable.
-      return _ScheduleFollowUpResult.failed;
-    }
-  }
-
-  Future<_ScheduleFollowUpResult> _advanceCompletedMaintenanceSchedule(
-    maintenance_task.Task task,
-  ) async {
-    if (_isManualExpiryReminderTask(task) || task.scheduleId.isEmpty) {
-      return _ScheduleFollowUpResult.notApplicable;
-    }
-
-    try {
-      final schedules = await _scheduleRepository.loadSchedules();
-      var didUpdateSchedule = false;
-      final updatedSchedules = <Schedule>[];
-      for (final schedule in schedules) {
-        if (!didUpdateSchedule &&
-            schedule.id == task.scheduleId &&
-            schedule.cardId == task.cardId &&
-            schedule.enabled) {
-          updatedSchedules.add(
-            schedule.copyWith(
-              nextDueDate: _nextDueDateAfter(
-                fromDate: task.dueDate,
-                cycleType: schedule.cycleType,
-                interval: schedule.interval,
-              ),
-            ),
-          );
-          didUpdateSchedule = true;
-        } else {
-          updatedSchedules.add(schedule);
-        }
-      }
-
-      if (!didUpdateSchedule) {
-        return _ScheduleFollowUpResult.notApplicable;
-      }
-
-      await _scheduleRepository.saveSchedules(updatedSchedules);
-      return _ScheduleFollowUpResult.updated;
-    } catch (_) {
-      // Completing the task and creating the record are the durable actions.
-      // Schedule advancement must not roll those back if local data is unavailable.
-      return _ScheduleFollowUpResult.failed;
-    }
-  }
-
-  Future<_ScheduleFollowUpResult> _endCompletedMaintenanceSchedule(
-    maintenance_task.Task task,
-  ) async {
-    if (_isManualExpiryReminderTask(task) || task.scheduleId.isEmpty) {
-      return _ScheduleFollowUpResult.notApplicable;
-    }
-
-    try {
-      final schedules = await _scheduleRepository.loadSchedules();
-      var didUpdateSchedule = false;
-      final updatedSchedules = <Schedule>[];
-      for (final schedule in schedules) {
-        if (!didUpdateSchedule &&
-            schedule.id == task.scheduleId &&
-            schedule.cardId == task.cardId &&
-            schedule.enabled) {
-          updatedSchedules.add(schedule.copyWith(enabled: false));
-          didUpdateSchedule = true;
-        } else {
-          updatedSchedules.add(schedule);
-        }
-      }
-
-      if (!didUpdateSchedule) {
-        return _ScheduleFollowUpResult.notApplicable;
-      }
-
-      await _scheduleRepository.saveSchedules(updatedSchedules);
-      return _ScheduleFollowUpResult.updated;
-    } catch (_) {
-      // Completing the task and creating the record are the durable actions.
-      // Schedule follow-up must not roll those back if local data is unavailable.
-      return _ScheduleFollowUpResult.failed;
-    }
-  }
-
-  Future<_ScheduleFollowUpResult> _completeMaintenanceScheduleFollowUp(
-    maintenance_task.Task task,
-    CompletionScheduleAction scheduleAction,
-  ) async {
-    switch (scheduleAction) {
-      case CompletionScheduleAction.continueCycle:
-        return _advanceCompletedMaintenanceSchedule(task);
-      case CompletionScheduleAction.pauseSchedule:
-        return _pauseCompletedSchedule(task);
-      case CompletionScheduleAction.endSchedule:
-        return _endCompletedMaintenanceSchedule(task);
-    }
-  }
-
-  Future<_ScheduleFollowUpResult> _completeManualReminderScheduleFollowUp(
-    maintenance_task.Task task,
-    CompletionManualReminderAction manualReminderAction,
-    DateTime? rescheduledDate,
-  ) async {
-    switch (manualReminderAction) {
-      case CompletionManualReminderAction.endReminder:
-        return _disableCompletedManualReminderSchedule(task);
-      case CompletionManualReminderAction.pauseReminder:
-        return _pauseCompletedSchedule(task);
-      case CompletionManualReminderAction.reschedule:
-        return _rescheduleCompletedManualReminderSchedule(
-          task,
-          rescheduledDate,
-        );
-    }
-  }
-
-  bool _hasConflictingManualReminderTask(
-    maintenance_task.Task task,
-    DateTime rescheduledDate,
-  ) {
-    final localTasks = _localTasks;
-    if (localTasks == null || task.scheduleId.isEmpty) {
-      return false;
-    }
-
-    return localTasks.any(
-      (localTask) =>
-          localTask.id != task.id &&
-          localTask.scheduleId == task.scheduleId &&
-          _isSameDay(localTask.dueDate, rescheduledDate) &&
-          localTask.status != TaskStatus.completed &&
-          localTask.status != TaskStatus.canceled,
-    );
-  }
-}
-
-DateTime _nextDueDateAfter({
-  required DateTime fromDate,
-  required CycleType cycleType,
-  required int interval,
-}) {
-  final safeInterval = interval <= 0 ? 1 : interval;
-  return switch (cycleType) {
-    CycleType.daily => fromDate.add(Duration(days: safeInterval)),
-    CycleType.weekly => fromDate.add(Duration(days: 7 * safeInterval)),
-    CycleType.monthly => _addMonths(fromDate, safeInterval),
-    CycleType.quarterly => _addMonths(fromDate, 3 * safeInterval),
-    CycleType.semiAnnual => _addMonths(fromDate, 6 * safeInterval),
-    CycleType.yearly => _addMonths(fromDate, 12 * safeInterval),
-    CycleType.custom => fromDate.add(Duration(days: safeInterval)),
-  };
-}
-
-DateTime _addMonths(DateTime date, int months) {
-  final targetMonthIndex = date.month - 1 + months;
-  final targetYear = date.year + targetMonthIndex ~/ 12;
-  final targetMonth = targetMonthIndex % 12 + 1;
-  final targetDay = date.day.clamp(1, _daysInMonth(targetYear, targetMonth));
-
-  return DateTime(
-    targetYear,
-    targetMonth,
-    targetDay,
-    date.hour,
-    date.minute,
-    date.second,
-    date.millisecond,
-    date.microsecond,
-  );
-}
-
-int _daysInMonth(int year, int month) {
-  return DateTime(year, month + 1, 0).day;
-}
-
-bool _isAfterToday(DateTime date) {
-  return _dateOnly(date).isAfter(_dateOnly(DateTime.now()));
-}
-
-bool _isSameDay(DateTime firstDate, DateTime secondDate) {
-  return _dateOnly(firstDate) == _dateOnly(secondDate);
-}
-
-DateTime _dateOnly(DateTime date) {
-  return DateTime(date.year, date.month, date.day);
 }
 
 void _showManualExpiryReminderDetailSheet(
@@ -767,16 +265,6 @@ TaskCardData _taskCardDataFor(
 
 bool _isManualExpiryReminderTask(maintenance_task.Task task) {
   return task.cardId == 'manual-expiry-reminder';
-}
-
-RecordType _recordTypeForTask(maintenance_task.Task task) {
-  return _isManualExpiryReminderTask(task)
-      ? RecordType.expiryHandled
-      : RecordType.regularMaintenance;
-}
-
-String _recordNoteForTask(maintenance_task.Task task) {
-  return _isManualExpiryReminderTask(task) ? '由到期提醒任務完成後自動建立' : '由保養任務完成後自動建立';
 }
 
 Item? _itemForTask(

@@ -135,6 +135,34 @@ void main() {
 
       expect(tasks, isEmpty);
     });
+
+    test('does not collapse distinct dueDate times on the same day', () {
+      final service = MaintenanceTaskService();
+      final dueDate = DateTime(2026, 7, 10, 9);
+      final tasks = service.generateDueTasks(
+        schedules: [
+          _schedule(
+            id: 'schedule-contract',
+            title: '租約續約',
+            nextDueDate: dueDate,
+          ),
+        ],
+        existingTasks: [
+          Task(
+            id: 'existing-task',
+            itemId: 'item-contract',
+            cardId: 'manual-expiry-reminder',
+            scheduleId: 'schedule-contract',
+            title: '租約續約',
+            dueDate: DateTime(2026, 7, 10, 8),
+          ),
+        ],
+        today: DateTime(2026, 7, 10),
+      );
+
+      expect(tasks, hasLength(1));
+      expect(tasks.single.dueDate, dueDate);
+    });
   });
 
   test('Schedule reads old JSON without title', () {

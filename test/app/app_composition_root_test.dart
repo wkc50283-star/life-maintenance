@@ -83,8 +83,9 @@ void main() {
 
       final first = await root.initialize();
 
-      expect(first.mode, RuntimeDataMode.driftPlanning);
+      expect(first.mode, RuntimeDataMode.driftTasks);
       expect(first.usesDriftPlanning, isTrue);
+      expect(first.usesDriftTasks, isTrue);
       expect(root.usesDriftPlanning, isTrue);
       expect(root.maintenancePlanRepository, isNotNull);
       expect(root.generalReminderRepository, isNotNull);
@@ -136,7 +137,7 @@ void main() {
         legacyStorage: restartedStorage,
       );
       final restarted = await restartedRoot.initialize();
-      expect(restarted.mode, RuntimeDataMode.driftPlanning);
+      expect(restarted.mode, RuntimeDataMode.driftTasks);
       expect(
         restarted.importReport?.status,
         LegacyDriftImportStatus.alreadyImported,

@@ -5,12 +5,14 @@ import '../models/legacy_drift_import_report.dart';
 import '../repositories/drift/drift_item_read_repository.dart';
 import '../repositories/drift/drift_schedule_runtime_repository.dart';
 import '../repositories/drift/drift_schema_v2_repositories.dart';
+import '../repositories/drift/drift_task_runtime_repository.dart';
 import '../repositories/item_local_repository.dart';
 import '../repositories/item_read_repository.dart';
 import '../repositories/maintenance_record_local_repository.dart';
 import '../repositories/schedule_local_repository.dart';
 import '../repositories/schedule_repository.dart';
 import '../repositories/task_local_repository.dart';
+import '../repositories/task_repository.dart';
 import '../services/local_data_backup_service.dart';
 import '../services/local_data_integrity_service.dart';
 import '../services/legacy_drift_import_service.dart';
@@ -29,7 +31,7 @@ abstract interface class AppRuntimeDependencies {
   DriftMaintenancePlanRepository? get maintenancePlanRepository;
   DriftGeneralReminderRepository? get generalReminderRepository;
   DriftMilestoneRepository? get milestoneRepository;
-  TaskLocalRepository get taskRepository;
+  TaskRepository get taskRepository;
   LocalDataBackupService get localDataBackupService;
   LocalDataIntegrityService get localDataIntegrityService;
   MaintenanceTaskService get maintenanceTaskService;
@@ -80,7 +82,7 @@ class LegacyRuntimeDependencies implements AppRuntimeDependencies {
   bool get usesDriftPlanning => false;
 }
 
-enum RuntimeDataMode { legacy, driftItemRead, driftPlanning }
+enum RuntimeDataMode { legacy, driftItemRead, driftPlanning, driftTasks }
 
 class RuntimeInitializationResult {
   const RuntimeInitializationResult({required this.mode, this.importReport});
@@ -90,7 +92,11 @@ class RuntimeInitializationResult {
 
   bool get usesDriftItemRead => mode != RuntimeDataMode.legacy;
 
-  bool get usesDriftPlanning => mode == RuntimeDataMode.driftPlanning;
+  bool get usesDriftPlanning =>
+      mode == RuntimeDataMode.driftPlanning ||
+      mode == RuntimeDataMode.driftTasks;
+
+  bool get usesDriftTasks => mode == RuntimeDataMode.driftTasks;
 }
 
 class AppCompositionRoot implements AppRuntimeDependencies {
@@ -103,6 +109,7 @@ class AppCompositionRoot implements AppRuntimeDependencies {
        _runtime = LegacyRuntimeDependencies(legacyStorage) {
     _itemReadRepository = _runtime.itemRepository;
     _scheduleRepository = _runtime.scheduleRepository;
+    _taskRepository = _runtime.taskRepository;
   }
 
   factory AppCompositionRoot.production() => AppCompositionRoot(
@@ -118,6 +125,7 @@ class AppCompositionRoot implements AppRuntimeDependencies {
   final bool ownsDatabase;
   late ItemReadRepository _itemReadRepository;
   late ScheduleRepository _scheduleRepository;
+  late TaskRepository _taskRepository;
   Future<RuntimeInitializationResult>? _initialization;
 
   Future<RuntimeInitializationResult> initialize() =>
@@ -128,7 +136,7 @@ class AppCompositionRoot implements AppRuntimeDependencies {
     await Future.wait<void>([
       itemRepository.loadItems().then((_) {}),
       scheduleRepository.loadSchedules().then((_) {}),
-      taskRepository.loadTasks().then((_) {}),
+      _runtime.taskRepository.loadTasks().then((_) {}),
       maintenanceRecordRepository.loadRecords().then((_) {}),
     ]);
     if (localDataIntegrityService.hasIssues) {
@@ -150,14 +158,19 @@ class AppCompositionRoot implements AppRuntimeDependencies {
         database: database,
         repositories: driftRepositories,
       );
+      _taskRepository = DriftTaskRuntimeRepository(
+        database: database,
+        repositories: driftRepositories,
+      );
       return RuntimeInitializationResult(
-        mode: RuntimeDataMode.driftPlanning,
+        mode: RuntimeDataMode.driftTasks,
         importReport: report,
       );
     } on LegacyDriftImportException catch (error) {
       _legacyStorage.enableWrites();
       _itemReadRepository = _runtime.itemRepository;
       _scheduleRepository = _runtime.scheduleRepository;
+      _taskRepository = _runtime.taskRepository;
       return RuntimeInitializationResult(
         mode: RuntimeDataMode.legacy,
         importReport: error.report,
@@ -166,6 +179,7 @@ class AppCompositionRoot implements AppRuntimeDependencies {
       _legacyStorage.enableWrites();
       _itemReadRepository = _runtime.itemRepository;
       _scheduleRepository = _runtime.scheduleRepository;
+      _taskRepository = _runtime.taskRepository;
       return const RuntimeInitializationResult(mode: RuntimeDataMode.legacy);
     }
   }
@@ -189,7 +203,7 @@ class AppCompositionRoot implements AppRuntimeDependencies {
   DriftMilestoneRepository? get milestoneRepository =>
       usesDriftPlanning ? driftRepositories.milestones : null;
   @override
-  TaskLocalRepository get taskRepository => _runtime.taskRepository;
+  TaskRepository get taskRepository => _taskRepository;
   @override
   LocalDataBackupService get localDataBackupService =>
       _runtime.localDataBackupService;

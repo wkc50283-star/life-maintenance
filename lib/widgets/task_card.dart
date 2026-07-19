@@ -89,15 +89,17 @@ class TaskCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 18),
-            Align(
-              alignment: Alignment.centerRight,
-              child: FilledButton.icon(
-                onPressed: onComplete,
-                icon: const Icon(Icons.check_rounded, size: 18),
-                label: const Text('完成'),
+            if (onComplete != null) ...[
+              const SizedBox(height: 18),
+              Align(
+                alignment: Alignment.centerRight,
+                child: FilledButton.icon(
+                  onPressed: onComplete,
+                  icon: const Icon(Icons.check_rounded, size: 18),
+                  label: const Text('完成'),
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),
