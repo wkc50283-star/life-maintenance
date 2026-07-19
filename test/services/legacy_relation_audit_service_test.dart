@@ -13,23 +13,9 @@ class _ReadOnlyStorage extends LocalStorageService {
   _ReadOnlyStorage(this.values);
 
   final Map<String, String> values;
-  int saveCalls = 0;
-  int removeCalls = 0;
 
   @override
   Future<String?> readString(String key) async => values[key];
-
-  @override
-  Future<void> saveString(String key, String value) async {
-    saveCalls += 1;
-    throw StateError('Legacy relation audit must remain read-only');
-  }
-
-  @override
-  Future<void> remove(String key) async {
-    removeCalls += 1;
-    throw StateError('Legacy relation audit must remain read-only');
-  }
 }
 
 void main() {
@@ -42,10 +28,7 @@ void main() {
     createdAt: now,
   );
 
-  Schedule schedule({
-    required String id,
-    required String itemId,
-  }) => Schedule(
+  Schedule schedule({required String id, required String itemId}) => Schedule(
     id: id,
     itemId: itemId,
     cardId: 'card-1',
@@ -89,18 +72,10 @@ void main() {
         schedule(id: 'schedule-1', itemId: 'item-1').toJson(),
       ]),
       'tasks': jsonEncode([
-        task(
-          id: 'task-1',
-          itemId: 'item-1',
-          scheduleId: 'schedule-1',
-        ).toJson(),
+        task(id: 'task-1', itemId: 'item-1', scheduleId: 'schedule-1').toJson(),
       ]),
       'maintenance_records': jsonEncode([
-        record(
-          id: 'record-1',
-          itemId: 'item-1',
-          taskId: 'task-1',
-        ).toJson(),
+        record(id: 'record-1', itemId: 'item-1', taskId: 'task-1').toJson(),
       ]),
     });
 
@@ -109,8 +84,6 @@ void main() {
     expect(report.isReadyForMigration, isTrue);
     expect(report.relationIssues, isEmpty);
     expect(report.datasets['items']!.validEntryCount, 1);
-    expect(storage.saveCalls, 0);
-    expect(storage.removeCalls, 0);
   });
 
   test('reports duplicate ids and malformed entries separately', () async {
@@ -163,8 +136,6 @@ void main() {
       report.relationIssues.map((issue) => issue.fieldName),
       containsAll(<String>['itemId', 'scheduleId', 'taskId']),
     );
-    expect(storage.saveCalls, 0);
-    expect(storage.removeCalls, 0);
   });
 
   test('treats a non-list dataset as structurally invalid', () async {

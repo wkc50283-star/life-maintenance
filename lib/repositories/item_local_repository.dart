@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import '../models/item.dart';
 import '../services/local_data_integrity_service.dart';
 import '../services/local_storage_service.dart';
@@ -25,13 +23,5 @@ class ItemLocalRepository implements ItemReadRepository {
       rawValue: rawItems,
       decodeEntry: Item.fromJson,
     );
-  }
-
-  Future<void> saveItems(List<Item> items) async {
-    LocalDataIntegrityService.instance.ensureWritesAllowed();
-    final encodedItems = jsonEncode(
-      items.map((item) => item.toJson()).toList(),
-    );
-    await _storageService.saveString(_storageKey, encodedItems);
   }
 }

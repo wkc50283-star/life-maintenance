@@ -1,11 +1,10 @@
 import 'dart:async';
 
 import 'package:life_maintenance/app/app_composition_root.dart';
-import 'package:life_maintenance/services/local_storage_service.dart';
+
+import 'support/test_runtime_dependencies.dart';
 
 Future<void> testExecutable(FutureOr<void> Function() testMain) async {
-  AppCompositionScope.testDependencies = LegacyRuntimeDependencies(
-    LocalStorageService(),
-  );
+  AppCompositionScope.testDependencies = TestRuntimeDependencies();
   await testMain();
 }

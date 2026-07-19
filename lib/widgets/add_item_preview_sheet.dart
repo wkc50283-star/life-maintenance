@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../app/app_composition_root.dart';
-import '../models/enums.dart';
-import '../models/item.dart';
 import 'preview_form_fields.dart';
 
 void showAddItemPreviewSheet(BuildContext context) {
@@ -60,42 +57,12 @@ class _AddItemPreviewFormState extends State<_AddItemPreviewForm> {
       return;
     }
 
-    final now = DateTime.now();
-    final root = AppCompositionScope.of(context);
-    final repository = root.itemRepository;
-    final items = await root.itemReadRepository.loadItems();
-    final item = Item(
-      id: now.millisecondsSinceEpoch.toString(),
-      name: name,
-      category: _categoryForLabel(_category),
-      createdAt: now,
-      location: _locationController.text,
-      note: _noteController.text,
-    );
-
-    await repository.saveItems([...items, item]);
-
-    if (!context.mounted) {
-      return;
-    }
-
-    Navigator.of(context).pop();
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('已新增生活項目'),
+        content: Text('此項寫入尚未接至正式資料庫，目前保持唯讀'),
         behavior: SnackBarBehavior.floating,
       ),
     );
-  }
-
-  ItemCategory _categoryForLabel(String? label) {
-    return switch (label) {
-      '家電' => ItemCategory.appliance,
-      '車輛' => ItemCategory.vehicle,
-      '房屋' => ItemCategory.house,
-      '保固證件' => ItemCategory.warrantyDocument,
-      _ => ItemCategory.other,
-    };
   }
 
   @override

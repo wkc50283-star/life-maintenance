@@ -1,21 +1,16 @@
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import 'package:life_maintenance/app/app_composition_root.dart';
 import 'package:life_maintenance/database/app_database.dart';
 import 'package:life_maintenance/main.dart';
-import 'package:life_maintenance/services/local_storage_service.dart';
 
 void main() {
   testWidgets('LifeMaintenanceApp shows bottom navigation tabs', (
     tester,
   ) async {
-    SharedPreferences.setMockInitialValues(<String, Object>{});
     final root = AppCompositionRoot(
       database: AppDatabase(NativeDatabase.memory()),
-      legacyStorage: LocalStorageService(),
     );
 
     await tester.pumpWidget(LifeMaintenanceApp(compositionRoot: root));

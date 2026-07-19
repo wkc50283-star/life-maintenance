@@ -1,43 +1,46 @@
-import 'dart:convert';
-
 import 'package:drift/native.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_maintenance/app/app_composition_root.dart';
 import 'package:life_maintenance/database/app_database.dart';
 import 'package:life_maintenance/models/enums.dart';
-import 'package:life_maintenance/models/item.dart';
-import 'package:life_maintenance/models/legacy_drift_import_report.dart';
 import 'package:life_maintenance/models/schedule.dart';
 import 'package:life_maintenance/models/task.dart';
 import 'package:life_maintenance/models/work_case.dart';
 import 'package:life_maintenance/models/work_case_enums.dart';
-import 'package:life_maintenance/services/local_data_integrity_service.dart';
-import 'package:life_maintenance/services/local_storage_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  setUp(() {
-    LocalDataIntegrityService.instance.resetForTesting();
-  });
+  setUp(SharedPreferences.resetStatic);
 
   test(
-    'constructs one database, Drift repository set, and runtime services',
+    'constructs one database and the complete formal Drift runtime',
     () async {
       final database = AppDatabase(NativeDatabase.memory());
-      final root = AppCompositionRoot(
-        database: database,
-        legacyStorage: LocalStorageService(),
-      );
+      final root = AppCompositionRoot(database: database);
 
       expect(root.database, same(database));
       expect(root.driftRepositories.items, isNotNull);
       expect(root.driftRepositories.tasks, isNotNull);
       expect(root.driftRepositories.workCases, isNotNull);
       expect(root.driftRepositories.workCaseClosures, isNotNull);
-      expect(root.itemRepository, isNotNull);
-      expect(root.localDataBackupService, isNotNull);
+      expect(root.itemReadRepository, isNotNull);
+      expect(root.maintenanceRecordRepository, isNotNull);
+      expect(root.workCaseRuntime, isNotNull);
+      expect(root.historyProjectionRepository, isNotNull);
+      expect(root.attachmentRuntime, isNotNull);
       expect(root.maintenanceTaskService, isNotNull);
+      expect(root.usesDriftPlanning, isTrue);
+      expect(root.formalWritesEnabled, isTrue);
+
+      final initialized = await root.initialize();
+      expect(initialized.mode, RuntimeDataMode.driftMaintenanceRecords);
+      expect(initialized.usesDriftItemRead, isTrue);
+      expect(initialized.usesDriftPlanning, isTrue);
+      expect(initialized.usesDriftTasks, isTrue);
+      expect(initialized.usesDriftWorkCases, isTrue);
+      expect(initialized.usesDriftHistoryAttachments, isTrue);
+      expect(initialized.usesDriftMaintenanceRecords, isTrue);
       await database.close();
     },
   );
@@ -45,7 +48,6 @@ void main() {
   testWidgets('scope exposes the injected root', (tester) async {
     final root = AppCompositionRoot(
       database: AppDatabase(NativeDatabase.memory()),
-      legacyStorage: LocalStorageService(),
     );
     late AppRuntimeDependencies resolved;
 
@@ -66,52 +68,27 @@ void main() {
   });
 
   test(
-    'startup imports once, switches Item reads, and freezes source',
+    'cold start uses Drift only and never reads legacy business data',
     () async {
-      final item = Item(
-        id: 'item-1',
-        name: '客廳冷氣',
-        category: ItemCategory.appliance,
-        createdAt: DateTime.utc(2026, 1, 2),
-        location: '客廳',
-      );
-      final rawItems = jsonEncode([item.toJson()]);
-      SharedPreferences.setMockInitialValues({'items': rawItems});
+      SharedPreferences.setMockInitialValues({
+        'items': '{malformed-legacy-data',
+        'backup_v1_items': 'immutable-backup',
+      });
       final database = AppDatabase(NativeDatabase.memory());
-      final storage = LocalStorageService();
-      final root = AppCompositionRoot(
-        database: database,
-        legacyStorage: storage,
-      );
+      final root = AppCompositionRoot(database: database);
+      await _seedItem(root);
 
       final first = await root.initialize();
 
       expect(first.mode, RuntimeDataMode.driftMaintenanceRecords);
-      expect(first.usesDriftPlanning, isTrue);
-      expect(first.usesDriftTasks, isTrue);
-      expect(first.usesDriftWorkCases, isTrue);
-      expect(first.usesDriftHistoryAttachments, isTrue);
-      expect(first.usesDriftMaintenanceRecords, isTrue);
-      expect(root.maintenanceRecordRepository, isNotNull);
-      expect(root.workCaseRuntime, isNotNull);
-      expect(root.historyProjectionRepository, isNotNull);
-      expect(root.attachmentRuntime, isNotNull);
-      expect(root.usesDriftPlanning, isTrue);
-      expect(root.maintenancePlanRepository, isNotNull);
-      expect(root.generalReminderRepository, isNotNull);
-      expect(root.milestoneRepository, isNotNull);
-      expect(first.importReport?.status, LegacyDriftImportStatus.imported);
-      expect(root.legacyWritesEnabled, isFalse);
-      final importedItems = await root.itemReadRepository.loadItems();
-      expect(importedItems.single.id, item.id);
-      expect(importedItems.single.name, item.name);
-      expect(importedItems.single.category, item.category);
-      expect(importedItems.single.location, item.location);
-      expect(await storage.readString('items'), rawItems);
-      expect(await storage.readString('backup_v1_items'), rawItems);
+      expect((await root.itemReadRepository.loadItems()).single.id, 'item-1');
+      final preferences = await SharedPreferences.getInstance();
+      expect(preferences.getString('items'), '{malformed-legacy-data');
+      expect(preferences.getString('backup_v1_items'), 'immutable-backup');
+
       final schedule = Schedule(
         id: 'schedule-1',
-        itemId: item.id,
+        itemId: 'item-1',
         cardId: 'manual-expiry-reminder',
         cycleType: CycleType.custom,
         interval: 1,
@@ -120,35 +97,21 @@ void main() {
         title: '保固到期',
       );
       await root.scheduleRepository.saveSchedules([schedule]);
-      expect(
-        (await root.scheduleRepository.loadSchedules()).single.id,
-        schedule.id,
-      );
-      expect(await storage.readString('schedules'), isNull);
-      expect(await storage.readString('backup_v1_schedules'), isNull);
-      expect(
-        await root.generalReminderRepository?.findById(
-          'runtime-reminder-${schedule.id}',
-        ),
-        isNotNull,
-      );
       await root.taskRepository.saveGeneratedTasks([
         Task(
           id: 'task-1',
-          itemId: item.id,
+          itemId: 'item-1',
           cardId: schedule.cardId,
           scheduleId: schedule.id,
           title: schedule.title!,
           dueDate: schedule.nextDueDate,
         ),
       ]);
-      expect((await root.taskRepository.loadTasks()).single.id, 'task-1');
-      expect(await storage.readString('tasks'), isNull);
       final caseTime = DateTime.utc(2027, 1, 3);
-      await root.workCaseRuntime!.createManual(
+      await root.workCaseRuntime.createManual(
         WorkCase(
           id: 'case-1',
-          itemId: item.id,
+          itemId: 'item-1',
           sourceType: WorkCaseSourceType.manual,
           caseType: WorkCaseType.administrative,
           title: '處理保固文件',
@@ -157,83 +120,47 @@ void main() {
           updatedAt: caseTime,
         ),
       );
-      await expectLater(
-        storage.saveString('items', '[]'),
-        throwsA(isA<LegacyStorageReadOnlyException>()),
-      );
-      await expectLater(
-        storage.remove('items'),
-        throwsA(isA<LegacyStorageReadOnlyException>()),
-      );
 
-      final restartedStorage = LocalStorageService();
-      final restartedRoot = AppCompositionRoot(
-        database: database,
-        legacyStorage: restartedStorage,
-      );
-      final restarted = await restartedRoot.initialize();
-      expect(restarted.mode, RuntimeDataMode.driftMaintenanceRecords);
+      final restarted = AppCompositionRoot(database: database);
+      await restarted.initialize();
       expect(
-        restarted.importReport?.status,
-        LegacyDriftImportStatus.alreadyImported,
+        (await restarted.itemReadRepository.loadItems()).single.id,
+        'item-1',
       );
+      expect((await restarted.taskRepository.loadTasks()).single.id, 'task-1');
       expect(
-        (await restartedRoot.itemReadRepository.loadItems()).single.id,
-        item.id,
-      );
-      expect(
-        (await restartedRoot.taskRepository.loadTasks()).single.id,
-        'task-1',
-      );
-      expect(
-        (await restartedRoot.workCaseRuntime!.findCaseById('case-1'))?.title,
+        (await restarted.workCaseRuntime.findCaseById('case-1'))?.title,
         '處理保固文件',
       );
-      expect(await restartedStorage.readString('items'), rawItems);
-
+      expect(preferences.getString('items'), '{malformed-legacy-data');
+      expect(preferences.getString('backup_v1_items'), 'immutable-backup');
       await database.close();
     },
   );
+}
 
-  test(
-    'blocked startup enters Drift safe mode and keeps legacy read only',
-    () async {
-      final item = Item(
-        id: 'item-1',
-        name: '家中汽車',
-        category: ItemCategory.vehicle,
-        createdAt: DateTime.utc(2026, 2, 3),
-      );
-      final rawItems = jsonEncode([item.toJson()]);
-      SharedPreferences.setMockInitialValues({
-        'items': rawItems,
-        'backup_v1_items': '[]',
-      });
-      final database = AppDatabase(NativeDatabase.memory());
-      final storage = LocalStorageService();
-      final root = AppCompositionRoot(
-        database: database,
-        legacyStorage: storage,
-      );
-
-      final result = await root.initialize();
-
-      expect(result.mode, RuntimeDataMode.driftSafeReadOnly);
-      expect(root.workCaseRuntime, isNull);
-      expect(root.historyProjectionRepository, isNotNull);
-      expect(root.attachmentRuntime, isNull);
-      expect(result.importReport?.status, LegacyDriftImportStatus.blocked);
-      expect(root.legacyWritesEnabled, isFalse);
-      expect(root.formalWritesEnabled, isFalse);
-      expect(await root.itemReadRepository.loadItems(), isEmpty);
-      expect(await root.driftRepositories.items.listAll(), isEmpty);
-      await expectLater(
-        storage.saveString('items', rawItems),
-        throwsA(isA<LegacyStorageReadOnlyException>()),
-      );
-      expect(await storage.readString('backup_v1_items'), '[]');
-
-      await database.close();
-    },
+Future<void> _seedItem(AppCompositionRoot root) async {
+  final createdAt = DateTime.utc(2026, 1, 2);
+  await root.driftRepositories.itemCategories.save(
+    ItemCategoryRow(
+      id: 'category-1',
+      systemCode: 'homeAndAppliance',
+      displayName: '家電與居家設備',
+      sortOrder: 0,
+      status: 'active',
+      createdAt: createdAt,
+      updatedAt: createdAt,
+    ),
+  );
+  await root.driftRepositories.items.save(
+    ItemRow(
+      id: 'item-1',
+      name: '客廳冷氣',
+      categoryId: 'category-1',
+      location: '客廳',
+      status: 'active',
+      createdAt: createdAt,
+      updatedAt: createdAt,
+    ),
   );
 }

@@ -1,8 +1,6 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:life_maintenance/models/enums.dart';
-import 'package:life_maintenance/models/item.dart';
 import 'package:life_maintenance/repositories/item_local_repository.dart';
 import 'package:life_maintenance/services/local_data_integrity_service.dart';
 import 'package:life_maintenance/services/local_storage_service.dart';
@@ -13,7 +11,7 @@ void main() {
   setUp(integrityService.resetForTesting);
   tearDown(integrityService.resetForTesting);
 
-  test('keeps valid entries and locks writes when one entry is invalid', () async {
+  test('keeps valid entries and reports an invalid recovery entry', () async {
     final storage = _FakeLocalStorageService();
     final originalRaw = jsonEncode([
       {
@@ -35,26 +33,25 @@ void main() {
     expect(integrityService.hasIssues, isTrue);
     expect(integrityService.issues.single.invalidEntryCount, 1);
 
-    await expectLater(
-      repository.saveItems(items),
-      throwsA(isA<LocalDataWriteBlockedException>()),
-    );
     expect(storage.values['items'], originalRaw);
   });
 
-  test('malformed top-level JSON is not treated as healthy empty data', () async {
-    final storage = _FakeLocalStorageService();
-    storage.values['items'] = '{not-json';
-    final repository = ItemLocalRepository(storage);
+  test(
+    'malformed top-level JSON is not treated as healthy empty data',
+    () async {
+      final storage = _FakeLocalStorageService();
+      storage.values['items'] = '{not-json';
+      final repository = ItemLocalRepository(storage);
 
-    final items = await repository.loadItems();
+      final items = await repository.loadItems();
 
-    expect(items, isEmpty);
-    expect(integrityService.hasIssues, isTrue);
-    expect(integrityService.hasIssueForKey('items'), isTrue);
-  });
+      expect(items, isEmpty);
+      expect(integrityService.hasIssues, isTrue);
+      expect(integrityService.hasIssueForKey('items'), isTrue);
+    },
+  );
 
-  test('a later fully valid read clears the lock for that data set', () async {
+  test('a later fully valid read clears the issue for that data set', () async {
     final storage = _FakeLocalStorageService();
     final repository = ItemLocalRepository(storage);
     storage.values['items'] = '{not-json';
@@ -76,16 +73,7 @@ void main() {
     expect(items, hasLength(1));
     expect(integrityService.hasIssues, isFalse);
 
-    await repository.saveItems([
-      ...items,
-      Item(
-        id: 'item-2',
-        name: '冰箱',
-        category: ItemCategory.appliance,
-        createdAt: DateTime(2025, 2, 1),
-      ),
-    ]);
-    expect(jsonDecode(storage.values['items']!) as List<dynamic>, hasLength(2));
+    expect(jsonDecode(storage.values['items']!) as List<dynamic>, hasLength(1));
   });
 }
 
@@ -94,14 +82,4 @@ class _FakeLocalStorageService extends LocalStorageService {
 
   @override
   Future<String?> readString(String key) async => values[key];
-
-  @override
-  Future<void> saveString(String key, String value) async {
-    values[key] = value;
-  }
-
-  @override
-  Future<void> remove(String key) async {
-    values.remove(key);
-  }
 }

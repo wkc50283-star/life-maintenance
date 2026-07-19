@@ -17,10 +17,7 @@ class LocalDataBackupService {
 
   Future<void> createPreMigrationBackups() async {
     for (final entry in backupKeys.entries) {
-      await _backupIfAbsent(
-        sourceKey: entry.key,
-        backupKey: entry.value,
-      );
+      await _backupIfAbsent(sourceKey: entry.key, backupKey: entry.value);
     }
   }
 
@@ -43,7 +40,7 @@ class LocalDataBackupService {
         return;
       }
 
-      await _storageService.saveString(backupKey, rawValue);
+      await _storageService.writeBackupIfAbsent(backupKey, rawValue);
       LocalDataIntegrityService.instance.clearIssue(issueKey);
     } catch (_) {
       LocalDataIntegrityService.instance.reportIssue(
