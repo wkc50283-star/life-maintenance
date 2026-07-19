@@ -134,10 +134,15 @@ void main() {
     expect(find.text('進行中案件 1'), findsOneWidget);
     expect(find.text('階段性重點 1'), findsOneWidget);
     expect(find.text('確認冷氣運轉'), findsOneWidget);
+    expect(find.text('已安排'), findsOneWidget);
     expect(find.text('下個月再確認'), findsNothing);
     expect(find.text('冷氣異音檢查'), findsOneWidget);
     expect(find.text('下一步：等待到府檢查'), findsOneWidget);
     expect(find.text('第六年全面檢查'), findsOneWidget);
+    expect(find.text('條件未到'), findsOneWidget);
+    expect(find.textContaining('預定日期'), findsOneWidget);
+    expect(find.text('已逾期'), findsNothing);
+    expect(find.text('已達標'), findsNothing);
     expect(find.text('完成冷氣濾網清潔'), findsOneWidget);
     expect(await root.driftRepositories.tasks.listAll(), hasLength(2));
     expect(await root.workCaseRuntime.listCasesForItem('item-1'), hasLength(1));

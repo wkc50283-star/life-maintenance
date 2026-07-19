@@ -1915,6 +1915,39 @@ Task 已正式切換至 Drift，但畫面仍使用舊保養卡預覽，無法查
 
 ---
 
+## LM-052：v0.5.23 Product Constitution Audit
+
+日期：2026-07-20
+狀態：已核准施工，待 PR #224 驗收
+
+### 變更內容
+
+- 逐頁稽核正式 Runtime 文案、流程與狀態是否持續承接生活事項，而非催促、評分、KPI、打卡、焦慮化或 To-do 化。
+- 將首頁 Task 的「待處理／已逾期」改為中性的「已安排／日期已過」。
+- 將首頁與 Item 詳情的 Milestone「目標／達標」顯示改為預定日期、條件與條件是否到達。
+- 移除共用 Task 卡可直接顯示完成按鈕的殘留 API；Task 仍只作提醒。
+- 新增正式 UI 壓力文案及 Task 直接完成防回歸 Gate。
+- 記錄 PR #230 必須部署最新版正式 Flutter Web；GitHub Pages 若仍顯示舊樣板或假資料即不得完成。
+- 版本更新為 v0.5.23。
+
+### 明確未修改
+
+不修改 Schema、Migration、Domain、Repository、正式資料或生命週期；不新增功能、不重畫 UI、不執行 GitHub Pages 部署、不做無關重構、不開始下一個 PR。
+
+### 資料影響與回復
+
+沒有資料讀寫、搬移或格式變更，不需要資料 rollback。回復只需還原顯示文案、Task 卡 API、Gate、文件與版本變更。
+
+### 驗收依據
+
+以 PR #224 的 Product Constitution Gate、既有正式流程測試、codegen 無差異、Analyze、全部測試、Web release build、手機預覽與 GitHub Actions 為準。
+
+### 追蹤
+
+- PR #224
+
+---
+
 ## 後續條目模板
 
 ```text

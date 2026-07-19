@@ -864,13 +864,13 @@ String _cycleLabel(Schedule schedule) {
 
 String _milestoneTriggerLabel(Milestone milestone) {
   if (milestone.triggerDate case final date?) {
-    return '目標日期 ${_formatDate(date)}';
+    return '預定日期 ${_formatDate(date)}';
   }
   if (milestone.thresholdValue case final value?) {
     final number = value == value.roundToDouble()
         ? value.toInt().toString()
         : value.toString();
-    return '目標 $number ${milestone.thresholdUnit ?? ''}'.trim();
+    return '條件 $number ${milestone.thresholdUnit ?? ''}'.trim();
   }
   if (_nullableText(milestone.lifeStageCode) case final stage?) {
     return '人生階段：$stage';
@@ -925,8 +925,8 @@ String _milestoneKindLabel(MilestoneKind kind) => switch (kind) {
 };
 
 String _milestoneStatusLabel(MilestoneStatus status) => switch (status) {
-  MilestoneStatus.pending => '尚未達標',
-  MilestoneStatus.reached => '已達標',
+  MilestoneStatus.pending => '條件未到',
+  MilestoneStatus.reached => '條件已到',
   MilestoneStatus.acknowledged => '已確認',
   MilestoneStatus.inProgress => '處理中',
   MilestoneStatus.completed => '已完成',
