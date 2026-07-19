@@ -7,19 +7,23 @@ import '../repository_constraint_exception.dart';
 import '../work_case_closure_repository.dart';
 import '../work_case_repository.dart';
 import '../work_case_runtime.dart';
+import 'drift_schema_v2_repositories.dart';
 
 class DriftWorkCaseRuntime implements WorkCaseRuntime {
   DriftWorkCaseRuntime({
     required AppDatabase database,
     required WorkCaseRepository workCases,
     required WorkCaseClosureRepository closures,
+    required DriftTaskRepository tasks,
   }) : _database = database,
        _workCases = workCases,
-       _closures = closures;
+       _closures = closures,
+       _tasks = tasks;
 
   final AppDatabase _database;
   final WorkCaseRepository _workCases;
   final WorkCaseClosureRepository _closures;
+  final DriftTaskRepository _tasks;
 
   @override
   Future<WorkCase?> findCaseById(String id) => _workCases.findCaseById(id);
@@ -130,6 +134,49 @@ class DriftWorkCaseRuntime implements WorkCaseRuntime {
 
   @override
   Future<void> close(WorkCaseClosure closure) => _closures.closeCase(closure);
+
+  @override
+  Future<void> closeWithFollowUp(
+    WorkCaseClosure closure, {
+    DateTime? nextReminderDueDate,
+  }) async {
+    final reminderId = closure.nextReminderTaskId;
+    if ((reminderId == null) != (nextReminderDueDate == null)) {
+      throw const RepositoryConstraintException(
+        'Follow-up reminder ID and due date must be provided together.',
+      );
+    }
+    if (nextReminderDueDate != null &&
+        !nextReminderDueDate.isAfter(closure.completedAt)) {
+      throw const RepositoryConstraintException(
+        'A follow-up reminder must be after the completion date.',
+      );
+    }
+
+    await _database.transaction(() async {
+      if (reminderId != null && nextReminderDueDate != null) {
+        final workCase = await _workCases.findCaseById(closure.workCaseId);
+        if (workCase == null) {
+          throw RepositoryConstraintException(
+            'WorkCase ${closure.workCaseId} does not exist.',
+          );
+        }
+        await _tasks.save(
+          TaskRow(
+            id: reminderId,
+            itemId: workCase.itemId,
+            sourceType: 'manual',
+            title: '後續留意：${workCase.title}',
+            dueDate: nextReminderDueDate,
+            status: 'pending',
+            createdAt: closure.createdAt,
+            updatedAt: closure.updatedAt,
+          ),
+        );
+      }
+      await _closures.closeCase(closure);
+    });
+  }
 
   @override
   Future<void> cancel(

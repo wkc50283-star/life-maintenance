@@ -76,6 +76,7 @@ class AppCompositionRoot implements AppRuntimeDependencies {
       database: database,
       workCases: driftRepositories.workCases,
       closures: driftRepositories.workCaseClosures,
+      tasks: driftRepositories.tasks,
     );
     taskReminderRuntime = DriftTaskReminderRuntime(
       database: database,

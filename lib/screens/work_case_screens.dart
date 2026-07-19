@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../app/app_composition_root.dart';
 import '../models/attachment.dart';
+import '../models/enums.dart';
 import '../models/item.dart';
+import '../models/schedule.dart';
 import '../models/work_case.dart';
 import '../models/work_case_closure.dart';
 import '../models/work_case_enums.dart';
@@ -442,7 +444,34 @@ class _WorkCaseClosureFormScreenState extends State<WorkCaseClosureFormScreen> {
     text: widget.suggestedTotalCost.toString(),
   );
   final _followUp = TextEditingController();
+  DateTime _completedAt = DateTime.now();
+  DateTime _reminderDueDate = DateTime.now().add(const Duration(days: 30));
+  List<Schedule>? _schedules;
+  String? _nextScheduleId;
+  bool _createReminder = false;
   bool _saving = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_schedules == null) _loadSchedules();
+  }
+
+  Future<void> _loadSchedules() async {
+    final values = await AppCompositionScope.of(
+      context,
+    ).scheduleRepository.loadSchedules();
+    if (!mounted) return;
+    setState(() {
+      _schedules = values
+          .where(
+            (schedule) =>
+                schedule.itemId == widget.workCase.itemId &&
+                schedule.status != ScheduleStatus.ended,
+          )
+          .toList(growable: false);
+    });
+  }
 
   @override
   void dispose() {
@@ -465,6 +494,11 @@ class _WorkCaseClosureFormScreenState extends State<WorkCaseClosureFormScreen> {
             const _FormIntro(
               title: '留下完整結果',
               description: '結案後案件與進度會保持唯讀，並由正式資料投影進入史略。',
+            ),
+            _DateField(
+              label: '完成日期',
+              value: _completedAt,
+              onTap: _pickCompletionDate,
             ),
             TextFormField(
               controller: _result,
@@ -499,6 +533,60 @@ class _WorkCaseClosureFormScreenState extends State<WorkCaseClosureFormScreen> {
                 alignLabelWithHint: true,
               ),
             ),
+            const SizedBox(height: 22),
+            Text(
+              '後續安排（選填）',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '可以保留既有正式排程，或另外建立一則單次提醒。結案與後續提醒會一起保存。',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: const Color(0xFF687887),
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: 14),
+            DropdownButtonFormField<String?>(
+              initialValue: _nextScheduleId,
+              decoration: const InputDecoration(labelText: '保留後續排程'),
+              items: [
+                const DropdownMenuItem<String?>(
+                  value: null,
+                  child: Text('這次不指定'),
+                ),
+                for (final schedule in _schedules ?? const <Schedule>[])
+                  DropdownMenuItem<String?>(
+                    value: schedule.id,
+                    child: Text(_scheduleChoiceLabel(schedule)),
+                  ),
+              ],
+              onChanged: _saving
+                  ? null
+                  : (value) => setState(() => _nextScheduleId = value),
+            ),
+            if (_schedules?.isEmpty ?? false) ...[
+              const SizedBox(height: 8),
+              const Text('這個生活項目目前沒有可保留的正式排程。'),
+            ],
+            const SizedBox(height: 10),
+            SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('建立下一次提醒'),
+              subtitle: const Text('建立一則單次提醒，不會改動原本的 Task。'),
+              value: _createReminder,
+              onChanged: _saving
+                  ? null
+                  : (value) => setState(() => _createReminder = value),
+            ),
+            if (_createReminder)
+              _DateField(
+                label: '提醒日期',
+                value: _reminderDueDate,
+                onTap: _pickReminderDate,
+              ),
             const SizedBox(height: 24),
             FilledButton(
               onPressed: _saving ? null : _save,
@@ -517,26 +605,75 @@ class _WorkCaseClosureFormScreenState extends State<WorkCaseClosureFormScreen> {
     setState(() => _saving = true);
     final now = DateTime.now();
     final followUp = _text(_followUp.text);
+    final reminderId = _createReminder
+        ? 'task-follow-up-${now.microsecondsSinceEpoch}'
+        : null;
+    final followUpType = switch ((_nextScheduleId != null, _createReminder)) {
+      (true, true) => WorkCaseFollowUpType.scheduleAndReminder,
+      (true, false) => WorkCaseFollowUpType.schedule,
+      (false, true) => WorkCaseFollowUpType.reminder,
+      (false, false) when followUp != null => WorkCaseFollowUpType.manual,
+      _ => WorkCaseFollowUpType.none,
+    };
     final closure = WorkCaseClosure(
       id: 'closure-${now.microsecondsSinceEpoch}',
       workCaseId: widget.workCase.id,
-      completedAt: now,
+      completedAt: _completedAt,
       finalResult: _result.text.trim(),
       completionSummary: _summary.text.trim(),
       totalCost: _integer(_cost.text)!,
       followUpNotes: followUp,
-      followUpType: followUp == null
-          ? WorkCaseFollowUpType.none
-          : WorkCaseFollowUpType.manual,
+      followUpType: followUpType,
+      nextScheduleId: _nextScheduleId,
+      nextReminderTaskId: reminderId,
       createdAt: now,
     );
     try {
-      await runtime.close(closure);
+      await runtime.closeWithFollowUp(
+        closure,
+        nextReminderDueDate: _createReminder ? _reminderDueDate : null,
+      );
       if (mounted) Navigator.pop(context, true);
     } catch (error) {
       if (mounted) _showError(context, error);
     } finally {
       if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _pickCompletionDate() async {
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: _completedAt,
+      firstDate: widget.workCase.createdAt,
+      lastDate: DateTime.now(),
+      helpText: '選擇完成日期',
+    );
+    if (selected != null) {
+      setState(() => _completedAt = _withExistingTime(selected, _completedAt));
+    }
+  }
+
+  Future<void> _pickReminderDate() async {
+    final firstDate = DateTime(
+      _completedAt.year,
+      _completedAt.month,
+      _completedAt.day,
+    ).add(const Duration(days: 1));
+    final initialDate = _reminderDueDate.isBefore(firstDate)
+        ? firstDate
+        : _reminderDueDate;
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: firstDate,
+      lastDate: DateTime(firstDate.year + 20),
+      helpText: '選擇提醒日期',
+    );
+    if (selected != null) {
+      setState(
+        () => _reminderDueDate = _withExistingTime(selected, _reminderDueDate),
+      );
     }
   }
 }
@@ -942,6 +1079,14 @@ class _ClosureCard extends StatelessWidget {
               const SizedBox(height: 7),
               Text('後續注意：$value'),
             ],
+            if (closure.createsSchedule) ...[
+              const SizedBox(height: 7),
+              const Text('已連結後續排程'),
+            ],
+            if (closure.createsReminder) ...[
+              const SizedBox(height: 7),
+              const Text('已建立下一次提醒'),
+            ],
             if (attachments.isNotEmpty) ...[
               const SizedBox(height: 7),
               Text('附件 ${attachments.length} 份'),
@@ -1234,6 +1379,30 @@ String _formatDate(DateTime value) =>
 
 String _formatDateTime(DateTime value) =>
     '${_formatDate(value)} ${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
+
+String _scheduleChoiceLabel(Schedule schedule) =>
+    '${schedule.title ?? _cycleLabel(schedule.cycleType)} · 下次 ${_formatDate(schedule.nextDueDate)}';
+
+String _cycleLabel(CycleType value) => switch (value) {
+  CycleType.daily => '每日',
+  CycleType.weekly => '每週',
+  CycleType.monthly => '每月',
+  CycleType.quarterly => '每季',
+  CycleType.semiAnnual => '每半年',
+  CycleType.yearly => '每年',
+  CycleType.custom => '自訂安排',
+};
+
+DateTime _withExistingTime(DateTime date, DateTime time) => DateTime(
+  date.year,
+  date.month,
+  date.day,
+  time.hour,
+  time.minute,
+  time.second,
+  time.millisecond,
+  time.microsecond,
+);
 
 String _money(int value) => '\$${value.toString()}';
 

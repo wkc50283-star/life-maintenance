@@ -37,6 +37,7 @@ void main() {
       database: database,
       workCases: repositories.workCases,
       closures: repositories.workCaseClosures,
+      tasks: repositories.tasks,
     );
     runtime = DriftTaskReminderRuntime(
       database: database,
