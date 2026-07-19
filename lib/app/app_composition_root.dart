@@ -5,6 +5,7 @@ import '../models/legacy_drift_import_report.dart';
 import '../repositories/drift/drift_item_read_repository.dart';
 import '../repositories/drift/drift_attachment_runtime.dart';
 import '../repositories/drift/drift_history_projection_repository.dart';
+import '../repositories/drift/drift_maintenance_record_repository.dart';
 import '../repositories/drift/drift_schedule_runtime_repository.dart';
 import '../repositories/drift/drift_schema_v2_repositories.dart';
 import '../repositories/drift/drift_task_runtime_repository.dart';
@@ -14,6 +15,7 @@ import '../repositories/attachment_runtime.dart';
 import '../repositories/history_projection_repository.dart';
 import '../repositories/item_read_repository.dart';
 import '../repositories/maintenance_record_local_repository.dart';
+import '../repositories/maintenance_record_repository.dart';
 import '../repositories/schedule_local_repository.dart';
 import '../repositories/schedule_repository.dart';
 import '../repositories/task_local_repository.dart';
@@ -33,6 +35,7 @@ abstract interface class AppRuntimeDependencies {
   ItemReadRepository get itemReadRepository;
   ItemLocalRepository get itemRepository;
   MaintenanceRecordLocalRepository get maintenanceRecordRepository;
+  MaintenanceRecordRepository? get formalMaintenanceRecordRepository;
   ScheduleRepository get scheduleRepository;
   DriftMaintenancePlanRepository? get maintenancePlanRepository;
   DriftGeneralReminderRepository? get generalReminderRepository;
@@ -70,6 +73,8 @@ class LegacyRuntimeDependencies implements AppRuntimeDependencies {
   @override
   final MaintenanceRecordLocalRepository maintenanceRecordRepository;
   @override
+  MaintenanceRecordRepository? get formalMaintenanceRecordRepository => null;
+  @override
   final ScheduleLocalRepository scheduleRepository;
   @override
   DriftMaintenancePlanRepository? get maintenancePlanRepository => null;
@@ -104,6 +109,7 @@ enum RuntimeDataMode {
   driftTasks,
   driftWorkCases,
   driftHistoryAttachments,
+  driftMaintenanceRecords,
 }
 
 class RuntimeInitializationResult {
@@ -118,19 +124,26 @@ class RuntimeInitializationResult {
       mode == RuntimeDataMode.driftPlanning ||
       mode == RuntimeDataMode.driftTasks ||
       mode == RuntimeDataMode.driftWorkCases ||
-      mode == RuntimeDataMode.driftHistoryAttachments;
+      mode == RuntimeDataMode.driftHistoryAttachments ||
+      mode == RuntimeDataMode.driftMaintenanceRecords;
 
   bool get usesDriftTasks =>
       mode == RuntimeDataMode.driftTasks ||
       mode == RuntimeDataMode.driftWorkCases ||
-      mode == RuntimeDataMode.driftHistoryAttachments;
+      mode == RuntimeDataMode.driftHistoryAttachments ||
+      mode == RuntimeDataMode.driftMaintenanceRecords;
 
   bool get usesDriftWorkCases =>
       mode == RuntimeDataMode.driftWorkCases ||
-      mode == RuntimeDataMode.driftHistoryAttachments;
+      mode == RuntimeDataMode.driftHistoryAttachments ||
+      mode == RuntimeDataMode.driftMaintenanceRecords;
 
   bool get usesDriftHistoryAttachments =>
-      mode == RuntimeDataMode.driftHistoryAttachments;
+      mode == RuntimeDataMode.driftHistoryAttachments ||
+      mode == RuntimeDataMode.driftMaintenanceRecords;
+
+  bool get usesDriftMaintenanceRecords =>
+      mode == RuntimeDataMode.driftMaintenanceRecords;
 }
 
 class AppCompositionRoot implements AppRuntimeDependencies {
@@ -163,6 +176,7 @@ class AppCompositionRoot implements AppRuntimeDependencies {
   WorkCaseRuntime? _workCaseRuntime;
   HistoryProjectionRepository? _historyProjectionRepository;
   AttachmentRuntime? _attachmentRuntime;
+  MaintenanceRecordRepository? _formalMaintenanceRecordRepository;
   Future<RuntimeInitializationResult>? _initialization;
 
   Future<RuntimeInitializationResult> initialize() =>
@@ -211,8 +225,10 @@ class AppCompositionRoot implements AppRuntimeDependencies {
         database: database,
         attachments: driftRepositories.attachments,
       );
+      _formalMaintenanceRecordRepository =
+          DriftMaintenanceRecordRuntimeRepository(database);
       return RuntimeInitializationResult(
-        mode: RuntimeDataMode.driftHistoryAttachments,
+        mode: RuntimeDataMode.driftMaintenanceRecords,
         importReport: report,
       );
     } on LegacyDriftImportException catch (error) {
@@ -223,6 +239,7 @@ class AppCompositionRoot implements AppRuntimeDependencies {
       _workCaseRuntime = null;
       _historyProjectionRepository = null;
       _attachmentRuntime = null;
+      _formalMaintenanceRecordRepository = null;
       return RuntimeInitializationResult(
         mode: RuntimeDataMode.legacy,
         importReport: error.report,
@@ -235,6 +252,7 @@ class AppCompositionRoot implements AppRuntimeDependencies {
       _workCaseRuntime = null;
       _historyProjectionRepository = null;
       _attachmentRuntime = null;
+      _formalMaintenanceRecordRepository = null;
       return const RuntimeInitializationResult(mode: RuntimeDataMode.legacy);
     }
   }
@@ -246,6 +264,9 @@ class AppCompositionRoot implements AppRuntimeDependencies {
   @override
   MaintenanceRecordLocalRepository get maintenanceRecordRepository =>
       _runtime.maintenanceRecordRepository;
+  @override
+  MaintenanceRecordRepository? get formalMaintenanceRecordRepository =>
+      _formalMaintenanceRecordRepository;
   @override
   ScheduleRepository get scheduleRepository => _scheduleRepository;
   @override

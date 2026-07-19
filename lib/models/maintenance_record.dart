@@ -4,6 +4,7 @@ class MaintenanceRecord {
   final String id;
   final String itemId;
   final String? taskId;
+  final String? maintenancePlanId;
   final RecordType recordType;
   final DateTime date;
   final String title;
@@ -26,6 +27,7 @@ class MaintenanceRecord {
     required this.title,
     required this.createdAt,
     this.taskId,
+    this.maintenancePlanId,
     this.issueDescription,
     this.workDescription,
     this.partsChanged = const [],
@@ -44,6 +46,7 @@ class MaintenanceRecord {
       id: json['id'] as String,
       itemId: json['itemId'] as String,
       taskId: json['taskId'] as String?,
+      maintenancePlanId: json['maintenancePlanId'] as String?,
       recordType: _recordTypeFromJson(json['recordType']),
       date: date,
       title: json['title'] as String,
@@ -69,6 +72,7 @@ class MaintenanceRecord {
       'id': id,
       'itemId': itemId,
       'taskId': taskId,
+      'maintenancePlanId': maintenancePlanId,
       'recordType': recordType.name,
       'date': date.toIso8601String(),
       'title': title,
@@ -89,6 +93,7 @@ class MaintenanceRecord {
     String? id,
     String? itemId,
     String? taskId,
+    String? maintenancePlanId,
     RecordType? recordType,
     DateTime? date,
     String? title,
@@ -107,6 +112,7 @@ class MaintenanceRecord {
       id: id ?? this.id,
       itemId: itemId ?? this.itemId,
       taskId: taskId ?? this.taskId,
+      maintenancePlanId: maintenancePlanId ?? this.maintenancePlanId,
       recordType: recordType ?? this.recordType,
       date: date ?? this.date,
       title: title ?? this.title,

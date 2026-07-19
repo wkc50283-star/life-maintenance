@@ -1,6 +1,6 @@
 # 生活管理 App
 
-目前版本：**v0.5.8 History Projection and Attachment Runtime**
+目前版本：**v0.5.9 MaintenanceRecord Runtime**
 
 `life-maintenance` 是一個 Flutter 生活管理 App，目標是管理生活項目、固定週期、到期提醒、階段性重點、突發事項與工程，並保存每一次處理從開始到結束的完整史略。
 
@@ -36,7 +36,7 @@
 
 ## 目前狀態
 
-`v0.5.8` 在受控匯入驗證後提供正式唯讀 History Projection 與 Attachment Runtime。History 由 WorkCase、WorkCaseUpdate、WorkCaseClosure、MaintenanceRecord、Task、Milestone 與 Attachment 即時組合，不新增 History table 或 writer；附件只接受正式 Owner 與穩定 managed identifier，保存 MIME、Hash、狀態及遺失／刪除時間。SharedPreferences 與不可變備份維持唯讀。
+`v0.5.9` 在受控匯入驗證後提供正式 MaintenanceRecord Drift Repository。只有不需要案件過程的簡單完成事件可建立 MaintenanceRecord；需要進度與正式結案的事件必須走 WorkCase → WorkCaseClosure。Task 完成與簡單紀錄建立使用單一 transaction，History 維持唯讀投影，SharedPreferences 與不可變備份維持唯讀。
 
 已完成的資料與治理基礎：
 
@@ -58,17 +58,16 @@
 - MaintenancePlan、GeneralReminder、Milestone、Schedule 的 Drift Runtime Repository、source contract、anchor policy 與 transaction 切換
 - 保養項目、排程、任務與案件的資料角色已重新分離
 - 正式唯讀 History Projection 與 Attachment managed identifier／owner／生命週期 Runtime
+- MaintenanceRecord 正式 Drift Runtime、簡單 Task 完成 transaction 與 WorkCaseClosure 邊界
 - Flutter Analyze、Test、Web Build、Drift code generation 與 Web 資產自動 CI
 
 後續依序進行：
 
 1. 完成真實裝置來源唯讀與匯入預覽驗收
-2. 依單一 writer 規則切換 Task／MaintenanceRecord 的 Drift transaction
-3. 開放正式 Drift mutation
-4. 保養／修理卡、工程卡與多筆進度 UI
-5. 階段性重點
-6. 將既有史略畫面切換至正式 Projection
-7. 正式 UI／UX 與真機驗收
+2. 保養／修理卡、工程卡與多筆進度 UI
+3. 階段性重點
+4. 將既有史略畫面切換至正式 Projection
+5. 正式 UI／UX 與真機驗收
 
 ## 支援週期
 
@@ -88,11 +87,11 @@
 - Dart
 - Material 3
 - SharedPreferences（受控匯入成功後永久唯讀保留為回復來源）
-- Drift + SQLite（Schema v2、Repository、安全 importer、Item 讀取與 planning repositories 已接入 Runtime）
+- Drift + SQLite（Schema v2、Repository、安全 importer 與正式資料 Runtime）
 - GitHub Actions
 - GitHub Pages（Web build）
 
-Drift + SQLite Schema v2、v1 → v2 migration 與受控 importer 已建立；Runtime 只在完整驗證通過後切換 Item 讀取與 planning repositories，Task、MaintenanceRecord 與案件 writer 尚未切換。
+Drift + SQLite Schema v2、v1 → v2 migration 與受控 importer 已建立；Runtime 只在完整驗證通過後切換，MaintenanceRecord 只承接不需要案件過程的簡單完成事實。
 
 ## 本機執行
 
