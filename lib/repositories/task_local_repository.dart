@@ -3,14 +3,16 @@ import 'dart:convert';
 import '../models/task.dart';
 import '../services/local_data_integrity_service.dart';
 import '../services/local_storage_service.dart';
+import 'task_repository.dart';
 
-class TaskLocalRepository {
+class TaskLocalRepository implements TaskRepository {
   static const String _storageKey = 'tasks';
 
   TaskLocalRepository(this._storageService);
 
   final LocalStorageService _storageService;
 
+  @override
   Future<List<Task>> loadTasks() async {
     final rawTasks = await _storageService.readString(_storageKey);
     if (rawTasks == null) {
@@ -32,4 +34,7 @@ class TaskLocalRepository {
     );
     await _storageService.saveString(_storageKey, encodedTasks);
   }
+
+  @override
+  Future<void> saveGeneratedTasks(List<Task> tasks) => saveTasks(tasks);
 }

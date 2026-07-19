@@ -565,6 +565,12 @@ class DriftTaskRepository {
     return query.getSingleOrNull();
   }
 
+  Future<List<TaskRow>> listAll() {
+    final query = _database.select(_database.tasks)
+      ..orderBy([(table) => OrderingTerm.asc(table.dueDate)]);
+    return query.get();
+  }
+
   Future<List<TaskRow>> listForItem(String itemId) async {
     await _requireItem(_database, itemId);
     final query = _database.select(_database.tasks)

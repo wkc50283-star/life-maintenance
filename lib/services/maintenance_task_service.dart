@@ -21,7 +21,7 @@ class MaintenanceTaskService {
       final hasExistingTask = existingTasks.any(
         (task) =>
             task.scheduleId == schedule.id &&
-            _isSameDay(task.dueDate, schedule.nextDueDate),
+            task.dueDate == schedule.nextDueDate,
       );
 
       if (hasExistingTask) {
@@ -49,10 +49,6 @@ class MaintenanceTaskService {
 
   DateTime _dateOnly(DateTime date) {
     return DateTime(date.year, date.month, date.day);
-  }
-
-  bool _isSameDay(DateTime firstDate, DateTime secondDate) {
-    return _dateOnly(firstDate) == _dateOnly(secondDate);
   }
 
   String _taskTitleFor(Schedule schedule) {
