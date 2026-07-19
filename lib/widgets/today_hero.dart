@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
 
 class TodayHero extends StatelessWidget {
-  final int taskCount;
+  final int reminderCount;
+  final int openCaseCount;
+  final int milestoneCount;
 
-  const TodayHero({super.key, required this.taskCount});
+  const TodayHero({
+    super.key,
+    required this.reminderCount,
+    required this.openCaseCount,
+    required this.milestoneCount,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -39,16 +46,13 @@ class TodayHero extends StatelessWidget {
                     color: Colors.white.withValues(alpha: 0.24),
                   ),
                 ),
-                child: const Icon(
-                  Icons.home_outlined,
-                  color: Colors.white,
-                ),
+                child: const Icon(Icons.home_outlined, color: Colors.white),
               ),
             ],
           ),
           const SizedBox(height: 26),
           const Text(
-            '生活維護管家',
+            '生活總覽',
             style: TextStyle(
               color: Colors.white,
               fontSize: 28,
@@ -66,27 +70,56 @@ class TodayHero extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 22),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.today_outlined, color: Colors.white, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  '今日 $taskCount 件待處理',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _StatusPill(
+                icon: Icons.notifications_none_rounded,
+                label: '今日提醒 $reminderCount',
+              ),
+              _StatusPill(
+                icon: Icons.handyman_outlined,
+                label: '進行中案件 $openCaseCount',
+              ),
+              _StatusPill(
+                icon: Icons.flag_outlined,
+                label: '階段性重點 $milestoneCount',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 18),
+          const SizedBox(width: 7),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
             ),
           ),
         ],
