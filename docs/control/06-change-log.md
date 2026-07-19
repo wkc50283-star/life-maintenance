@@ -1820,6 +1820,38 @@ Task 已正式切換至 Drift，但畫面仍使用舊保養卡預覽，無法查
 
 ---
 
+## LM-049：v0.5.20 Architecture Audit
+
+日期：2026-07-19
+狀態：已核准施工，待 PR #221 驗收
+
+### 變更內容
+
+- 稽核 Domain、Repository、Runtime、AppCompositionRoot 與控制文件一致性。
+- 確認 Drift 是唯一正式資料來源，正常啟動不讀 Legacy business source 或 fallback。
+- 確認 Task、WorkCase、WorkCaseClosure 與 History 正式角色未混淆，沒有平行 History writer。
+- 以 allowlist Gate 鎖定 SharedPreferences／LocalStorageService 只能存在於核准的唯讀 recovery 工具。
+- 修正早期架構與資料庫決策文件的現況標示衝突，不重寫歷史決策。
+- 版本更新為 v0.5.20。
+
+### 明確未修改
+
+不修改 production Runtime、UI、Schema、Migration、匯入 mapping、Domain model 或正式資料；不新增功能、不刪除 Legacy recovery 工具、不開始下一個 PR。
+
+### 資料影響與回復
+
+沒有資料讀寫、搬移或格式變更，不需要資料 rollback。程式回復只需還原本 PR 的文件、Gate 與版本變更。
+
+### 驗收依據
+
+以 PR #221 的 Architecture／Legacy retirement Gate、codegen 無差異、Analyze、全部測試、Web release build 與 GitHub Actions 為準。
+
+### 追蹤
+
+- PR #221
+
+---
+
 ## 後續條目模板
 
 ```text

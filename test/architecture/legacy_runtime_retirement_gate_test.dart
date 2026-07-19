@@ -45,6 +45,46 @@ void main() {
     expect(violations, isEmpty);
   });
 
+  test('legacy persistence is confined to approved recovery tools', () {
+    const approvedFiles = {
+      'lib/repositories/item_local_repository.dart',
+      'lib/repositories/maintenance_record_local_repository.dart',
+      'lib/repositories/schedule_local_repository.dart',
+      'lib/repositories/task_local_repository.dart',
+      'lib/services/legacy_drift_import_service.dart',
+      'lib/services/legacy_relation_audit_service.dart',
+      'lib/services/local_data_backup_service.dart',
+      'lib/services/migration_readiness_service.dart',
+      'lib/services/local_storage_service.dart',
+    };
+    final actualFiles = _dartFiles('lib')
+        .where((file) {
+          final source = file.readAsStringSync();
+          return source.contains('LocalStorageService') ||
+              source.contains('shared_preferences/shared_preferences.dart');
+        })
+        .map((file) => _relative(file.path))
+        .toSet();
+
+    expect(actualFiles, approvedFiles);
+  });
+
+  test('formal History remains a read-only projection contract', () {
+    final source = File(
+      'lib/repositories/history_projection_repository.dart',
+    ).readAsStringSync();
+
+    expect(source, contains('Future<HistoryProjection> projectForItem('));
+    for (final forbidden in const [
+      'saveHistory',
+      'createHistory',
+      'updateHistory',
+      'deleteHistory',
+    ]) {
+      expect(source, isNot(contains(forbidden)));
+    }
+  });
+
   test('legacy production helpers expose no business writer API', () {
     final storageSource = File(
       'lib/services/local_storage_service.dart',

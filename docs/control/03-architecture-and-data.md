@@ -3,6 +3,8 @@
 狀態：正式控制文件  
 本文件定義資料角色、關聯與遷移原則；具體資料庫選型須另行驗證。
 
+> 現行 Runtime 基線（v0.5.20）：本文件第 7、8 節保留早期選型與遷移施工背景，不代表目前仍使用 SharedPreferences。Schema v2、Repository、受控匯入與 Legacy Runtime 退休均已完成；正式 Runtime 以 Drift 為唯一資料來源，現行規則以 `25-legacy-runtime-retirement.md` 與 `33-architecture-audit.md` 為準。
+
 ## 1. 核心資料角色
 
 | 模型／角色 | 正式定位 |
