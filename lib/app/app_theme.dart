@@ -1,0 +1,66 @@
+import 'package:flutter/material.dart';
+
+abstract final class AppTheme {
+  static ThemeData get light {
+    return ThemeData(
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: const Color(0xFF6F8FAF),
+        brightness: Brightness.light,
+        surface: const Color(0xFFF7F3EA),
+        primary: const Color(0xFF5D7893),
+        secondary: const Color(0xFF8FA4B8),
+      ),
+      scaffoldBackgroundColor: const Color(0xFFF7F3EA),
+      useMaterial3: true,
+      appBarTheme: const AppBarTheme(
+        centerTitle: true,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        backgroundColor: Color(0xFFF7F3EA),
+        foregroundColor: Color(0xFF263746),
+        titleTextStyle: TextStyle(
+          color: Color(0xFF263746),
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      cardTheme: CardThemeData(
+        elevation: 0,
+        color: Colors.white,
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: Color(0xFFE4E0D8)),
+        ),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: const Color(0xFFFFFCF6),
+        indicatorColor: const Color(0xFFDCE8F2),
+        labelTextStyle: WidgetStateProperty.resolveWith(
+          (states) => TextStyle(
+            color: states.contains(WidgetState.selected)
+                ? const Color(0xFF263746)
+                : const Color(0xFF687887),
+            fontWeight: states.contains(WidgetState.selected)
+                ? FontWeight.w700
+                : FontWeight.w500,
+          ),
+        ),
+        iconTheme: WidgetStateProperty.resolveWith(
+          (states) => IconThemeData(
+            color: states.contains(WidgetState.selected)
+                ? const Color(0xFF5D7893)
+                : const Color(0xFF7C8995),
+          ),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: const Color(0xFF5D7893),
+          foregroundColor: Colors.white,
+          textStyle: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+      ),
+    );
+  }
+}

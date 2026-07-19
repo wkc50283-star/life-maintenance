@@ -1,6 +1,6 @@
 # 生活管理 App
 
-目前版本：**v0.5.12 Legacy Runtime Retirement**
+目前版本：**v0.5.13 Formal App Shell**
 
 `life-maintenance` 是一個 Flutter 生活管理 App，目標是管理生活項目、固定週期、到期提醒、階段性重點、突發事項與工程，並保存每一次處理從開始到結束的完整史略。
 
@@ -36,7 +36,7 @@
 
 ## 目前狀態
 
-`v0.5.12` 已安全退休 Legacy Runtime。正式入口與 AppCompositionRoot 只建立 Drift Repository／Runtime，冷啟動不再讀取 LocalRepository 或 SharedPreferences business keys；Drift 是唯一正式資料來源與 writer。舊來源與不可變 `backup_v1_*` 不刪除、不覆寫，只能由明確呼叫的唯讀匯入、稽核與災難回復工具使用。
+`v0.5.13` 已建立正式 App Shell。生活總覽、生活項目、新增、史略與設定共用單一導覽骨架、App Theme 與 AppCompositionRoot；既有畫面功能與 Drift Runtime 行為不變，也沒有新增平行導覽或資料流程。
 
 已完成的資料與治理基礎：
 
@@ -62,6 +62,7 @@
 - Legacy Runtime 全量引用稽核、唯一 writer／冷啟動／rollback 防回歸 Gate
 - Items／History 的 MaintenanceRecord Drift read cutover 與啟動失敗 Drift 唯讀安全狀態
 - 正式 Runtime 的 LocalRepository／SharedPreferences 退休與 Drift 唯一資料來源 Gate
+- 正式 App Shell、五個生活管理入口、共用 Theme 與單一 Composition Root 注入邊界
 - Flutter Analyze、Test、Web Build、Drift code generation 與 Web 資產自動 CI
 
 後續依序進行：
