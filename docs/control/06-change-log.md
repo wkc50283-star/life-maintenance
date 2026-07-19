@@ -1286,6 +1286,42 @@ SharedPreferences 仍是正式 Runtime 唯一資料來源與 writer。Drift Repo
 
 ---
 
+## LM-034：v0.5.5 Planning Repository Drift 切換
+
+日期：2026-07-19
+類型：資料／架構／安全／測試
+
+### 問題與原因
+
+PR #205 已完成匯入與 Item 讀取切換，但 MaintenancePlan、GeneralReminder、Milestone 與 Schedule 尚未由正式 Runtime 注入 Drift writer。若繼續使用舊 ScheduleLocalRepository，成功匯入後會觸發唯讀 gate，也無法以單一 transaction 維持 GeneralReminder／Schedule source contract。
+
+### 修改
+
+- 建立 Schedule Runtime Repository boundary 與 Drift adapter。
+- 以單一 transaction 建立／更新 GeneralReminder 與 Schedule，禁止隱式刪除、跨 Item 移動與未驗證 source。
+- 保留 MaintenancePlan、GeneralReminder、Milestone 的正式 Drift CRUD，由 AppCompositionRoot 在匯入驗證後統一注入。
+- 正式映射 fixedCalendarPeriod、completionBased 與 userDefined，更新時不把完成基準誤改為曆法基準。
+- 冷啟動重驗時，只接受不可變 planning 身分一致的正式欄位變更；Item、Task、Record 與 Attachment 繼續嚴格逐欄比對。
+- 版本更新為 v0.5.5。
+
+### 明確未修改
+
+不切換 Task、MaintenanceRecord、WorkCase 或 WorkCaseClosure writer；不修改 Schema、Migration、正式畫面設計或產品功能，不建立 History writer 或其他平行流程。
+
+### 資料影響
+
+SharedPreferences 與 `backup_v1_*` 維持唯讀，不刪除、覆蓋或回寫。Planning 資料只寫入 Drift；任一轉換、約束或寫入失敗時整個 transaction rollback。
+
+### 驗收結果
+
+以 PR #206 的 codegen、Analyze、全部測試、Web release build、預覽與 GitHub Actions 結果為準。
+
+### PR
+
+- PR #206
+
+---
+
 ## 後續條目模板
 
 ```text

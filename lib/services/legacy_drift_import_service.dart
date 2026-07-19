@@ -62,6 +62,7 @@ class LegacyDriftImportService {
 
   Future<LegacyDriftImportReport> execute({
     required bool sourceWritesAreDisabled,
+    bool allowVerifiedPlanningMutations = false,
   }) async {
     final preparation = await _prepare();
     if (!sourceWritesAreDisabled) {
@@ -90,7 +91,10 @@ class LegacyDriftImportService {
       }
 
       final plan = preparation.plan!;
-      final target = await _assessTarget(plan);
+      final target = await _assessTarget(
+        plan,
+        allowVerifiedPlanningMutations: allowVerifiedPlanningMutations,
+      );
       if (target.status == LegacyDriftImportStatus.alreadyImported) {
         return preparation.report(LegacyDriftImportStatus.alreadyImported);
       }
@@ -105,7 +109,10 @@ class LegacyDriftImportService {
 
       await _writePlan(plan, target.replaceableItemIds);
 
-      final after = await _assessTarget(plan);
+      final after = await _assessTarget(
+        plan,
+        allowVerifiedPlanningMutations: allowVerifiedPlanningMutations,
+      );
       if (after.status != LegacyDriftImportStatus.alreadyImported) {
         throw StateError('Legacy import target verification failed.');
       }
@@ -782,7 +789,10 @@ class LegacyDriftImportService {
     return issues;
   }
 
-  Future<_TargetAssessment> _assessTarget(_ImportPlan plan) async {
+  Future<_TargetAssessment> _assessTarget(
+    _ImportPlan plan, {
+    bool allowVerifiedPlanningMutations = false,
+  }) async {
     final issues = <LegacyDriftImportIssue>[];
     final replaceable = <String>{};
     var exact = 0;
@@ -801,6 +811,9 @@ class LegacyDriftImportService {
         if (current == null) {
           missing += 1;
         } else if (current == row) {
+          exact += 1;
+        } else if (allowVerifiedPlanningMutations &&
+            _hasSamePlanningIdentity(row, current)) {
           exact += 1;
         } else if (row is ItemRow &&
             current is ItemRow &&
@@ -889,6 +902,36 @@ class LegacyDriftImportService {
     AttachmentRow value => value.id,
     _ => throw ArgumentError.value(row, 'row'),
   };
+
+  bool _hasSamePlanningIdentity(Object? expected, Object? current) {
+    if (expected is MaintenancePlanRow && current is MaintenancePlanRow) {
+      return expected.id == current.id &&
+          expected.itemId == current.itemId &&
+          expected.templateCardId == current.templateCardId &&
+          expected.createdAt == current.createdAt;
+    }
+    if (expected is MaintenancePlanStepRow &&
+        current is MaintenancePlanStepRow) {
+      return expected.id == current.id &&
+          expected.maintenancePlanId == current.maintenancePlanId;
+    }
+    if (expected is GeneralReminderRow && current is GeneralReminderRow) {
+      return expected.id == current.id &&
+          expected.itemId == current.itemId &&
+          expected.createdAt == current.createdAt;
+    }
+    if (expected is ScheduleRow && current is ScheduleRow) {
+      return expected.id == current.id &&
+          expected.itemId == current.itemId &&
+          expected.sourceType == current.sourceType &&
+          expected.maintenancePlanId == current.maintenancePlanId &&
+          expected.generalReminderId == current.generalReminderId &&
+          expected.milestoneId == current.milestoneId &&
+          expected.legacyCardId == current.legacyCardId &&
+          expected.createdAt == current.createdAt;
+    }
+    return false;
+  }
 
   bool _isLegacyPlaceholder(ItemRow row) =>
       row.categoryId == _legacyCategoryId &&

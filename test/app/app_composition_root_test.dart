@@ -8,6 +8,7 @@ import 'package:life_maintenance/database/app_database.dart';
 import 'package:life_maintenance/models/enums.dart';
 import 'package:life_maintenance/models/item.dart';
 import 'package:life_maintenance/models/legacy_drift_import_report.dart';
+import 'package:life_maintenance/models/schedule.dart';
 import 'package:life_maintenance/services/local_data_integrity_service.dart';
 import 'package:life_maintenance/services/local_storage_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -82,7 +83,12 @@ void main() {
 
       final first = await root.initialize();
 
-      expect(first.mode, RuntimeDataMode.driftItemRead);
+      expect(first.mode, RuntimeDataMode.driftPlanning);
+      expect(first.usesDriftPlanning, isTrue);
+      expect(root.usesDriftPlanning, isTrue);
+      expect(root.maintenancePlanRepository, isNotNull);
+      expect(root.generalReminderRepository, isNotNull);
+      expect(root.milestoneRepository, isNotNull);
       expect(first.importReport?.status, LegacyDriftImportStatus.imported);
       expect(root.legacyWritesEnabled, isFalse);
       final importedItems = await root.itemReadRepository.loadItems();
@@ -92,6 +98,29 @@ void main() {
       expect(importedItems.single.location, item.location);
       expect(await storage.readString('items'), rawItems);
       expect(await storage.readString('backup_v1_items'), rawItems);
+      final schedule = Schedule(
+        id: 'schedule-1',
+        itemId: item.id,
+        cardId: 'manual-expiry-reminder',
+        cycleType: CycleType.custom,
+        interval: 1,
+        startDate: DateTime.utc(2026, 1, 2),
+        nextDueDate: DateTime.utc(2027, 1, 2),
+        title: '保固到期',
+      );
+      await root.scheduleRepository.saveSchedules([schedule]);
+      expect(
+        (await root.scheduleRepository.loadSchedules()).single.id,
+        schedule.id,
+      );
+      expect(await storage.readString('schedules'), isNull);
+      expect(await storage.readString('backup_v1_schedules'), isNull);
+      expect(
+        await root.generalReminderRepository?.findById(
+          'runtime-reminder-${schedule.id}',
+        ),
+        isNotNull,
+      );
       await expectLater(
         storage.saveString('items', '[]'),
         throwsA(isA<LegacyStorageReadOnlyException>()),
@@ -107,7 +136,7 @@ void main() {
         legacyStorage: restartedStorage,
       );
       final restarted = await restartedRoot.initialize();
-      expect(restarted.mode, RuntimeDataMode.driftItemRead);
+      expect(restarted.mode, RuntimeDataMode.driftPlanning);
       expect(
         restarted.importReport?.status,
         LegacyDriftImportStatus.alreadyImported,

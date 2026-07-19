@@ -456,6 +456,12 @@ class DriftScheduleRepository {
     return query.getSingleOrNull();
   }
 
+  Future<List<ScheduleRow>> listAll() {
+    final query = _database.select(_database.schedules)
+      ..orderBy([(table) => OrderingTerm.asc(table.nextDueDate)]);
+    return query.get();
+  }
+
   Future<List<ScheduleRow>> listForItem(String itemId) async {
     await _requireItem(_database, itemId);
     final query = _database.select(_database.schedules)

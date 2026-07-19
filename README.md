@@ -1,6 +1,6 @@
 # 生活管理 App
 
-目前版本：**v0.5.4 Controlled Import and Item Read Cutover**
+目前版本：**v0.5.5 Drift Planning Repository Cutover**
 
 `life-maintenance` 是一個 Flutter 生活管理 App，目標是管理生活項目、固定週期、到期提醒、階段性重點、突發事項與工程，並保存每一次處理從開始到結束的完整史略。
 
@@ -36,7 +36,7 @@
 
 ## 目前狀態
 
-`v0.5.4` 在正式啟動流程執行一次受控 SharedPreferences → Drift 匯入；只有完整驗證成功或確認已完整匯入時，ItemCategory／Item 讀取才切換至 Drift。SharedPreferences 與不可變備份全程保留為唯讀回復來源；Task、Schedule、MaintenanceRecord 與 WorkCase 寫入尚未切換，也不代表正式 UI 已完成。
+`v0.5.5` 在受控匯入驗證後，將 MaintenancePlan、GeneralReminder、Milestone 與 Schedule 正式切換至 Drift Repository。GeneralReminder 與 Schedule 的 Runtime 新增／更新使用單一 transaction，ScheduleAnchorPolicy 與正式 source FK 會被保留與驗證。SharedPreferences 與不可變備份繼續作為唯讀回復來源；Task、MaintenanceRecord、WorkCase 與 WorkCaseClosure 寫入仍未切換。
 
 已完成的資料與治理基礎：
 
@@ -55,13 +55,14 @@
 - SharedPreferences → Drift v2 dry-run、原子匯入、重跑保護與 rollback 測試
 - AppDatabase、Drift Schema v2 Repository、現行 LocalRepository 與必要 Service 由單一 AppCompositionRoot 建立及注入
 - 啟動時受控匯入、失敗 rollback、重啟零寫入驗證與 ItemCategory／Item Drift 讀取切換
+- MaintenancePlan、GeneralReminder、Milestone、Schedule 的 Drift Runtime Repository、source contract、anchor policy 與 transaction 切換
 - 保養項目、排程、任務與案件的資料角色已重新分離
 - Flutter Analyze、Test、Web Build、Drift code generation 與 Web 資產自動 CI
 
 後續依序進行：
 
 1. 完成真實裝置來源唯讀與匯入預覽驗收
-2. 依單一 writer 規則切換 Task／Schedule／MaintenanceRecord 的 Drift transaction
+2. 依單一 writer 規則切換 Task／MaintenanceRecord 的 Drift transaction
 3. 開放正式 Drift mutation
 4. 保養／修理卡、工程卡與多筆進度 UI
 5. 階段性重點
@@ -86,11 +87,11 @@
 - Dart
 - Material 3
 - SharedPreferences（受控匯入成功後永久唯讀保留為回復來源）
-- Drift + SQLite（Schema v2、Repository、安全 importer 與 ItemCategory／Item 正式讀取已接入 Runtime）
+- Drift + SQLite（Schema v2、Repository、安全 importer、Item 讀取與 planning repositories 已接入 Runtime）
 - GitHub Actions
 - GitHub Pages（Web build）
 
-Drift + SQLite Schema v2、v1 → v2 migration 與受控 importer 已建立；Runtime 只在完整驗證通過後切換 ItemCategory／Item 讀取，其他正式 writer 尚未切換。
+Drift + SQLite Schema v2、v1 → v2 migration 與受控 importer 已建立；Runtime 只在完整驗證通過後切換 Item 讀取與 planning repositories，Task、MaintenanceRecord 與案件 writer 尚未切換。
 
 ## 本機執行
 
@@ -133,6 +134,8 @@ flutter build web --release
 14. [首頁與生活項目詳情視覺架構](docs/control/14-home-and-item-detail-visual-architecture.md)
 15. [正式 Runtime 資料流稽核與單一寫入控制](docs/control/15-runtime-data-transition-audit.md)
 16. [SharedPreferences → Drift Schema v2 安全匯入控制](docs/control/16-sharedpreferences-drift-v2-import.md)
+17. [受控 Runtime 匯入與 Item 讀取切換](docs/control/17-controlled-runtime-import-and-item-read-cutover.md)
+18. [Planning Repository Drift 切換](docs/control/18-planning-repository-drift-cutover.md)
 
 `docs/control/` 內標示為「正式控制文件」的文件共同生效，不再以固定「六份文件」限制控制範圍。
 
