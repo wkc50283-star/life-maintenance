@@ -1756,6 +1756,38 @@ Task 已正式切換至 Drift，但畫面仍使用舊保養卡預覽，無法查
 
 - PR #218
 
+## LM-047：v0.5.18 正式 WorkCase UI
+
+日期：2026-07-19
+狀態：已核准施工，待 PR #219 驗收
+
+### 變更內容
+
+- 建立正式案件清單與完整 WorkCase 詳情頁。
+- 以多筆 WorkCaseUpdate 組成不可覆寫的案件時間軸。
+- 呈現處理日期、廠商／聯絡人、結果、費用、零件／品項、等待原因、下一步與備註。
+- 新增進度時沿用正式 Runtime 的 Update／狀態單一 transaction。
+- 取消與結案入口沿用唯一 WorkCaseClosure 與終止狀態單一 transaction。
+- 呈現屬於 WorkCaseUpdate／WorkCaseClosure 的正式受管附件；不顯示 storage identifier，不接受平台路徑。
+- 首頁生活總覽與 Item 詳情的案件卡片接至同一正式案件詳情。
+- 終止案件只讀，不再允許新增進度、取消或重複結案。
+- 版本更新為 v0.5.18。
+
+### 不包含
+
+- Schema、Migration 或 Domain 變更
+- 新增附件檔案匯入服務
+- UI 全面重畫或新領域功能
+- History 獨立寫入或任何平行案件流程
+
+### 驗收依據
+
+以 PR #219 的 WorkCase Widget tests、既有 Runtime transaction tests、codegen、Analyze、全部測試、Web release build、實際手機尺寸預覽、GitHub Actions 與 PR 說明為準。
+
+### 追蹤
+
+- PR #219
+
 ---
 
 ## 後續條目模板
