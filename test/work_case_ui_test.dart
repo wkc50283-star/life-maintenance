@@ -4,7 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:life_maintenance/app/app_composition_root.dart';
 import 'package:life_maintenance/database/app_database.dart';
 import 'package:life_maintenance/models/attachment.dart';
+import 'package:life_maintenance/models/history_projection.dart';
 import 'package:life_maintenance/models/work_case.dart';
+import 'package:life_maintenance/models/work_case_closure.dart';
 import 'package:life_maintenance/models/work_case_enums.dart';
 import 'package:life_maintenance/models/work_case_update.dart';
 import 'package:life_maintenance/screens/work_case_screens.dart';
@@ -97,6 +99,12 @@ void main() {
       find.widgetWithText(TextFormField, '後續注意事項（選填）'),
       '下次保養留意異音',
     );
+    await tester.tap(find.byType(DropdownButtonFormField<String?>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.textContaining('冷氣年度檢查').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('建立下一次提醒'));
+    await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, '確認正式結案'));
     await tester.pumpAndSettle();
 
@@ -104,11 +112,27 @@ void main() {
     expect(find.textContaining('案件已終止'), findsOneWidget);
     expect(find.text('新增案件進度'), findsNothing);
     expect(find.text('取消案件'), findsNothing);
-    expect(await root.workCaseRuntime.findClosureForCase('case-1'), isNotNull);
+    final closure = await root.workCaseRuntime.findClosureForCase('case-1');
+    expect(closure?.followUpType, WorkCaseFollowUpType.scheduleAndReminder);
+    expect(closure?.nextScheduleId, 'schedule-1');
+    expect(closure?.nextReminderTaskId, isNotNull);
+    final reminder = await root.driftRepositories.tasks.findById(
+      closure!.nextReminderTaskId!,
+    );
+    expect(reminder?.sourceType, 'manual');
+    expect(reminder?.status, 'pending');
     expect(
       (await root.workCaseRuntime.findCaseById('case-1'))?.status,
       WorkCaseStatus.completed,
     );
+    final history = await root.historyProjectionRepository.projectForItem(
+      'item-1',
+    );
+    final historyCase = history.entries
+        .whereType<WorkCaseHistoryEntry>()
+        .single;
+    expect(historyCase.closure?.id, closure.id);
+    expect(history.entries.whereType<WorkCaseHistoryEntry>(), hasLength(1));
   });
 
   testWidgets('cancel entry creates the unique terminal Closure', (
@@ -171,6 +195,34 @@ Future<void> _seed(AppCompositionRoot root) async {
       name: '客廳冷氣',
       categoryId: 'category-1',
       status: 'active',
+      createdAt: now,
+      updatedAt: now,
+    ),
+  );
+  await root.driftRepositories.generalReminders.save(
+    GeneralReminderRow(
+      schemaVersion: 1,
+      id: 'reminder-1',
+      itemId: 'item-1',
+      title: '冷氣年度檢查',
+      reminderType: 'inspection',
+      status: 'active',
+      createdAt: now,
+      updatedAt: now,
+    ),
+  );
+  await root.driftRepositories.schedules.save(
+    ScheduleRow(
+      id: 'schedule-1',
+      itemId: 'item-1',
+      sourceType: 'generalReminder',
+      generalReminderId: 'reminder-1',
+      cycleType: 'yearly',
+      interval: 1,
+      startDate: now,
+      nextDueDate: now.add(const Duration(days: 365)),
+      status: 'active',
+      anchorPolicy: 'fixedCalendarPeriod',
       createdAt: now,
       updatedAt: now,
     ),

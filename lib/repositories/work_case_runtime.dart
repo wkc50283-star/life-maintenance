@@ -40,6 +40,15 @@ abstract interface class WorkCaseRuntime {
 
   Future<void> close(WorkCaseClosure closure);
 
+  /// Closes the case and optionally creates its one-off follow-up reminder in
+  /// the same transaction. An existing formal Schedule may be referenced by
+  /// [closure.nextScheduleId]; it is validated by the closure repository and
+  /// is never duplicated or rewritten here.
+  Future<void> closeWithFollowUp(
+    WorkCaseClosure closure, {
+    DateTime? nextReminderDueDate,
+  });
+
   Future<void> cancel(
     WorkCaseClosure closure, {
     required String cancellationReason,

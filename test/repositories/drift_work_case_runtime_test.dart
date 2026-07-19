@@ -27,6 +27,7 @@ void main() {
       database: database,
       workCases: repositories.workCases,
       closures: repositories.workCaseClosures,
+      tasks: repositories.tasks,
     );
     await repositories.itemCategories.save(
       ItemCategoryRow(
@@ -210,13 +211,21 @@ void main() {
     createdAt: now.add(const Duration(hours: 1)),
   );
 
-  WorkCaseClosure closure({String id = 'closure-1'}) => WorkCaseClosure(
+  WorkCaseClosure closure({
+    String id = 'closure-1',
+    WorkCaseFollowUpType followUpType = WorkCaseFollowUpType.none,
+    String? nextScheduleId,
+    String? nextReminderTaskId,
+  }) => WorkCaseClosure(
     id: id,
     workCaseId: 'case-1',
     completedAt: now.add(const Duration(hours: 3)),
     finalResult: '完成續約',
     completionSummary: '雙方完成簽署並留存文件',
     totalCost: 1000,
+    followUpType: followUpType,
+    nextScheduleId: nextScheduleId,
+    nextReminderTaskId: nextReminderTaskId,
     createdAt: now.add(const Duration(hours: 3)),
   );
 
@@ -308,6 +317,60 @@ void main() {
     expect(
       await database.select(database.workCaseClosures).get(),
       hasLength(1),
+    );
+  });
+
+  test(
+    'closure, existing Schedule and new reminder commit atomically',
+    () async {
+      await runtime.createManual(workCase());
+      final value = closure(
+        followUpType: WorkCaseFollowUpType.scheduleAndReminder,
+        nextScheduleId: 'schedule-1',
+        nextReminderTaskId: 'task-follow-up',
+      );
+
+      await runtime.closeWithFollowUp(
+        value,
+        nextReminderDueDate: now.add(const Duration(days: 30)),
+      );
+
+      expect(
+        (await runtime.findCaseById('case-1'))?.status,
+        WorkCaseStatus.completed,
+      );
+      expect(
+        (await runtime.findClosureForCase('case-1'))?.nextScheduleId,
+        'schedule-1',
+      );
+      final reminder = await repositories.tasks.findById('task-follow-up');
+      expect(reminder?.itemId, 'item-1');
+      expect(reminder?.sourceType, 'manual');
+      expect(reminder?.status, 'pending');
+    },
+  );
+
+  test('follow-up failure rolls reminder, Closure and status back', () async {
+    await runtime.createManual(workCase());
+    final value = closure(
+      followUpType: WorkCaseFollowUpType.scheduleAndReminder,
+      nextScheduleId: 'missing-schedule',
+      nextReminderTaskId: 'task-rolled-back',
+    );
+
+    await expectLater(
+      runtime.closeWithFollowUp(
+        value,
+        nextReminderDueDate: now.add(const Duration(days: 30)),
+      ),
+      throwsA(isA<RepositoryConstraintException>()),
+    );
+
+    expect(await repositories.tasks.findById('task-rolled-back'), isNull);
+    expect(await runtime.findClosureForCase('case-1'), isNull);
+    expect(
+      (await runtime.findCaseById('case-1'))?.status,
+      WorkCaseStatus.inProgress,
     );
   });
 

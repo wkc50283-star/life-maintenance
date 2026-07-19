@@ -1788,6 +1788,36 @@ Task 已正式切換至 Drift，但畫面仍使用舊保養卡預覽，無法查
 
 - PR #219
 
+## LM-048：v0.5.19 WorkCaseClosure 原子結案 UI
+
+日期：2026-07-19
+狀態：已核准施工，待 PR #220 驗收
+
+### 變更內容
+
+- 強化正式結案表單，保存完成日期、完成結果、結案摘要、總費用與後續注意事項。
+- 可選建立一則同 Item 的單次後續提醒。
+- 可選關聯同 Item 的既有正式 Schedule；不複製、不改寫週期與 AnchorPolicy。
+- 後續提醒建立、排程關聯驗證、WorkCaseClosure 與案件 completed 狀態以單一 Drift transaction 完成。
+- 任一提醒、排程或 Closure 驗證與寫入失敗時，所有本次寫入完整 rollback。
+- 結案後只由既有 History Projection 查詢，不新增 History writer 或資料表。
+- 版本更新為 v0.5.19。
+
+### 不包含
+
+- Schema、Migration 或 Domain model 變更
+- 新的 Schedule 來源、週期規則或 AnchorPolicy
+- Task 直接結案、History 寫入或平行完成流程
+- 其他 UI 重畫、新功能或無關重構
+
+### 驗收依據
+
+以 PR #220 的 transaction commit／rollback tests、WorkCaseClosure Widget tests、History Projection 驗證、codegen、Analyze、全部測試、Web release build、手機尺寸預覽、GitHub Actions 與 PR 說明為準。
+
+### 追蹤
+
+- PR #220
+
 ---
 
 ## 後續條目模板
