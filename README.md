@@ -1,6 +1,6 @@
 # 生活管理 App
 
-目前版本：**v0.5.9 MaintenanceRecord Runtime**
+目前版本：**v0.5.10 Legacy Runtime Retirement Gate Audit**
 
 `life-maintenance` 是一個 Flutter 生活管理 App，目標是管理生活項目、固定週期、到期提醒、階段性重點、突發事項與工程，並保存每一次處理從開始到結束的完整史略。
 
@@ -36,7 +36,7 @@
 
 ## 目前狀態
 
-`v0.5.9` 在受控匯入驗證後提供正式 MaintenanceRecord Drift Repository。只有不需要案件過程的簡單完成事件可建立 MaintenanceRecord；需要進度與正式結案的事件必須走 WorkCase → WorkCaseClosure。Task 完成與簡單紀錄建立使用單一 transaction，History 維持唯讀投影，SharedPreferences 與不可變備份維持唯讀。
+`v0.5.10` 完成 Legacy Runtime 最終稽核與退休 Gate。成功 cutover 後 Drift 是唯一正式 domain writer，SharedPreferences 與不可變備份不雙寫、不刪除或覆蓋，冷啟動會重新驗證 admission 後維持 Drift Runtime。因 Items／History 仍有舊完成紀錄讀取，以及完整 rollback 仍需要舊來源，退休 Gate 尚未通過，不得刪除 Legacy Runtime。
 
 已完成的資料與治理基礎：
 
@@ -59,6 +59,7 @@
 - 保養項目、排程、任務與案件的資料角色已重新分離
 - 正式唯讀 History Projection 與 Attachment managed identifier／owner／生命週期 Runtime
 - MaintenanceRecord 正式 Drift Runtime、簡單 Task 完成 transaction 與 WorkCaseClosure 邊界
+- Legacy Runtime 全量引用稽核、唯一 writer／冷啟動／rollback 防回歸 Gate
 - Flutter Analyze、Test、Web Build、Drift code generation 與 Web 資產自動 CI
 
 後續依序進行：

@@ -5,6 +5,8 @@
 日期：2026-07-19
 適用範圍：正式 `lib/main.dart` Runtime、SharedPreferences 舊資料、Drift Schema v2 Repository 與後續資料切換 PR
 
+> 歷史基線：本文件記錄 v0.5.1／PR #202 當時尚未切換的 Runtime。v0.5.10 的現況、完整引用分類與退休判定以 `23-legacy-runtime-retirement-gate.md` 為準；不得把本文件的舊現況段落誤當成目前 Runtime。
+
 ## 1. 文件目的
 
 本文件依 2026-07-19 的 `main` 實際程式建立證據基線，回答：
