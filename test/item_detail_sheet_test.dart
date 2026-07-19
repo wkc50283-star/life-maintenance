@@ -1,438 +1,271 @@
-import 'dart:convert';
-
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:life_maintenance/app/app_composition_root.dart';
+import 'package:life_maintenance/database/app_database.dart';
+import 'package:life_maintenance/models/attachment.dart';
 import 'package:life_maintenance/models/enums.dart';
-import 'package:life_maintenance/models/item.dart';
-import 'package:life_maintenance/models/schedule.dart';
-import 'package:life_maintenance/models/task.dart';
+import 'package:life_maintenance/models/maintenance_plan.dart';
+import 'package:life_maintenance/models/maintenance_plan_enums.dart';
+import 'package:life_maintenance/models/maintenance_record.dart';
+import 'package:life_maintenance/models/milestone.dart';
+import 'package:life_maintenance/models/milestone_enums.dart';
+import 'package:life_maintenance/models/work_case.dart';
+import 'package:life_maintenance/models/work_case_enums.dart';
+import 'package:life_maintenance/models/work_case_update.dart';
+import 'package:life_maintenance/screens/item_detail_screen.dart';
 import 'package:life_maintenance/screens/items_screen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  testWidgets('items screen shows empty state without mock items', (
+  testWidgets('items screen shows calm empty state from empty Drift', (
     tester,
   ) async {
-    SharedPreferences.resetStatic();
-    SharedPreferences.setMockInitialValues({});
+    final database = AppDatabase(NativeDatabase.memory());
+    final root = AppCompositionRoot(database: database);
+    addTearDown(database.close);
 
-    await tester.pumpWidget(
-      const MaterialApp(home: Scaffold(body: ItemsScreen())),
-    );
+    await tester.pumpWidget(_app(root));
     await tester.pumpAndSettle();
 
     expect(find.text('目前還沒有生活項目。'), findsOneWidget);
     expect(find.text('客廳冷氣'), findsNothing);
-    expect(find.text('機車'), findsNothing);
-    expect(find.text('租屋合約'), findsNothing);
   });
 
-  testWidgets('item detail uses only local schedules and records', (
+  testWidgets('full item page projects every formal Drift section read-only', (
     tester,
   ) async {
-    await _setLocalData(schedules: const []);
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(430, 1200);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
 
-    await _openItemDetail(tester);
+    final database = AppDatabase(NativeDatabase.memory());
+    final root = AppCompositionRoot(database: database);
+    addTearDown(database.close);
+    final now = DateTime.utc(2026, 7, 19, 8);
+    await _seedFormalItemDetail(root, now);
 
-    expect(find.text('保養安排'), findsOneWidget);
-    expect(find.text('目前沒有保養安排'), findsOneWidget);
-    expect(find.text('目前尚無處理紀錄'), findsOneWidget);
-    expect(find.text('保養提醒'), findsNothing);
-    expect(find.text('建立冷氣濾網清洗提醒'), findsNothing);
-  });
-
-  testWidgets('item detail shows maintenance schedules separately', (
-    tester,
-  ) async {
-    final now = DateTime.now();
-    final futureDate = DateTime(now.year, now.month, now.day + 2);
-    final pastDate = DateTime(now.year, now.month, now.day - 1);
-    await _setLocalData(
-      schedules: [
-        _schedule(
-          id: 'schedule-manual',
-          title: '手動提醒',
-          cardId: 'manual-expiry-reminder',
-          nextDueDate: futureDate,
-        ),
-        _schedule(
-          id: 'schedule-manual-due',
-          title: '已到期手動提醒',
-          cardId: 'manual-expiry-reminder',
-          nextDueDate: pastDate,
-        ),
-        _schedule(
-          id: 'schedule-manual-paused',
-          title: '暫停手動提醒',
-          cardId: 'manual-expiry-reminder',
-          nextDueDate: futureDate,
-          status: ScheduleStatus.paused,
-        ),
-        _schedule(
-          id: 'schedule-manual-ended',
-          title: '結束手動提醒',
-          cardId: 'manual-expiry-reminder',
-          nextDueDate: futureDate,
-          status: ScheduleStatus.ended,
-        ),
-        _schedule(
-          id: 'schedule-active',
-          title: '濾網清潔',
-          cardId: 'card-aircon-filter-cleaning',
-          nextDueDate: futureDate,
-        ),
-        _schedule(
-          id: 'schedule-paused',
-          title: '冷氣保養',
-          cardId: 'card-aircon-maintenance',
-          nextDueDate: futureDate,
-          status: ScheduleStatus.paused,
-        ),
-        _schedule(
-          id: 'schedule-ended',
-          title: '舊排程',
-          cardId: 'card-old-maintenance',
-          nextDueDate: futureDate,
-          status: ScheduleStatus.ended,
-        ),
-      ],
-    );
-
-    await _openItemDetail(tester);
-
-    expect(find.text('提醒事項'), findsOneWidget);
-    expect(find.text('手動提醒'), findsOneWidget);
-    expect(find.text('已到期手動提醒'), findsOneWidget);
-    expect(find.text('暫停手動提醒'), findsOneWidget);
-    expect(find.text('結束手動提醒'), findsOneWidget);
-    expect(find.text('狀態：尚未到期'), findsOneWidget);
-    expect(find.text('狀態：已到期'), findsOneWidget);
-    expect(find.text('保養安排'), findsOneWidget);
-    expect(find.text('濾網清潔'), findsOneWidget);
-    expect(find.text('冷氣保養'), findsOneWidget);
-    expect(find.text('舊排程'), findsOneWidget);
-    expect(find.text('狀態：進行中'), findsOneWidget);
-    expect(find.text('狀態：已暫停'), findsNWidgets(2));
-    expect(find.text('狀態：已結束'), findsNWidgets(2));
-    expect(find.text('重新安排並恢復'), findsOneWidget);
-  });
-
-  testWidgets('paused maintenance schedule can be rescheduled and resumed', (
-    tester,
-  ) async {
-    final now = DateTime.now();
-    final futureDate = DateTime(now.year, now.month, now.day + 2);
-    final otherDate = DateTime(now.year, now.month, now.day + 5);
-    await _setLocalData(
-      schedules: [
-        _schedule(
-          id: 'schedule-paused',
-          title: '冷氣保養',
-          cardId: 'card-aircon-maintenance',
-          nextDueDate: futureDate,
-          status: ScheduleStatus.paused,
-        ),
-        _schedule(
-          id: 'schedule-other',
-          title: '其他保養',
-          cardId: 'card-other-maintenance',
-          nextDueDate: otherDate,
-        ),
-      ],
-    );
-
-    await _openItemDetail(tester);
-    await _tapResumeButton(tester);
+    await tester.pumpWidget(_app(root));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('OK'));
+    await tester.tap(find.text('客廳冷氣'));
     await tester.pumpAndSettle();
 
-    expect(find.text('保養安排已重新安排並恢復'), findsOneWidget);
-    final schedules = await _storedSchedules();
-    expect(
-      _statusFor(schedules, 'schedule-paused'),
-      ScheduleStatus.active.name,
-    );
-    expect(_enabledFor(schedules, 'schedule-paused'), isTrue);
-    expect(_nextDueDateFor(schedules, 'schedule-paused'), futureDate);
-    expect(_statusFor(schedules, 'schedule-other'), ScheduleStatus.active.name);
-    expect(_nextDueDateFor(schedules, 'schedule-other'), otherDate);
-    expect(await _storedTasks(), isEmpty);
-  });
-
-  testWidgets('past paused maintenance schedule defaults date to tomorrow', (
-    tester,
-  ) async {
-    final now = DateTime.now();
-    final pastDate = DateTime(now.year, now.month, now.day - 1);
-    final tomorrow = DateTime(now.year, now.month, now.day + 1);
-    await _setLocalData(
-      schedules: [
-        _schedule(
-          id: 'schedule-paused',
-          title: '冷氣保養',
-          cardId: 'card-aircon-maintenance',
-          nextDueDate: pastDate,
-          status: ScheduleStatus.paused,
-        ),
-      ],
-    );
-
-    await _openItemDetail(tester);
-    await _tapResumeButton(tester);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('OK'));
-    await tester.pumpAndSettle();
-
-    final schedules = await _storedSchedules();
-    expect(
-      _statusFor(schedules, 'schedule-paused'),
-      ScheduleStatus.active.name,
-    );
-    expect(_nextDueDateFor(schedules, 'schedule-paused'), tomorrow);
-  });
-
-  testWidgets('paused maintenance schedule rejects conflicting pending task', (
-    tester,
-  ) async {
-    final now = DateTime.now();
-    final futureDate = DateTime(now.year, now.month, now.day + 2);
-    await _setLocalData(
-      schedules: [
-        _schedule(
-          id: 'schedule-paused',
-          title: '冷氣保養',
-          cardId: 'card-aircon-maintenance',
-          nextDueDate: futureDate,
-          status: ScheduleStatus.paused,
-        ),
-      ],
-      tasks: [
-        _task(
-          id: 'task-conflict',
-          scheduleId: 'schedule-paused',
-          dueDate: futureDate,
-        ),
-      ],
-    );
-
-    await _openItemDetail(tester);
-    await _tapResumeButton(tester);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('OK'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('這個日期已有待處理提醒，請選擇其他日期'), findsOneWidget);
+    expect(find.byType(ItemDetailScreen), findsOneWidget);
+    expect(find.byType(BottomSheet), findsNothing);
     expect(find.text('生活項目詳情'), findsOneWidget);
-    final schedules = await _storedSchedules();
-    expect(
-      _statusFor(schedules, 'schedule-paused'),
-      ScheduleStatus.paused.name,
+    expect(find.text('主資訊'), findsOneWidget);
+    expect(find.text('清洗濾網'), findsNWidgets(2));
+    expect(find.text('保固到期提醒'), findsNWidgets(2));
+    expect(find.text('每月'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('第六年大修'),
+      300,
+      scrollable: find.byType(Scrollable),
     );
-    expect(_nextDueDateFor(schedules, 'schedule-paused'), futureDate);
+    expect(find.text('第六年大修'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('冷氣異音檢查'),
+      300,
+      scrollable: find.byType(Scrollable),
+    );
+    expect(find.text('冷氣異音檢查'), findsOneWidget);
+    expect(find.text('下一步：等待到府檢查'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('史略'),
+      400,
+      scrollable: find.byType(Scrollable),
+    );
+    expect(find.text('完成冷氣濾網清潔'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('附件'),
+      300,
+      scrollable: find.byType(Scrollable),
+    );
+    expect(find.text('冷氣保固書.pdf'), findsOneWidget);
+    expect(find.text('application/pdf · 2.0 KB'), findsOneWidget);
+    expect(find.textContaining('managed-item-document'), findsNothing);
+
+    expect(
+      await root.driftRepositories.maintenancePlans.listForItem('item-1'),
+      hasLength(1),
+    );
+    expect(
+      await root.driftRepositories.generalReminders.listForItem('item-1'),
+      hasLength(1),
+    );
+    expect(
+      await root.driftRepositories.schedules.listForItem('item-1'),
+      hasLength(2),
+    );
+    expect(await root.workCaseRuntime.listCasesForItem('item-1'), hasLength(1));
+    expect(
+      await root.maintenanceRecordRepository.listForItem('item-1'),
+      hasLength(1),
+    );
+    expect(
+      await root.attachmentRuntime.listForOwner(
+        AttachmentOwnerType.item,
+        'item-1',
+      ),
+      hasLength(1),
+    );
   });
+}
 
-  testWidgets(
-    'paused maintenance schedule ignores completed and canceled task conflicts',
-    (tester) async {
-      final now = DateTime.now();
-      final futureDate = DateTime(now.year, now.month, now.day + 2);
-      await _setLocalData(
-        schedules: [
-          _schedule(
-            id: 'schedule-paused',
-            title: '冷氣保養',
-            cardId: 'card-aircon-maintenance',
-            nextDueDate: futureDate,
-            status: ScheduleStatus.paused,
-          ),
-        ],
-        tasks: [
-          _task(
-            id: 'task-completed',
-            scheduleId: 'schedule-paused',
-            dueDate: futureDate,
-            status: TaskStatus.completed,
-          ),
-          _task(
-            id: 'task-canceled',
-            scheduleId: 'schedule-paused',
-            dueDate: futureDate,
-            status: TaskStatus.canceled,
-          ),
-        ],
-      );
-
-      await _openItemDetail(tester);
-      await _tapResumeButton(tester);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('OK'));
-      await tester.pumpAndSettle();
-
-      final schedules = await _storedSchedules();
-      expect(
-        _statusFor(schedules, 'schedule-paused'),
-        ScheduleStatus.active.name,
-      );
-      expect(_nextDueDateFor(schedules, 'schedule-paused'), futureDate);
-    },
-  );
-
-  testWidgets(
-    'paused maintenance schedule fails when stored schedule changed',
-    (tester) async {
-      final now = DateTime.now();
-      final futureDate = DateTime(now.year, now.month, now.day + 2);
-      await _setLocalData(
-        schedules: [
-          _schedule(
-            id: 'schedule-paused',
-            title: '冷氣保養',
-            cardId: 'card-aircon-maintenance',
-            nextDueDate: futureDate,
-            status: ScheduleStatus.paused,
-          ),
-        ],
-      );
-
-      await _openItemDetail(tester);
-      await _replaceStoredSchedules([
-        _schedule(
-          id: 'schedule-paused',
-          title: '冷氣保養',
-          cardId: 'card-aircon-maintenance',
-          nextDueDate: futureDate,
-          status: ScheduleStatus.active,
-        ),
-      ]);
-      await _tapResumeButton(tester);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('OK'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('重新安排失敗，請稍後再試'), findsOneWidget);
-      expect(find.text('生活項目詳情'), findsOneWidget);
-      final schedules = await _storedSchedules();
-      expect(
-        _statusFor(schedules, 'schedule-paused'),
-        ScheduleStatus.active.name,
-      );
-      expect(_nextDueDateFor(schedules, 'schedule-paused'), futureDate);
-    },
+Widget _app(AppCompositionRoot root) {
+  return AppCompositionScope(
+    root: root,
+    child: const MaterialApp(home: Scaffold(body: ItemsScreen())),
   );
 }
 
-Future<void> _setLocalData({
-  required List<Schedule> schedules,
-  List<Task> tasks = const [],
-}) async {
-  SharedPreferences.resetStatic();
-  SharedPreferences.setMockInitialValues({
-    'items': jsonEncode([_item().toJson()]),
-    'records': jsonEncode(<Map<String, dynamic>>[]),
-    'schedules': jsonEncode(
-      schedules.map((schedule) => schedule.toJson()).toList(),
+Future<void> _seedFormalItemDetail(
+  AppCompositionRoot root,
+  DateTime now,
+) async {
+  await root.driftRepositories.itemCategories.save(
+    ItemCategoryRow(
+      id: 'category-1',
+      systemCode: 'homeAndAppliance',
+      displayName: '家電與居家設備',
+      sortOrder: 0,
+      status: 'active',
+      createdAt: now,
+      updatedAt: now,
     ),
-    'tasks': jsonEncode(tasks.map((task) => task.toJson()).toList()),
-  });
-}
-
-Future<void> _openItemDetail(WidgetTester tester) async {
-  await tester.pumpWidget(
-    const MaterialApp(home: Scaffold(body: ItemsScreen())),
   );
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('冷氣'));
-  await tester.pumpAndSettle();
-}
-
-Future<void> _tapResumeButton(WidgetTester tester) async {
-  final finder = find.text('重新安排並恢復').first;
-  await tester.ensureVisible(finder);
-  await tester.tap(finder);
-}
-
-Future<void> _replaceStoredSchedules(List<Schedule> schedules) async {
-  final preferences = await SharedPreferences.getInstance();
-  await preferences.setString(
-    'schedules',
-    jsonEncode(schedules.map((schedule) => schedule.toJson()).toList()),
+  await root.driftRepositories.items.save(
+    ItemRow(
+      id: 'item-1',
+      name: '客廳冷氣',
+      categoryId: 'category-1',
+      createdAt: now,
+      updatedAt: now,
+      purchaseDate: now.subtract(const Duration(days: 500)),
+      warrantyEndDate: now.add(const Duration(days: 200)),
+      expectedLifeYears: 10,
+      location: '客廳',
+      note: '夏季使用頻繁',
+      status: 'active',
+    ),
   );
-}
-
-Item _item() {
-  return Item(
-    id: 'item-1',
-    name: '冷氣',
-    category: ItemCategory.appliance,
-    createdAt: DateTime(2026, 7, 1),
+  await root.maintenancePlanRepository.save(
+    MaintenancePlan(
+      id: 'plan-1',
+      itemId: 'item-1',
+      title: '清洗濾網',
+      planType: MaintenancePlanType.cleaning,
+      riskLevel: RiskLevel.low,
+      createdAt: now,
+      updatedAt: now,
+    ),
   );
-}
-
-Schedule _schedule({
-  required String id,
-  required String title,
-  required String cardId,
-  required DateTime nextDueDate,
-  ScheduleStatus status = ScheduleStatus.active,
-}) {
-  return Schedule(
-    id: id,
-    itemId: 'item-1',
-    cardId: cardId,
-    cycleType: CycleType.monthly,
-    interval: 1,
-    startDate: DateTime(2026, 7, 1),
-    nextDueDate: nextDueDate,
-    title: title,
-    status: status,
+  await root.generalReminderRepository.save(
+    GeneralReminderRow(
+      schemaVersion: 1,
+      id: 'reminder-1',
+      itemId: 'item-1',
+      title: '保固到期提醒',
+      description: '到期前確認延長保固方案',
+      reminderType: 'expiry',
+      status: 'active',
+      createdAt: now,
+      updatedAt: now,
+    ),
   );
-}
-
-Task _task({
-  required String id,
-  required String scheduleId,
-  required DateTime dueDate,
-  TaskStatus status = TaskStatus.pending,
-}) {
-  return Task(
-    id: id,
-    itemId: 'item-1',
-    cardId: 'card-aircon-maintenance',
-    scheduleId: scheduleId,
-    title: '冷氣保養',
-    dueDate: dueDate,
-    status: status,
+  await root.driftRepositories.schedules.save(
+    ScheduleRow(
+      id: 'schedule-plan',
+      itemId: 'item-1',
+      sourceType: 'maintenancePlan',
+      maintenancePlanId: 'plan-1',
+      cycleType: 'monthly',
+      interval: 1,
+      startDate: now,
+      nextDueDate: now.add(const Duration(days: 20)),
+      status: 'active',
+      anchorPolicy: 'fixedCalendarPeriod',
+      createdAt: now,
+      updatedAt: now,
+    ),
   );
-}
-
-Future<List<dynamic>> _storedSchedules() async {
-  final preferences = await SharedPreferences.getInstance();
-  return jsonDecode(preferences.getString('schedules')!) as List<dynamic>;
-}
-
-Future<List<dynamic>> _storedTasks() async {
-  final preferences = await SharedPreferences.getInstance();
-  return jsonDecode(preferences.getString('tasks')!) as List<dynamic>;
-}
-
-String _statusFor(List<dynamic> schedules, String id) {
-  final schedule = schedules.cast<Map<String, dynamic>>().singleWhere(
-    (schedule) => schedule['id'] == id,
+  await root.driftRepositories.schedules.save(
+    ScheduleRow(
+      id: 'schedule-reminder',
+      itemId: 'item-1',
+      sourceType: 'generalReminder',
+      generalReminderId: 'reminder-1',
+      cycleType: 'yearly',
+      interval: 1,
+      startDate: now,
+      nextDueDate: now.add(const Duration(days: 200)),
+      status: 'active',
+      anchorPolicy: 'fixedCalendarPeriod',
+      createdAt: now,
+      updatedAt: now,
+    ),
   );
-  return schedule['status'] as String;
-}
-
-bool _enabledFor(List<dynamic> schedules, String id) {
-  final schedule = schedules.cast<Map<String, dynamic>>().singleWhere(
-    (schedule) => schedule['id'] == id,
+  await root.milestoneRepository.save(
+    Milestone(
+      id: 'milestone-1',
+      itemId: 'item-1',
+      title: '第六年大修',
+      kind: MilestoneKind.majorService,
+      triggerType: MilestoneTriggerType.usageYears,
+      thresholdValue: 6,
+      thresholdUnit: '年',
+      status: MilestoneStatus.pending,
+      createdAt: now,
+      updatedAt: now,
+    ),
   );
-  return schedule['enabled'] as bool;
-}
-
-DateTime _nextDueDateFor(List<dynamic> schedules, String id) {
-  final schedule = schedules.cast<Map<String, dynamic>>().singleWhere(
-    (schedule) => schedule['id'] == id,
+  await root.workCaseRuntime.createManual(
+    WorkCase(
+      id: 'case-1',
+      itemId: 'item-1',
+      sourceType: WorkCaseSourceType.manual,
+      caseType: WorkCaseType.repair,
+      title: '冷氣異音檢查',
+      status: WorkCaseStatus.waiting,
+      createdAt: now,
+      updatedAt: now,
+    ),
+    initialUpdate: WorkCaseUpdate(
+      id: 'update-1',
+      workCaseId: 'case-1',
+      occurredAt: now,
+      description: '已聯絡維修人員',
+      nextAction: '等待到府檢查',
+      createdAt: now,
+    ),
   );
-  return DateTime.parse(schedule['nextDueDate'] as String);
+  await root.maintenanceRecordRepository.createSimpleRecord(
+    MaintenanceRecord(
+      id: 'record-1',
+      itemId: 'item-1',
+      recordType: RecordType.regularMaintenance,
+      date: now.subtract(const Duration(days: 10)),
+      title: '完成冷氣濾網清潔',
+      result: '運轉正常',
+      createdAt: now.subtract(const Duration(days: 10)),
+    ),
+  );
+  await root.attachmentRuntime.registerManaged(
+    Attachment(
+      id: 'attachment-1',
+      ownerType: AttachmentOwnerType.item,
+      ownerId: 'item-1',
+      kind: AttachmentKind.document,
+      storageIdentifier: 'managed-item-document-1',
+      originalFileName: '冷氣保固書.pdf',
+      mimeType: 'application/pdf',
+      byteSize: 2048,
+      contentHash: 'sha256:item-document',
+      createdAt: now,
+    ),
+  );
 }

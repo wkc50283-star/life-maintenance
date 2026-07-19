@@ -1,6 +1,6 @@
 # 生活管理 App
 
-目前版本：**v0.5.14 Drift Life Overview**
+目前版本：**v0.5.15 Drift Item Detail**
 
 `life-maintenance` 是一個 Flutter 生活管理 App，目標是管理生活項目、固定週期、到期提醒、階段性重點、突發事項與工程，並保存每一次處理從開始到結束的完整史略。
 
@@ -36,7 +36,7 @@
 
 ## 目前狀態
 
-`v0.5.14` 已將生活總覽正式接至 Drift 真實資料。首頁由既有 Task Repository、WorkCase Runtime、Milestone Repository 與唯讀 History Projection 組合今天狀態、今日提醒、進行中案件、階段性重點與最近完成；不使用假資料，不新增首頁資料表、writer 或平行流程。
+`v0.5.15` 已將生活項目清單與完整 Item 詳情頁正式接至 Drift 真實資料。Item 詳情使用完整頁面，以 Item 為 Root 組合主資訊、保養項目、一般提醒、排程、Milestone／大修、案件、史略與附件；不使用主要 Bottom Sheet，不新增資料表、writer 或平行流程。
 
 已完成的資料與治理基礎：
 
@@ -64,6 +64,7 @@
 - 正式 Runtime 的 LocalRepository／SharedPreferences 退休與 Drift 唯一資料來源 Gate
 - 正式 App Shell、五個生活管理入口、共用 Theme 與單一 Composition Root 注入邊界
 - 生活總覽的 Task、WorkCase、Milestone 與 History Projection 正式 Drift 真實資料投影
+- 生活項目清單與完整 Item 詳情頁的 Planning、WorkCase、History Projection、Attachment 真實資料投影
 - Flutter Analyze、Test、Web Build、Drift code generation 與 Web 資產自動 CI
 
 後續依序進行：

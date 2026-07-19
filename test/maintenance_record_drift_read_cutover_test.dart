@@ -77,6 +77,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('客廳冷氣'));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Drift 完成紀錄'),
+      400,
+      scrollable: find.byType(Scrollable),
+    );
     expect(find.text('Drift 完成紀錄'), findsOneWidget);
 
     await database.close();
