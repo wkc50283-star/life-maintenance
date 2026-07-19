@@ -19,6 +19,7 @@ import '../services/maintenance_task_service.dart';
 import '../widgets/task_card.dart';
 import '../widgets/today_hero.dart';
 import 'task_reminder_screens.dart';
+import 'work_case_screens.dart';
 
 class TodayScreen extends StatefulWidget {
   const TodayScreen({super.key, ScheduleRepository? scheduleRepository})
@@ -198,9 +199,20 @@ class _TodayScreenState extends State<TodayScreen> {
               ),
             ),
         const SizedBox(height: 20),
-        const _OverviewSectionHeader(
+        _OverviewSectionHeader(
           title: '進行中案件',
           description: '已經開始處理、仍在進行或等待中的事情。',
+          actionLabel: _workCaseRuntime == null ? null : '全部案件',
+          onAction: _workCaseRuntime == null
+              ? null
+              : () async {
+                  await Navigator.of(context).push<void>(
+                    MaterialPageRoute(
+                      builder: (_) => const WorkCaseListScreen(),
+                    ),
+                  );
+                  await _loadOverview();
+                },
         ),
         const SizedBox(height: 12),
         if (_openCases.isEmpty)
@@ -213,6 +225,17 @@ class _TodayScreenState extends State<TodayScreen> {
               subtitle: entry.itemName,
               detail: _caseDetail(entry),
               status: _labelForCaseStatus(entry.workCase.status),
+              onTap: () async {
+                final changed = await Navigator.of(context).push<bool>(
+                  MaterialPageRoute(
+                    builder: (_) => WorkCaseDetailScreen(
+                      workCaseId: entry.workCase.id,
+                      itemName: entry.itemName,
+                    ),
+                  ),
+                );
+                if (changed == true) await _loadOverview();
+              },
             ),
         const SizedBox(height: 20),
         const _OverviewSectionHeader(
@@ -524,6 +547,7 @@ class _OverviewFactCard extends StatelessWidget {
     required this.subtitle,
     required this.detail,
     required this.status,
+    this.onTap,
   });
 
   final IconData icon;
@@ -531,65 +555,70 @@ class _OverviewFactCard extends StatelessWidget {
   final String subtitle;
   final String detail;
   final String status;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: const Color(0xFFE8F0F6),
-                borderRadius: BorderRadius.circular(15),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F0F6),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Icon(icon, color: const Color(0xFF5D7893)),
               ),
-              child: Icon(icon, color: const Color(0xFF5D7893)),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: const Color(0xFF263746),
-                      fontWeight: FontWeight.w800,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: const Color(0xFF263746),
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xFF5D7893),
-                      fontWeight: FontWeight.w700,
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xFF5D7893),
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    detail,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xFF687887),
-                      height: 1.4,
+                    const SizedBox(height: 8),
+                    Text(
+                      detail,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xFF687887),
+                        height: 1.4,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              status,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: const Color(0xFF4D5D6B),
-                fontWeight: FontWeight.w800,
+              const SizedBox(width: 10),
+              Text(
+                status,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: const Color(0xFF4D5D6B),
+                  fontWeight: FontWeight.w800,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

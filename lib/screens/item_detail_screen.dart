@@ -14,6 +14,7 @@ import '../models/work_case.dart';
 import '../models/work_case_enums.dart';
 import '../models/work_case_update.dart';
 import 'formal_planning_screens.dart';
+import 'work_case_screens.dart';
 
 class ItemDetailScreen extends StatefulWidget {
   const ItemDetailScreen({super.key, required this.item});
@@ -153,6 +154,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         (final snapshot?, _) => _ItemDetailBody(
           item: widget.item,
           snapshot: snapshot,
+          onCaseChanged: _reload,
         ),
       },
     );
@@ -161,6 +163,14 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
   void _retry() {
     setState(() => _loadError = null);
     _load();
+  }
+
+  Future<void> _reload() async {
+    setState(() {
+      _snapshot = null;
+      _loadError = null;
+    });
+    await _load();
   }
 
   Future<void> _editItem() async {
@@ -175,10 +185,15 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
 }
 
 class _ItemDetailBody extends StatelessWidget {
-  const _ItemDetailBody({required this.item, required this.snapshot});
+  const _ItemDetailBody({
+    required this.item,
+    required this.snapshot,
+    required this.onCaseChanged,
+  });
 
   final Item item;
   final _ItemDetailSnapshot snapshot;
+  final Future<void> Function() onCaseChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -292,6 +307,7 @@ class _ItemDetailBody extends StatelessWidget {
                         subtitle: _workCaseTypeLabel(entry.workCase.caseType),
                         detail: _caseDetail(entry),
                         status: _workCaseStatusLabel(entry.workCase.status),
+                        onTap: () => _openCase(context, entry.workCase),
                       ),
                   ],
                 ),
@@ -310,6 +326,7 @@ class _ItemDetailBody extends StatelessWidget {
                         detail:
                             '結束於 ${_formatDate(entry.workCase.closedAt ?? entry.workCase.updatedAt)}',
                         status: _workCaseStatusLabel(entry.workCase.status),
+                        onTap: () => _openCase(context, entry.workCase),
                       ),
                   ],
                 ),
@@ -350,6 +367,16 @@ class _ItemDetailBody extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  Future<void> _openCase(BuildContext context, WorkCase workCase) async {
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) =>
+            WorkCaseDetailScreen(workCaseId: workCase.id, itemName: item.name),
+      ),
+    );
+    if (changed == true) await onCaseChanged();
   }
 }
 
@@ -558,65 +585,72 @@ class _FactCard extends StatelessWidget {
     required this.subtitle,
     required this.detail,
     required this.status,
+    this.onTap,
   });
 
   final String title;
   final String subtitle;
   final String detail;
   final String status;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Material(
         color: const Color(0xFFF7F3EA),
         borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: const Color(0xFF263746),
-                    fontWeight: FontWeight.w900,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: const Color(0xFF263746),
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      status,
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: const Color(0xFF5D7893),
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  subtitle,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFF5D7893),
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                status,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: const Color(0xFF5D7893),
-                  fontWeight: FontWeight.w800,
+                const SizedBox(height: 8),
+                Text(
+                  detail,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFF687887),
+                    height: 1.4,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 5),
-          Text(
-            subtitle,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: const Color(0xFF5D7893),
-              fontWeight: FontWeight.w700,
+              ],
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            detail,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: const Color(0xFF687887),
-              height: 1.4,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
