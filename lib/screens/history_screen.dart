@@ -25,6 +25,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   bool _dependenciesInitialized = false;
   List<MaintenanceRecord>? _localRecords;
   List<Item>? _localItems;
+  Object? _loadError;
 
   @override
   void didChangeDependencies() {
@@ -46,20 +47,29 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Future<void> _loadLocalData() async {
-    final records = await _recordRepository.listAll();
-    final items = await _itemRepository.loadItems();
-    if (!mounted) {
-      return;
+    try {
+      final records = await _recordRepository.listAll();
+      final items = await _itemRepository.loadItems();
+      if (!mounted) return;
+      setState(() {
+        _localRecords = records;
+        _localItems = items;
+        _loadError = null;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _loadError = error);
     }
-
-    setState(() {
-      _localRecords = records;
-      _localItems = items;
-    });
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_loadError != null) {
+      return _HistoryLoadFailure(onRetry: _retry);
+    }
+    if (_localRecords == null || _localItems == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
     final records = _localRecords ?? const <MaintenanceRecord>[];
     final items = _localItems ?? const <Item>[];
     final sections = _historySectionsFrom(records, items);
@@ -98,6 +108,40 @@ class _HistoryScreenState extends State<HistoryScreen> {
               ],
             ),
       ],
+    );
+  }
+
+  void _retry() {
+    setState(() => _loadError = null);
+    _loadLocalData();
+  }
+}
+
+class _HistoryLoadFailure extends StatelessWidget {
+  const _HistoryLoadFailure({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.history_toggle_off_outlined, size: 40),
+            const SizedBox(height: 12),
+            Text(
+              '暫時無法讀取史略。',
+              style: Theme.of(context).textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton(onPressed: onRetry, child: const Text('重新讀取')),
+          ],
+        ),
+      ),
     );
   }
 }

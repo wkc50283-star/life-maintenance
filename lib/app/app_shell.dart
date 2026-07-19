@@ -52,6 +52,7 @@ class _AppShellState extends State<AppShell> {
 
   int _currentIndex = 0;
   bool _runtimeReady = false;
+  Object? _initializationError;
 
   @override
   void initState() {
@@ -60,7 +61,14 @@ class _AppShellState extends State<AppShell> {
   }
 
   Future<void> _initializeRuntime() async {
-    await widget.compositionRoot.initialize();
+    setState(() => _initializationError = null);
+    try {
+      await widget.compositionRoot.initialize();
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _initializationError = error);
+      return;
+    }
 
     if (!mounted) {
       return;
@@ -78,9 +86,11 @@ class _AppShellState extends State<AppShell> {
     return Scaffold(
       key: const ValueKey('app-shell'),
       appBar: AppBar(title: Text(destination.title)),
-      body: !_runtimeReady
-          ? const Center(child: CircularProgressIndicator())
-          : destination.screen,
+      body: switch ((_runtimeReady, _initializationError)) {
+        (false, null) => const Center(child: CircularProgressIndicator()),
+        (false, _) => _RuntimeLoadFailure(onRetry: _initializeRuntime),
+        (true, _) => destination.screen,
+      },
       bottomNavigationBar: NavigationBar(
         key: const ValueKey('primary-navigation'),
         selectedIndex: _currentIndex,
@@ -97,6 +107,49 @@ class _AppShellState extends State<AppShell> {
               label: item.title,
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _RuntimeLoadFailure extends StatelessWidget {
+  const _RuntimeLoadFailure({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.cloud_off_outlined,
+              size: 42,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(height: 14),
+            Text(
+              '暫時無法開啟生活資料。',
+              style: Theme.of(context).textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '資料沒有被刪除，請稍後再試一次。',
+              style: Theme.of(context).textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 18),
+            OutlinedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('重新開啟'),
+            ),
+          ],
+        ),
       ),
     );
   }
