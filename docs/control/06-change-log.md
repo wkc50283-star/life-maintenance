@@ -1852,6 +1852,37 @@ Task 已正式切換至 Drift，但畫面仍使用舊保養卡預覽，無法查
 
 ---
 
+## LM-050：v0.5.21 Code Quality Audit
+
+日期：2026-07-19
+狀態：已核准施工，待 PR #222 驗收
+
+### 變更內容
+
+- 掃描 TODO、FIXME、HACK、DEBUG、dead／duplicate code、unused import／dependency 與 lint。
+- 移除 v0.5.12 後已退休且零引用的 Drift safe-read-only transition adapter。
+- 將測試直接使用的 `shared_preferences_platform_interface` 列為 dev dependency，移除 transitive dependency lint suppression。
+- 新增 production 品質標記與退休 adapter 防回歸 Gate。
+- 版本更新為 v0.5.21。
+
+### 明確未修改
+
+不修改 UI、Schema、Migration、Domain、production Runtime 行為或正式資料；不新增功能、不刪除 Legacy recovery 工具、不做無證據重構、不開始下一個 PR。
+
+### 資料影響與回復
+
+沒有資料讀寫、搬移或格式變更，不需要資料 rollback。程式回復只需還原本 PR 的 dead adapter、dependency、Gate、文件與版本變更。
+
+### 驗收依據
+
+以 PR #222 的 Code Quality／Architecture Gates、codegen 無差異、Analyze、全部測試、Web release build 與 GitHub Actions 為準。
+
+### 追蹤
+
+- PR #222
+
+---
+
 ## 後續條目模板
 
 ```text

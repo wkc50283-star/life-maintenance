@@ -8,7 +8,6 @@ import 'package:life_maintenance/models/schedule.dart';
 import 'package:life_maintenance/models/task.dart';
 import 'package:life_maintenance/widgets/reminder_list_sheet.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-// ignore: depend_on_referenced_packages
 import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
 
 void main() {
