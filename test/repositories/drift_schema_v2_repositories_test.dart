@@ -440,7 +440,7 @@ void main() {
     final verifiedAt = now.add(const Duration(minutes: 1));
     final missingAt = now.add(const Duration(minutes: 2));
     final deletedAt = now.add(const Duration(minutes: 3));
-    await repositories.attachments.verify(attachment.id, verifiedAt);
+    await repositories.attachments.markAvailable(attachment.id, verifiedAt);
     await repositories.attachments.markMissing(attachment.id, missingAt);
     await repositories.attachments.markDeleted(attachment.id, deletedAt);
 

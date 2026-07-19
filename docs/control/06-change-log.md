@@ -1394,6 +1394,41 @@ Schema v2 已有 WorkCase、WorkCaseUpdate 與 WorkCaseClosure，底層 Reposito
 
 ---
 
+## LM-037：v0.5.8 正式 History Projection 與 Attachment Runtime
+
+日期：2026-07-19
+類型：資料／架構／安全／測試
+
+### 問題與原因
+
+Schema v2 已保存案件、結案、舊完成紀錄與附件 metadata，但 Runtime 尚無統一、唯讀且可重建的 History 查詢，也未透過正式 Attachment abstraction 阻擋平台路徑、孤兒 Owner 與非法生命週期轉換。
+
+### 修改
+
+- 建立只讀 HistoryProjectionRepository，由 WorkCase、WorkCaseUpdate、WorkCaseClosure、MaintenanceRecord、Task、Milestone 與 Attachment 組合 Item 歷史。
+- 不新增 History table 或 writer；舊 terminal WorkCase 缺少 Closure 時保留缺漏，不補造結案事實。
+- 建立 AttachmentRepository／AttachmentRuntime 正式邊界，驗證 stable managed identifier、MIME、Owner 與初始狀態。
+- 完整保存 available、missing、deleted 與 verifiedAt、missingAt、deletedAt；deleted 後保持不可變。
+- AppCompositionRoot 只在受控匯入成功後注入兩個 Runtime，版本更新為 v0.5.8。
+
+### 明確未修改
+
+不重畫或接線 UI，不修改 Schema、Migration、SharedPreferences、既有匯入規則或案件生命週期，不新增 cache、同步表、檔案搬移功能或下一階段功能。
+
+### 資料影響
+
+History 查詢完全唯讀，不產生第三份真相。Attachment 只更新既有 Schema v2 metadata 生命週期；SharedPreferences 與 `backup_v1_*` 保持唯讀，不刪除、覆蓋或雙寫。
+
+### 驗收結果
+
+以 PR #209 的 codegen、Analyze、全部測試、Web release build、預覽與 GitHub Actions 結果為準。
+
+### PR
+
+- PR #209
+
+---
+
 ## 後續條目模板
 
 ```text

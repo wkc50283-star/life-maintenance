@@ -86,11 +86,14 @@ void main() {
 
       final first = await root.initialize();
 
-      expect(first.mode, RuntimeDataMode.driftWorkCases);
+      expect(first.mode, RuntimeDataMode.driftHistoryAttachments);
       expect(first.usesDriftPlanning, isTrue);
       expect(first.usesDriftTasks, isTrue);
       expect(first.usesDriftWorkCases, isTrue);
+      expect(first.usesDriftHistoryAttachments, isTrue);
       expect(root.workCaseRuntime, isNotNull);
+      expect(root.historyProjectionRepository, isNotNull);
+      expect(root.attachmentRuntime, isNotNull);
       expect(root.usesDriftPlanning, isTrue);
       expect(root.maintenancePlanRepository, isNotNull);
       expect(root.generalReminderRepository, isNotNull);
@@ -167,7 +170,7 @@ void main() {
         legacyStorage: restartedStorage,
       );
       final restarted = await restartedRoot.initialize();
-      expect(restarted.mode, RuntimeDataMode.driftWorkCases);
+      expect(restarted.mode, RuntimeDataMode.driftHistoryAttachments);
       expect(
         restarted.importReport?.status,
         LegacyDriftImportStatus.alreadyImported,
@@ -215,6 +218,8 @@ void main() {
 
       expect(result.mode, RuntimeDataMode.legacy);
       expect(root.workCaseRuntime, isNull);
+      expect(root.historyProjectionRepository, isNull);
+      expect(root.attachmentRuntime, isNull);
       expect(result.importReport?.status, LegacyDriftImportStatus.blocked);
       expect(root.legacyWritesEnabled, isTrue);
       expect((await root.itemReadRepository.loadItems()).single.id, item.id);
