@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../app/app_composition_root.dart';
-import '../data/maintenance_card_catalog.dart';
 import '../models/enums.dart';
 import '../models/history_projection.dart';
 import '../models/item.dart';
-import '../models/maintenance_card.dart';
 import '../models/milestone.dart';
 import '../models/milestone_enums.dart';
 import '../models/task.dart' as maintenance_task;
@@ -18,9 +16,9 @@ import '../repositories/schedule_repository.dart';
 import '../repositories/task_repository.dart';
 import '../repositories/work_case_runtime.dart';
 import '../services/maintenance_task_service.dart';
-import '../widgets/maintenance_card_preview_sheet.dart';
 import '../widgets/task_card.dart';
 import '../widgets/today_hero.dart';
+import 'task_reminder_screens.dart';
 
 class TodayScreen extends StatefulWidget {
   const TodayScreen({super.key, ScheduleRepository? scheduleRepository})
@@ -173,9 +171,20 @@ class _TodayScreenState extends State<TodayScreen> {
           milestoneCount: _activeMilestones.length,
         ),
         const SizedBox(height: 20),
-        const _OverviewSectionHeader(
+        _OverviewSectionHeader(
           title: '今日提醒',
           description: '今天到期或仍需要留意的提醒。',
+          actionLabel: _runtime.taskReminderRuntime == null ? null : '查看全部',
+          onAction: _runtime.taskReminderRuntime == null
+              ? null
+              : () async {
+                  await Navigator.of(context).push<void>(
+                    MaterialPageRoute(
+                      builder: (_) => const TaskReminderListScreen(),
+                    ),
+                  );
+                  await _loadOverview();
+                },
         ),
         const SizedBox(height: 12),
         if (reminders.isEmpty)
@@ -183,31 +192,7 @@ class _TodayScreenState extends State<TodayScreen> {
         else
           for (final task in reminders)
             GestureDetector(
-              onTap: () {
-                if (_isManualExpiryReminderTask(task)) {
-                  final item = _itemForTask(task, localItems: localItems);
-                  _showManualExpiryReminderDetailSheet(
-                    context,
-                    task: task,
-                    item: item,
-                  );
-                  return;
-                }
-
-                final item = _itemForTask(task, localItems: localItems);
-                final card = _cardForTask(task);
-                showMaintenanceCardPreview(
-                  context,
-                  card: card,
-                  item: item,
-                  maintenanceTypeLabel: card == null
-                      ? ''
-                      : _labelForMaintenanceType(card.type),
-                  riskLevelLabel: card == null
-                      ? ''
-                      : _labelForRiskLevel(card.riskLevel),
-                );
-              },
+              onTap: () => _openTaskDetail(task.id),
               child: TaskCard(
                 task: _taskCardDataFor(task, localItems: localItems),
               ),
@@ -266,115 +251,16 @@ class _TodayScreenState extends State<TodayScreen> {
       ],
     );
   }
-}
 
-void _showManualExpiryReminderDetailSheet(
-  BuildContext context, {
-  required maintenance_task.Task task,
-  required Item? item,
-}) {
-  showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: const Color(0xFFF7F3EA),
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-    ),
-    builder: (sheetContext) {
-      return Padding(
-        padding: EdgeInsets.fromLTRB(
-          16,
-          12,
-          16,
-          MediaQuery.of(sheetContext).viewInsets.bottom + 24,
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 42,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFB8CBDC),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 18),
-              Text(
-                '提醒事項',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: const Color(0xFF263746),
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 18),
-              _ManualExpiryReminderDetailRow(label: '事項名稱', value: task.title),
-              _ManualExpiryReminderDetailRow(
-                label: '所屬項目',
-                value: item?.name ?? '未命名生活項目',
-              ),
-              _ManualExpiryReminderDetailRow(
-                label: '提醒日期',
-                value: _formatDate(task.dueDate),
-              ),
-              _ManualExpiryReminderDetailRow(
-                label: '狀態',
-                value: _labelForStatus(task.status),
-              ),
-            ],
-          ),
-        ),
-      );
-    },
-  );
-}
-
-class _ManualExpiryReminderDetailRow extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _ManualExpiryReminderDetailRow({
-    required this.label,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFCF6),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE4E0D8)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: const Color(0xFF5D7893),
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: const Color(0xFF263746),
-              height: 1.4,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
+  Future<void> _openTaskDetail(String taskId) async {
+    final detail = await _runtime.taskReminderRuntime?.findReminder(taskId);
+    if (!mounted || detail == null) return;
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => TaskReminderDetailScreen(initialDetail: detail),
       ),
     );
+    await _loadOverview();
   }
 }
 
@@ -383,16 +269,13 @@ TaskCardData _taskCardDataFor(
   required List<Item> localItems,
 }) {
   final item = _itemForTask(task, localItems: localItems);
-  final card = _cardForTask(task);
   final isManualExpiryReminder = _isManualExpiryReminderTask(task);
 
   return TaskCardData(
     itemName: item?.name ?? '未命名生活項目',
     taskName: task.title,
     cycle: '到期 ${_formatDate(task.dueDate)}',
-    estimatedTime: isManualExpiryReminder
-        ? '請確認'
-        : '${card?.estimatedMinutes ?? 0} 分鐘',
+    estimatedTime: isManualExpiryReminder ? '請確認' : '提醒事項',
     riskLabel: isManualExpiryReminder ? '到期提醒' : _labelForStatus(task.status),
   );
 }
@@ -414,13 +297,6 @@ Item? _itemForTask(
   return null;
 }
 
-MaintenanceCard? _cardForTask(maintenance_task.Task task) {
-  return MaintenanceCardCatalog.resolve(
-    cardId: task.cardId,
-    itemId: task.itemId,
-  );
-}
-
 String _labelForStatus(TaskStatus status) {
   return switch (status) {
     TaskStatus.pending => '待處理',
@@ -428,26 +304,6 @@ String _labelForStatus(TaskStatus status) {
     TaskStatus.overdue => '已逾期',
     TaskStatus.postponed => '稍後提醒',
     TaskStatus.canceled => '已取消',
-  };
-}
-
-String _labelForMaintenanceType(MaintenanceType type) {
-  return switch (type) {
-    MaintenanceType.cleaning => '清潔',
-    MaintenanceType.inspection => '檢查',
-    MaintenanceType.replacement => '更換',
-    MaintenanceType.repairRecord => '維修紀錄',
-    MaintenanceType.expiryReminder => '到期提醒',
-    MaintenanceType.constructionRecord => '施工紀錄',
-  };
-}
-
-String _labelForRiskLevel(RiskLevel riskLevel) {
-  return switch (riskLevel) {
-    RiskLevel.low => '低風險',
-    RiskLevel.medium => '中風險',
-    RiskLevel.high => '高風險',
-    RiskLevel.unknown => '未知風險',
   };
 }
 
@@ -461,7 +317,8 @@ DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
 
 bool _needsAttention(maintenance_task.Task task, DateTime today) {
   if (task.status == TaskStatus.completed ||
-      task.status == TaskStatus.canceled) {
+      task.status == TaskStatus.canceled ||
+      task.status == TaskStatus.postponed) {
     return false;
   }
   return !_dateOnly(task.dueDate).isAfter(today);
@@ -593,22 +450,34 @@ class _OverviewSectionHeader extends StatelessWidget {
   const _OverviewSectionHeader({
     required this.title,
     required this.description,
+    this.actionLabel,
+    this.onAction,
   });
 
   final String title;
   final String description;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            color: const Color(0xFF263746),
-            fontWeight: FontWeight.w800,
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: const Color(0xFF263746),
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            if (actionLabel != null && onAction != null)
+              TextButton(onPressed: onAction, child: Text(actionLabel!)),
+          ],
         ),
         const SizedBox(height: 4),
         Text(
