@@ -348,7 +348,7 @@ TaskCardData _taskCardDataFor(
   return TaskCardData(
     itemName: item?.name ?? '未命名生活項目',
     taskName: task.title,
-    cycle: '到期 ${_formatDate(task.dueDate)}',
+    cycle: '原定 ${_formatDate(task.dueDate)}',
     estimatedTime: isManualExpiryReminder ? '請確認' : '提醒事項',
     riskLabel: isManualExpiryReminder ? '到期提醒' : _labelForStatus(task.status),
   );
@@ -373,9 +373,9 @@ Item? _itemForTask(
 
 String _labelForStatus(TaskStatus status) {
   return switch (status) {
-    TaskStatus.pending => '待處理',
+    TaskStatus.pending => '已安排',
     TaskStatus.completed => '已完成',
-    TaskStatus.overdue => '已逾期',
+    TaskStatus.overdue => '日期已過',
     TaskStatus.postponed => '稍後提醒',
     TaskStatus.canceled => '已取消',
   };
@@ -454,8 +454,8 @@ String _labelForCaseStatus(WorkCaseStatus status) {
 
 String _labelForMilestoneStatus(MilestoneStatus status) {
   return switch (status) {
-    MilestoneStatus.pending => '尚未達標',
-    MilestoneStatus.reached => '已達標',
+    MilestoneStatus.pending => '條件未到',
+    MilestoneStatus.reached => '條件已到',
     MilestoneStatus.acknowledged => '已確認',
     MilestoneStatus.inProgress => '處理中',
     MilestoneStatus.completed => '已完成',
@@ -466,13 +466,13 @@ String _labelForMilestoneStatus(MilestoneStatus status) {
 
 String _milestoneTriggerLabel(Milestone milestone) {
   if (milestone.triggerDate case final date?) {
-    return '目標日期 ${_formatDate(date)}';
+    return '預定日期 ${_formatDate(date)}';
   }
   if (milestone.thresholdValue case final value?) {
     final formatted = value == value.roundToDouble()
         ? value.toInt().toString()
         : value.toString();
-    return '目標 $formatted ${milestone.thresholdUnit ?? ''}'.trim();
+    return '條件 $formatted ${milestone.thresholdUnit ?? ''}'.trim();
   }
   if (_nonEmpty(milestone.lifeStageCode) case final stage?) {
     return '人生階段：$stage';

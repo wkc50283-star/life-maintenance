@@ -64,6 +64,9 @@ void main() {
       scrollable: find.byType(Scrollable),
     );
     expect(find.text('第六年大修'), findsOneWidget);
+    expect(find.text('條件 6 年'), findsOneWidget);
+    expect(find.text('條件未到'), findsOneWidget);
+    expect(find.text('尚未達標'), findsNothing);
 
     await tester.scrollUntilVisible(
       find.text('冷氣異音檢查'),
