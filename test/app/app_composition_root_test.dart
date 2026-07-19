@@ -10,6 +10,8 @@ import 'package:life_maintenance/models/item.dart';
 import 'package:life_maintenance/models/legacy_drift_import_report.dart';
 import 'package:life_maintenance/models/schedule.dart';
 import 'package:life_maintenance/models/task.dart';
+import 'package:life_maintenance/models/work_case.dart';
+import 'package:life_maintenance/models/work_case_enums.dart';
 import 'package:life_maintenance/services/local_data_integrity_service.dart';
 import 'package:life_maintenance/services/local_storage_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -84,9 +86,11 @@ void main() {
 
       final first = await root.initialize();
 
-      expect(first.mode, RuntimeDataMode.driftTasks);
+      expect(first.mode, RuntimeDataMode.driftWorkCases);
       expect(first.usesDriftPlanning, isTrue);
       expect(first.usesDriftTasks, isTrue);
+      expect(first.usesDriftWorkCases, isTrue);
+      expect(root.workCaseRuntime, isNotNull);
       expect(root.usesDriftPlanning, isTrue);
       expect(root.maintenancePlanRepository, isNotNull);
       expect(root.generalReminderRepository, isNotNull);
@@ -135,6 +139,19 @@ void main() {
       ]);
       expect((await root.taskRepository.loadTasks()).single.id, 'task-1');
       expect(await storage.readString('tasks'), isNull);
+      final caseTime = DateTime.utc(2027, 1, 3);
+      await root.workCaseRuntime!.createManual(
+        WorkCase(
+          id: 'case-1',
+          itemId: item.id,
+          sourceType: WorkCaseSourceType.manual,
+          caseType: WorkCaseType.administrative,
+          title: '處理保固文件',
+          status: WorkCaseStatus.inProgress,
+          createdAt: caseTime,
+          updatedAt: caseTime,
+        ),
+      );
       await expectLater(
         storage.saveString('items', '[]'),
         throwsA(isA<LegacyStorageReadOnlyException>()),
@@ -150,7 +167,7 @@ void main() {
         legacyStorage: restartedStorage,
       );
       final restarted = await restartedRoot.initialize();
-      expect(restarted.mode, RuntimeDataMode.driftTasks);
+      expect(restarted.mode, RuntimeDataMode.driftWorkCases);
       expect(
         restarted.importReport?.status,
         LegacyDriftImportStatus.alreadyImported,
@@ -159,7 +176,14 @@ void main() {
         (await restartedRoot.itemReadRepository.loadItems()).single.id,
         item.id,
       );
-      expect((await restartedRoot.taskRepository.loadTasks()).single.id, 'task-1');
+      expect(
+        (await restartedRoot.taskRepository.loadTasks()).single.id,
+        'task-1',
+      );
+      expect(
+        (await restartedRoot.workCaseRuntime!.findCaseById('case-1'))?.title,
+        '處理保固文件',
+      );
       expect(await restartedStorage.readString('items'), rawItems);
 
       await database.close();
@@ -190,6 +214,7 @@ void main() {
       final result = await root.initialize();
 
       expect(result.mode, RuntimeDataMode.legacy);
+      expect(root.workCaseRuntime, isNull);
       expect(result.importReport?.status, LegacyDriftImportStatus.blocked);
       expect(root.legacyWritesEnabled, isTrue);
       expect((await root.itemReadRepository.loadItems()).single.id, item.id);

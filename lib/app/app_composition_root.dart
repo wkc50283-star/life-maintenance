@@ -6,6 +6,7 @@ import '../repositories/drift/drift_item_read_repository.dart';
 import '../repositories/drift/drift_schedule_runtime_repository.dart';
 import '../repositories/drift/drift_schema_v2_repositories.dart';
 import '../repositories/drift/drift_task_runtime_repository.dart';
+import '../repositories/drift/drift_work_case_runtime.dart';
 import '../repositories/item_local_repository.dart';
 import '../repositories/item_read_repository.dart';
 import '../repositories/maintenance_record_local_repository.dart';
@@ -13,6 +14,7 @@ import '../repositories/schedule_local_repository.dart';
 import '../repositories/schedule_repository.dart';
 import '../repositories/task_local_repository.dart';
 import '../repositories/task_repository.dart';
+import '../repositories/work_case_runtime.dart';
 import '../services/local_data_backup_service.dart';
 import '../services/local_data_integrity_service.dart';
 import '../services/legacy_drift_import_service.dart';
@@ -32,6 +34,7 @@ abstract interface class AppRuntimeDependencies {
   DriftGeneralReminderRepository? get generalReminderRepository;
   DriftMilestoneRepository? get milestoneRepository;
   TaskRepository get taskRepository;
+  WorkCaseRuntime? get workCaseRuntime;
   LocalDataBackupService get localDataBackupService;
   LocalDataIntegrityService get localDataIntegrityService;
   MaintenanceTaskService get maintenanceTaskService;
@@ -71,6 +74,8 @@ class LegacyRuntimeDependencies implements AppRuntimeDependencies {
   @override
   final TaskLocalRepository taskRepository;
   @override
+  WorkCaseRuntime? get workCaseRuntime => null;
+  @override
   final LocalDataBackupService localDataBackupService;
   @override
   final LocalDataIntegrityService localDataIntegrityService;
@@ -82,7 +87,13 @@ class LegacyRuntimeDependencies implements AppRuntimeDependencies {
   bool get usesDriftPlanning => false;
 }
 
-enum RuntimeDataMode { legacy, driftItemRead, driftPlanning, driftTasks }
+enum RuntimeDataMode {
+  legacy,
+  driftItemRead,
+  driftPlanning,
+  driftTasks,
+  driftWorkCases,
+}
 
 class RuntimeInitializationResult {
   const RuntimeInitializationResult({required this.mode, this.importReport});
@@ -94,9 +105,14 @@ class RuntimeInitializationResult {
 
   bool get usesDriftPlanning =>
       mode == RuntimeDataMode.driftPlanning ||
-      mode == RuntimeDataMode.driftTasks;
+      mode == RuntimeDataMode.driftTasks ||
+      mode == RuntimeDataMode.driftWorkCases;
 
-  bool get usesDriftTasks => mode == RuntimeDataMode.driftTasks;
+  bool get usesDriftTasks =>
+      mode == RuntimeDataMode.driftTasks ||
+      mode == RuntimeDataMode.driftWorkCases;
+
+  bool get usesDriftWorkCases => mode == RuntimeDataMode.driftWorkCases;
 }
 
 class AppCompositionRoot implements AppRuntimeDependencies {
@@ -126,6 +142,7 @@ class AppCompositionRoot implements AppRuntimeDependencies {
   late ItemReadRepository _itemReadRepository;
   late ScheduleRepository _scheduleRepository;
   late TaskRepository _taskRepository;
+  WorkCaseRuntime? _workCaseRuntime;
   Future<RuntimeInitializationResult>? _initialization;
 
   Future<RuntimeInitializationResult> initialize() =>
@@ -162,8 +179,13 @@ class AppCompositionRoot implements AppRuntimeDependencies {
         database: database,
         repositories: driftRepositories,
       );
+      _workCaseRuntime = DriftWorkCaseRuntime(
+        database: database,
+        workCases: driftRepositories.workCases,
+        closures: driftRepositories.workCaseClosures,
+      );
       return RuntimeInitializationResult(
-        mode: RuntimeDataMode.driftTasks,
+        mode: RuntimeDataMode.driftWorkCases,
         importReport: report,
       );
     } on LegacyDriftImportException catch (error) {
@@ -171,6 +193,7 @@ class AppCompositionRoot implements AppRuntimeDependencies {
       _itemReadRepository = _runtime.itemRepository;
       _scheduleRepository = _runtime.scheduleRepository;
       _taskRepository = _runtime.taskRepository;
+      _workCaseRuntime = null;
       return RuntimeInitializationResult(
         mode: RuntimeDataMode.legacy,
         importReport: error.report,
@@ -180,6 +203,7 @@ class AppCompositionRoot implements AppRuntimeDependencies {
       _itemReadRepository = _runtime.itemRepository;
       _scheduleRepository = _runtime.scheduleRepository;
       _taskRepository = _runtime.taskRepository;
+      _workCaseRuntime = null;
       return const RuntimeInitializationResult(mode: RuntimeDataMode.legacy);
     }
   }
@@ -204,6 +228,8 @@ class AppCompositionRoot implements AppRuntimeDependencies {
       usesDriftPlanning ? driftRepositories.milestones : null;
   @override
   TaskRepository get taskRepository => _taskRepository;
+  @override
+  WorkCaseRuntime? get workCaseRuntime => _workCaseRuntime;
   @override
   LocalDataBackupService get localDataBackupService =>
       _runtime.localDataBackupService;
