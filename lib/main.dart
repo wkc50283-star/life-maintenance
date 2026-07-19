@@ -120,6 +120,7 @@ class _MainShellState extends State<MainShell> {
   bool _integrityCheckComplete = false;
   bool _hasIntegrityIssues = false;
   bool _usesDriftItemRead = false;
+  bool _usesDriftPlanning = false;
 
   final List<Widget> _pages = const [
     TodayScreen(),
@@ -161,6 +162,7 @@ class _MainShellState extends State<MainShell> {
       _integrityCheckComplete = true;
       _hasIntegrityIssues = hasIssues;
       _usesDriftItemRead = initialization.usesDriftItemRead;
+      _usesDriftPlanning = initialization.usesDriftPlanning;
       if (hasIssues) {
         _currentIndex = 1;
       }
@@ -201,7 +203,7 @@ class _MainShellState extends State<MainShell> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (index) {
-          if (_usesDriftItemRead && index == 2) {
+          if (_usesDriftItemRead && !_usesDriftPlanning && index == 2) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('資料已安全匯入；新增功能將在正式寫入切換後開放')),
             );

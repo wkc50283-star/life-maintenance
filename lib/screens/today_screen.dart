@@ -10,7 +10,7 @@ import '../models/schedule.dart';
 import '../models/task.dart' as maintenance_task;
 import '../repositories/item_read_repository.dart';
 import '../repositories/maintenance_record_local_repository.dart';
-import '../repositories/schedule_local_repository.dart';
+import '../repositories/schedule_repository.dart';
 import '../repositories/task_local_repository.dart';
 import '../services/maintenance_task_service.dart';
 import '../widgets/completion_record_sheet.dart';
@@ -21,10 +21,10 @@ import '../widgets/task_section_header.dart';
 import '../widgets/today_hero.dart';
 
 class TodayScreen extends StatefulWidget {
-  const TodayScreen({super.key, ScheduleLocalRepository? scheduleRepository})
+  const TodayScreen({super.key, ScheduleRepository? scheduleRepository})
     : _scheduleRepositoryOverride = scheduleRepository;
 
-  final ScheduleLocalRepository? _scheduleRepositoryOverride;
+  final ScheduleRepository? _scheduleRepositoryOverride;
 
   @override
   State<TodayScreen> createState() => _TodayScreenState();
@@ -35,7 +35,7 @@ enum _ScheduleFollowUpResult { updated, notApplicable, failed }
 class _TodayScreenState extends State<TodayScreen> {
   late ItemReadRepository _itemRepository;
   late MaintenanceRecordLocalRepository _recordRepository;
-  late ScheduleLocalRepository _scheduleRepository;
+  late ScheduleRepository _scheduleRepository;
   late TaskLocalRepository _taskRepository;
   late MaintenanceTaskService _taskService;
   bool _dependenciesInitialized = false;

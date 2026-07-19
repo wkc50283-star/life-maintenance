@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../app/app_composition_root.dart';
 import '../widgets/add_entry_card.dart';
 import '../widgets/add_item_preview_sheet.dart';
 import '../widgets/expiry_reminder_preview_sheet.dart';
@@ -11,6 +12,13 @@ class AddScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final planningEnabled = AppCompositionScope.of(context).usesDriftPlanning;
+    void unavailable() {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('此項寫入尚未切換至 Drift，目前保持唯讀')));
+    }
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
@@ -34,7 +42,9 @@ class AddScreen extends StatelessWidget {
           icon: Icons.add_a_photo_outlined,
           title: '新增生活項目',
           description: '建立家電、車輛、房屋、證件或其他生活項目。',
-          onTap: () => showAddItemPreviewSheet(context),
+          onTap: planningEnabled
+              ? unavailable
+              : () => showAddItemPreviewSheet(context),
         ),
         AddEntryCard(
           icon: Icons.event_available_outlined,
@@ -55,7 +65,9 @@ class AddScreen extends StatelessWidget {
           icon: Icons.construction_outlined,
           title: '補登完成紀錄',
           description: '記錄已完成的保養、修理、辦理事項、費用與結果。',
-          onTap: () => showMaintenanceRecordPreviewSheet(context),
+          onTap: planningEnabled
+              ? unavailable
+              : () => showMaintenanceRecordPreviewSheet(context),
         ),
       ],
     );

@@ -242,6 +242,40 @@ void main() {
   });
 
   test(
+    'planning cutover accepts verified mutable fields but strict import blocks',
+    () async {
+      final importer = service(fixture());
+      await importer.execute(sourceWritesAreDisabled: true);
+      final nextDueDate = DateTime.utc(2026, 9, 1, 8);
+      await (database.update(
+        database.schedules,
+      )..where((table) => table.id.equals('schedule-maintenance'))).write(
+        SchedulesCompanion(
+          nextDueDate: Value(nextDueDate),
+          updatedAt: Value(nextDueDate),
+        ),
+      );
+
+      await expectLater(
+        importer.execute(sourceWritesAreDisabled: true),
+        throwsA(isA<LegacyDriftImportException>()),
+      );
+
+      final verified = await importer.execute(
+        sourceWritesAreDisabled: true,
+        allowVerifiedPlanningMutations: true,
+      );
+      expect(verified.status, LegacyDriftImportStatus.alreadyImported);
+      expect(
+        (await database.select(database.schedules).get())
+            .singleWhere((row) => row.id == 'schedule-maintenance')
+            .nextDueDate,
+        nextDueDate,
+      );
+    },
+  );
+
+  test(
     'blocks missing backup, unknown card, and active source writes',
     () async {
       final missingBackup = fixture()..remove('backup_v1_items');
