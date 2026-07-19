@@ -44,11 +44,7 @@ class DriftWorkCaseRepository implements WorkCaseRepository {
 
   @override
   Future<void> saveCase(WorkCase workCase) async {
-    if (workCase.isClosed) {
-      throw const RepositoryConstraintException(
-        'WorkCase completion or cancellation requires WorkCaseClosure.',
-      );
-    }
+    _validateOpenState(workCase);
     await _database.transaction(() async {
       await _validateSource(workCase);
       final existing = await findCaseById(workCase.id);
@@ -56,6 +52,9 @@ class DriftWorkCaseRepository implements WorkCaseRepository {
         throw const RepositoryConstraintException(
           'A closed WorkCase is immutable.',
         );
+      }
+      if (existing != null) {
+        _validateIdentity(existing, workCase);
       }
       await _database
           .into(_database.workCases)
@@ -66,20 +65,38 @@ class DriftWorkCaseRepository implements WorkCaseRepository {
   @override
   Future<void> appendUpdate(WorkCaseUpdate update) async {
     await _database.transaction(() async {
-      final workCase = await findCaseById(update.workCaseId);
-      if (workCase == null) {
-        throw RepositoryConstraintException(
-          'WorkCase ${update.workCaseId} does not exist.',
-        );
-      }
-      if (workCase.isClosed) {
-        throw const RepositoryConstraintException(
-          'Updates cannot be appended after formal case closure.',
-        );
-      }
+      await _requireOpenCase(update.workCaseId);
+      _validateUpdate(update);
       await _database
           .into(_database.workCaseUpdates)
           .insert(update.toCompanion(), mode: InsertMode.insert);
+    });
+  }
+
+  @override
+  Future<void> updateStatus(
+    String workCaseId,
+    WorkCaseStatus status,
+    DateTime updatedAt,
+  ) async {
+    await _database.transaction(() async {
+      await _setOpenStatus(workCaseId, status, updatedAt);
+    });
+  }
+
+  @override
+  Future<void> appendUpdateAndSetStatus(
+    WorkCaseUpdate update,
+    WorkCaseStatus status,
+    DateTime updatedAt,
+  ) async {
+    await _database.transaction(() async {
+      await _requireOpenCase(update.workCaseId);
+      _validateUpdate(update);
+      await _database
+          .into(_database.workCaseUpdates)
+          .insert(update.toCompanion(), mode: InsertMode.insert);
+      await _setOpenStatus(update.workCaseId, status, updatedAt);
     });
   }
 
@@ -95,14 +112,11 @@ class DriftWorkCaseRepository implements WorkCaseRepository {
         'Must match workCase.id',
       );
     }
-    if (workCase.isClosed) {
-      throw const RepositoryConstraintException(
-        'WorkCase completion or cancellation requires WorkCaseClosure.',
-      );
-    }
+    _validateOpenState(workCase);
 
     await _database.transaction(() async {
       await _validateSource(workCase);
+      _validateUpdate(initialUpdate);
       await _database
           .into(_database.workCases)
           .insert(workCase.toCompanion(), mode: InsertMode.insert);
@@ -110,6 +124,84 @@ class DriftWorkCaseRepository implements WorkCaseRepository {
           .into(_database.workCaseUpdates)
           .insert(initialUpdate.toCompanion(), mode: InsertMode.insert);
     });
+  }
+
+  Future<WorkCase> _requireOpenCase(String id) async {
+    final workCase = await findCaseById(id);
+    if (workCase == null) {
+      throw RepositoryConstraintException('WorkCase $id does not exist.');
+    }
+    if (workCase.isClosed) {
+      throw const RepositoryConstraintException(
+        'A closed WorkCase is immutable.',
+      );
+    }
+    return workCase;
+  }
+
+  Future<void> _setOpenStatus(
+    String workCaseId,
+    WorkCaseStatus status,
+    DateTime updatedAt,
+  ) async {
+    final workCase = await _requireOpenCase(workCaseId);
+    if (status == WorkCaseStatus.completed ||
+        status == WorkCaseStatus.canceled) {
+      throw const RepositoryConstraintException(
+        'A terminal WorkCase status requires WorkCaseClosure.',
+      );
+    }
+    if (updatedAt.isBefore(workCase.updatedAt)) {
+      throw const RepositoryConstraintException(
+        'A WorkCase status update cannot move updatedAt backwards.',
+      );
+    }
+    await (_database.update(
+      _database.workCases,
+    )..where((table) => table.id.equals(workCaseId))).write(
+      WorkCasesCompanion(status: Value(status), updatedAt: Value(updatedAt)),
+    );
+  }
+
+  void _validateUpdate(WorkCaseUpdate update) {
+    if (update.description.trim().isEmpty) {
+      throw const RepositoryConstraintException(
+        'A WorkCaseUpdate description is required.',
+      );
+    }
+    if (update.cost case final cost? when cost < 0) {
+      throw const RepositoryConstraintException(
+        'A WorkCaseUpdate cost must not be negative.',
+      );
+    }
+  }
+
+  void _validateOpenState(WorkCase workCase) {
+    if (workCase.isClosed ||
+        workCase.closedAt != null ||
+        workCase.canceledAt != null ||
+        workCase.closeResult != null ||
+        workCase.cancellationReason != null) {
+      throw const RepositoryConstraintException(
+        'WorkCase termination requires one formal WorkCaseClosure.',
+      );
+    }
+  }
+
+  void _validateIdentity(WorkCase existing, WorkCase updated) {
+    if (existing.itemId != updated.itemId ||
+        existing.sourceType != updated.sourceType ||
+        existing.sourceId != updated.sourceId ||
+        existing.createdAt != updated.createdAt) {
+      throw const RepositoryConstraintException(
+        'WorkCase Item, source, and creation identity are immutable.',
+      );
+    }
+    if (updated.updatedAt.isBefore(existing.updatedAt)) {
+      throw const RepositoryConstraintException(
+        'A WorkCase update cannot move updatedAt backwards.',
+      );
+    }
   }
 
   Future<void> _validateSource(WorkCase workCase) async {

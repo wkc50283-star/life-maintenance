@@ -1,6 +1,6 @@
 # 生活管理 App
 
-目前版本：**v0.5.6 Drift Task Repository Cutover**
+目前版本：**v0.5.7 Formal WorkCase Runtime**
 
 `life-maintenance` 是一個 Flutter 生活管理 App，目標是管理生活項目、固定週期、到期提醒、階段性重點、突發事項與工程，並保存每一次處理從開始到結束的完整史略。
 
@@ -36,7 +36,7 @@
 
 ## 目前狀態
 
-`v0.5.6` 在受控匯入驗證後，將 Task 正式切換至 Drift Repository。Task 只能依 Schedule 與正式來源契約產生，並由 Schema v2 與 Runtime transaction 共同防止相同 `scheduleId + dueDate` 重複。SharedPreferences 與不可變備份繼續作為唯讀回復來源；Task 不再直接完成成 MaintenanceRecord，WorkCase 與 WorkCaseClosure 仍未切換。
+`v0.5.7` 在受控匯入驗證後開放正式 WorkCase Runtime。案件可由正式 Task 或使用者手動建立，保存多筆不可覆寫的 WorkCaseUpdate，並以唯一 WorkCaseClosure 與案件終止狀態的單一 transaction 正式結案。所有來源、後續關聯與案件必須屬於同一 Item；Task 仍只是提醒，History 仍只是投影，SharedPreferences 與不可變備份維持唯讀。
 
 已完成的資料與治理基礎：
 

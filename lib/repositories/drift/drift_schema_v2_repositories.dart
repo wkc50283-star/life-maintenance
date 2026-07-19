@@ -9,6 +9,7 @@ import '../../models/milestone_enums.dart';
 import '../../models/work_case_closure.dart';
 import '../../models/work_case_enums.dart';
 import '../repository_constraint_exception.dart';
+import '../work_case_closure_repository.dart';
 import 'drift_work_case_repository.dart';
 import 'schema_v2_drift_mappers.dart';
 
@@ -717,21 +718,24 @@ class DriftMaintenanceRecordRepository {
   }
 }
 
-class DriftWorkCaseClosureRepository {
+class DriftWorkCaseClosureRepository implements WorkCaseClosureRepository {
   DriftWorkCaseClosureRepository(this._database);
 
   final AppDatabase _database;
 
+  @override
   Future<WorkCaseClosure?> findForCase(String workCaseId) async {
     final query = _database.select(_database.workCaseClosures)
       ..where((table) => table.workCaseId.equals(workCaseId));
     return (await query.getSingleOrNull())?.toModel();
   }
 
+  @override
   Future<void> closeCase(WorkCaseClosure closure) async {
     await _finalizeCase(closure, status: WorkCaseStatus.completed);
   }
 
+  @override
   Future<void> cancelCase(
     WorkCaseClosure closure, {
     required String cancellationReason,
