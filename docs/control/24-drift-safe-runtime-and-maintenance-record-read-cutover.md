@@ -5,6 +5,8 @@
 日期：2026-07-19
 適用 PR：#212
 
+> 歷史基線：本文件記錄 v0.5.11／PR #212 的安全過渡狀態。自 v0.5.12／PR #213 起，正常 Runtime 不再執行 Legacy admission 或 fallback；正式退休規則以 `25-legacy-runtime-retirement.md` 為準。
+
 ## 1. 正式結論
 
 Items／History 的 MaintenanceRecord 讀取統一經由 `MaintenanceRecordRepository`，成功 admission 後由 Drift Runtime adapter 提供。正式 screen／widget 不得依賴或建構 `MaintenanceRecordLocalRepository`。

@@ -40,7 +40,7 @@ void main() {
     }
   });
 
-  test('backup failure activates the global write protection lock', () async {
+  test('backup failure is reported without changing the source', () async {
     final storage = _FakeLocalStorageService();
     storage.values['items'] = 'raw-items';
     storage.failingSaveKeys.add('backup_v1_items');
@@ -48,10 +48,8 @@ void main() {
     await LocalDataBackupService(storage).createPreMigrationBackups();
 
     expect(integrityService.hasIssueForKey('backup:items'), isTrue);
-    expect(
-      integrityService.ensureWritesAllowed,
-      throwsA(isA<LocalDataWriteBlockedException>()),
-    );
+    expect(storage.values['items'], 'raw-items');
+    expect(storage.values['backup_v1_items'], isNull);
   });
 }
 
@@ -63,16 +61,11 @@ class _FakeLocalStorageService extends LocalStorageService {
   Future<String?> readString(String key) async => values[key];
 
   @override
-  Future<void> saveString(String key, String value) async {
+  Future<void> writeBackupIfAbsent(String key, String value) async {
     if (failingSaveKeys.contains(key)) {
       throw StateError('Simulated backup failure.');
     }
 
-    values[key] = value;
-  }
-
-  @override
-  Future<void> remove(String key) async {
-    values.remove(key);
+    values.putIfAbsent(key, () => value);
   }
 }

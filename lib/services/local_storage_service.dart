@@ -1,45 +1,23 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LocalStorageService {
-  bool _writesEnabled = true;
-
-  bool get writesEnabled => _writesEnabled;
-
-  void disableWrites() {
-    _writesEnabled = false;
-  }
-
-  void enableWrites() {
-    _writesEnabled = true;
-  }
-
-  Future<void> saveString(String key, String value) async {
-    _ensureWritesEnabled();
-    final preferences = await SharedPreferences.getInstance();
-    await preferences.setString(key, value);
-  }
-
   Future<String?> readString(String key) async {
     final preferences = await SharedPreferences.getInstance();
     return preferences.getString(key);
   }
 
-  Future<void> remove(String key) async {
-    _ensureWritesEnabled();
+  /// Creates an immutable v1 recovery backup and never overwrites it.
+  Future<void> writeBackupIfAbsent(String key, String value) async {
+    if (!key.startsWith('backup_v1_')) {
+      throw ArgumentError.value(
+        key,
+        'key',
+        'Only backup_v1_* keys are allowed.',
+      );
+    }
     final preferences = await SharedPreferences.getInstance();
-    await preferences.remove(key);
-  }
-
-  void _ensureWritesEnabled() {
-    if (!_writesEnabled) {
-      throw const LegacyStorageReadOnlyException();
+    if (!preferences.containsKey(key)) {
+      await preferences.setString(key, value);
     }
   }
-}
-
-class LegacyStorageReadOnlyException implements Exception {
-  const LegacyStorageReadOnlyException();
-
-  @override
-  String toString() => 'SharedPreferences recovery source is read-only.';
 }

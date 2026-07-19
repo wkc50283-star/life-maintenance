@@ -14,15 +14,6 @@ class LocalDataIntegrityIssue {
   final int invalidEntryCount;
 }
 
-class LocalDataWriteBlockedException implements Exception {
-  const LocalDataWriteBlockedException();
-
-  @override
-  String toString() {
-    return 'Local data writes are blocked until integrity issues are resolved.';
-  }
-}
-
 class LocalDataIntegrityService extends ChangeNotifier {
   LocalDataIntegrityService._();
 
@@ -103,12 +94,6 @@ class LocalDataIntegrityService extends ChangeNotifier {
       message: message,
       invalidEntryCount: invalidEntryCount,
     );
-  }
-
-  void ensureWritesAllowed() {
-    if (hasIssues) {
-      throw const LocalDataWriteBlockedException();
-    }
   }
 
   void clearIssue(String storageKey) {

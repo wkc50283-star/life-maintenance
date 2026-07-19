@@ -10,6 +10,8 @@ import 'package:life_maintenance/models/item.dart';
 import 'package:life_maintenance/models/maintenance_record.dart';
 import 'package:life_maintenance/screens/history_screen.dart';
 import 'package:life_maintenance/screens/items_screen.dart';
+import 'package:life_maintenance/services/legacy_drift_import_service.dart';
+import 'package:life_maintenance/services/local_data_backup_service.dart';
 import 'package:life_maintenance/services/local_data_integrity_service.dart';
 import 'package:life_maintenance/services/local_storage_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -36,7 +38,12 @@ void main() {
     });
     final database = AppDatabase(NativeDatabase.memory());
     final storage = LocalStorageService();
-    final root = AppCompositionRoot(database: database, legacyStorage: storage);
+    await LocalDataBackupService(storage).createPreMigrationBackups();
+    await LegacyDriftImportService(
+      database: database,
+      source: SharedPreferencesLegacyImportSource(storage),
+    ).execute(sourceWritesAreDisabled: true);
+    final root = AppCompositionRoot(database: database);
     await root.initialize();
     final completedAt = DateTime.utc(2026, 7, 19, 12);
     await root.maintenanceRecordRepository.createSimpleRecord(

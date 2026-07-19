@@ -117,10 +117,7 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
-  bool _integrityCheckComplete = false;
-  bool _hasIntegrityIssues = false;
-  bool _usesDriftItemRead = false;
-  bool _usesDriftPlanning = false;
+  bool _runtimeReady = false;
 
   final List<Widget> _pages = const [
     TodayScreen(),
@@ -135,56 +132,18 @@ class _MainShellState extends State<MainShell> {
   @override
   void initState() {
     super.initState();
-    widget.compositionRoot.localDataIntegrityService.addListener(
-      _onIntegrityChanged,
-    );
-    _runIntegrityPreflight();
+    _initializeRuntime();
   }
 
-  @override
-  void dispose() {
-    widget.compositionRoot.localDataIntegrityService.removeListener(
-      _onIntegrityChanged,
-    );
-    super.dispose();
-  }
-
-  Future<void> _runIntegrityPreflight() async {
-    final root = widget.compositionRoot;
-    final initialization = await root.initialize();
+  Future<void> _initializeRuntime() async {
+    await widget.compositionRoot.initialize();
 
     if (!mounted) {
       return;
     }
 
-    final hasIssues = root.localDataIntegrityService.hasIssues;
     setState(() {
-      _integrityCheckComplete = true;
-      _hasIntegrityIssues = hasIssues;
-      _usesDriftItemRead = initialization.usesDriftItemRead;
-      _usesDriftPlanning = initialization.usesDriftPlanning;
-      if (hasIssues) {
-        _currentIndex = 1;
-      }
-    });
-  }
-
-  void _onIntegrityChanged() {
-    if (!mounted) {
-      return;
-    }
-
-    final hasIssues =
-        widget.compositionRoot.localDataIntegrityService.hasIssues;
-    if (_hasIntegrityIssues == hasIssues) {
-      return;
-    }
-
-    setState(() {
-      _hasIntegrityIssues = hasIssues;
-      if (hasIssues && (_currentIndex == 0 || _currentIndex == 2)) {
-        _currentIndex = 1;
-      }
+      _runtimeReady = true;
     });
   }
 
@@ -192,30 +151,12 @@ class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(_titles[_currentIndex]), centerTitle: true),
-      body: !_integrityCheckComplete
+      body: !_runtimeReady
           ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                if (_hasIntegrityIssues) const _LocalDataIntegrityBanner(),
-                Expanded(child: _pages[_currentIndex]),
-              ],
-            ),
+          : _pages[_currentIndex],
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (index) {
-          if (_usesDriftItemRead && !_usesDriftPlanning && index == 2) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('資料已安全匯入；新增功能將在正式寫入切換後開放')),
-            );
-            return;
-          }
-          if (_hasIntegrityIssues && (index == 0 || index == 2)) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('本機資料正在保護中，暫時只能查看生活項目、履歷與設定')),
-            );
-            return;
-          }
-
           setState(() {
             _currentIndex = index;
           });
@@ -245,41 +186,6 @@ class _MainShellState extends State<MainShell> {
             icon: Icon(Icons.settings_outlined),
             selectedIcon: Icon(Icons.settings),
             label: '設定',
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LocalDataIntegrityBanner extends StatelessWidget {
-  const _LocalDataIntegrityBanner();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF3CD),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE7C96A)),
-      ),
-      child: const Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.shield_outlined, color: Color(0xFF7A5B00)),
-          SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              '部分本機資料無法完整讀取。為保護原始資料，新增與修改已暫停；現有可讀資料仍可查看。',
-              style: TextStyle(
-                color: Color(0xFF5F4700),
-                fontWeight: FontWeight.w700,
-                height: 1.4,
-              ),
-            ),
           ),
         ],
       ),

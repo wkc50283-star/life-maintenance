@@ -10,6 +10,8 @@ import 'package:life_maintenance/models/item.dart';
 import 'package:life_maintenance/models/schedule.dart';
 import 'package:life_maintenance/models/task.dart';
 import 'package:life_maintenance/screens/today_screen.dart';
+import 'package:life_maintenance/services/legacy_drift_import_service.dart';
+import 'package:life_maintenance/services/local_data_backup_service.dart';
 import 'package:life_maintenance/services/local_data_integrity_service.dart';
 import 'package:life_maintenance/services/local_storage_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -53,10 +55,8 @@ void main() {
       });
       final database = AppDatabase(NativeDatabase.memory());
       final storage = LocalStorageService();
-      final root = AppCompositionRoot(
-        database: database,
-        legacyStorage: storage,
-      );
+      await _importLegacy(database, storage);
+      final root = AppCompositionRoot(database: database);
       await root.initialize();
       final generated = root.maintenanceTaskService.generateDueTasks(
         schedules: await root.scheduleRepository.loadSchedules(),
@@ -127,10 +127,8 @@ void main() {
       });
       final database = AppDatabase(NativeDatabase.memory());
       final storage = LocalStorageService();
-      final root = AppCompositionRoot(
-        database: database,
-        legacyStorage: storage,
-      );
+      await _importLegacy(database, storage);
+      final root = AppCompositionRoot(database: database);
       await root.initialize();
 
       await tester.pumpWidget(
@@ -151,5 +149,19 @@ void main() {
 
       await database.close();
     },
+  );
+}
+
+Future<void> _importLegacy(
+  AppDatabase database,
+  LocalStorageService storage,
+) async {
+  await LocalDataBackupService(storage).createPreMigrationBackups();
+  await LegacyDriftImportService(
+    database: database,
+    source: SharedPreferencesLegacyImportSource(storage),
+  ).execute(
+    sourceWritesAreDisabled: true,
+    allowVerifiedPlanningMutations: true,
   );
 }

@@ -21,23 +21,9 @@ class _ReadOnlyStorage extends LocalStorageService {
   _ReadOnlyStorage(this.values);
 
   final Map<String, String> values;
-  int saveCalls = 0;
-  int removeCalls = 0;
 
   @override
   Future<String?> readString(String key) async => values[key];
-
-  @override
-  Future<void> saveString(String key, String value) async {
-    saveCalls += 1;
-    throw StateError('Migration admission must remain read-only');
-  }
-
-  @override
-  Future<void> remove(String key) async {
-    removeCalls += 1;
-    throw StateError('Migration admission must remain read-only');
-  }
 }
 
 void main() {
@@ -101,7 +87,9 @@ void main() {
   });
 
   Future<void> seedItem(String itemId) async {
-    await database.into(database.itemCategories).insert(
+    await database
+        .into(database.itemCategories)
+        .insert(
           ItemCategoriesCompanion.insert(
             id: 'category-$itemId',
             systemCode: const Value('appliance'),
@@ -111,7 +99,9 @@ void main() {
             updatedAt: now,
           ),
         );
-    await database.into(database.items).insert(
+    await database
+        .into(database.items)
+        .insert(
           ItemsCompanion.insert(
             id: itemId,
             name: '冷氣',
@@ -141,8 +131,6 @@ void main() {
     expect(report.isAdmittedForDryRun, isTrue);
     expect(report.isBlocked, isFalse);
     expect(report.blockers, isEmpty);
-    expect(storage.saveCalls, 0);
-    expect(storage.removeCalls, 0);
   });
 
   test('returns every applicable blocker without repairing data', () async {
@@ -183,8 +171,6 @@ void main() {
         MigrationAdmissionBlocker.danglingLegacyRelations,
       }),
     );
-    expect(storage.saveCalls, 0);
-    expect(storage.removeCalls, 0);
   });
 
   test('blocks an unreadable source separately', () async {
@@ -203,18 +189,20 @@ void main() {
 
   test('blocks when Drift target tables already contain data', () async {
     await seedItem('item-1');
-    await database.into(database.workCases).insert(
-      WorkCasesCompanion.insert(
-        id: 'case-1',
-        itemId: 'item-1',
-        sourceType: WorkCaseSourceType.manual,
-        caseType: WorkCaseType.repair,
-        title: '既有案件',
-        status: WorkCaseStatus.inProgress,
-        createdAt: now,
-        updatedAt: now,
-      ),
-    );
+    await database
+        .into(database.workCases)
+        .insert(
+          WorkCasesCompanion.insert(
+            id: 'case-1',
+            itemId: 'item-1',
+            sourceType: WorkCaseSourceType.manual,
+            caseType: WorkCaseType.repair,
+            title: '既有案件',
+            status: WorkCaseStatus.inProgress,
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
     final storage = _ReadOnlyStorage(validValues());
 
     final report = await serviceFor(storage).inspect();
@@ -224,7 +212,5 @@ void main() {
       contains(MigrationAdmissionBlocker.nonEmptyDriftTarget),
     );
     expect(report.isBlocked, isTrue);
-    expect(storage.saveCalls, 0);
-    expect(storage.removeCalls, 0);
   });
 }
