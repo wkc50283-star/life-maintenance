@@ -4,7 +4,7 @@ import '../app/app_composition_root.dart';
 import '../models/enums.dart';
 import '../models/item.dart';
 import '../models/maintenance_record.dart';
-import '../repositories/item_local_repository.dart';
+import '../repositories/item_read_repository.dart';
 import '../repositories/maintenance_record_local_repository.dart';
 import '../widgets/empty_history_state.dart';
 import '../widgets/history_header.dart';
@@ -21,7 +21,7 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   late MaintenanceRecordLocalRepository _recordRepository;
-  late ItemLocalRepository _itemRepository;
+  late ItemReadRepository _itemRepository;
   bool _dependenciesInitialized = false;
   List<MaintenanceRecord>? _localRecords;
   List<Item>? _localItems;
@@ -34,7 +34,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
     final root = AppCompositionScope.of(context);
     _recordRepository = root.maintenanceRecordRepository;
-    _itemRepository = root.itemRepository;
+    _itemRepository = root.itemReadRepository;
     _dependenciesInitialized = true;
     _loadLocalData();
   }

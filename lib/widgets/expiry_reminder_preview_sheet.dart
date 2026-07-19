@@ -164,7 +164,7 @@ class _ExpiryReminderPreviewFormState
           ),
           const SizedBox(height: 18),
           PreviewItemDropdown(
-            repository: AppCompositionScope.of(context).itemRepository,
+            repository: AppCompositionScope.of(context).itemReadRepository,
             value: _itemId,
             onChanged: (itemId) {
               setState(() {

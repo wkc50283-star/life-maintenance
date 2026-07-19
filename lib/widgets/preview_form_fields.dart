@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/item.dart';
-import '../repositories/item_local_repository.dart';
+import '../repositories/item_read_repository.dart';
 
 class PreviewAdvanceReminderDropdown extends StatelessWidget {
   const PreviewAdvanceReminderDropdown({super.key});
@@ -42,7 +42,7 @@ class PreviewItemDropdown extends StatefulWidget {
     this.onChanged,
   });
 
-  final ItemLocalRepository repository;
+  final ItemReadRepository repository;
   final String? value;
   final ValueChanged<String?>? onChanged;
 

@@ -53,7 +53,7 @@ class _ReminderListSheetState extends State<_ReminderListSheet> {
   Future<void> _loadReminders() async {
     final root = AppCompositionScope.of(context);
     final schedules = await root.scheduleRepository.loadSchedules();
-    final items = await root.itemRepository.loadItems();
+    final items = await root.itemReadRepository.loadItems();
     if (!mounted) {
       return;
     }

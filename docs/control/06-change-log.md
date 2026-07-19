@@ -1250,6 +1250,42 @@ SharedPreferences 仍是正式 Runtime 唯一資料來源與 writer。Drift Repo
 
 ---
 
+## LM-033：v0.5.4 受控匯入與 Item 讀取切換
+
+日期：2026-07-19
+類型：資料／架構／安全／測試
+
+### 問題與原因
+
+安全 importer 與 Composition Root 已建立，但正式啟動流程尚未執行匯入，ItemCategory／Item 仍由 SharedPreferences 讀取。若未先凍結來源、驗證目標與定義失敗 rollback，直接切換會形成部分資料或雙寫風險。
+
+### 修改
+
+- AppCompositionRoot 啟動時建立備份、執行完整性預檢並以單一 transaction 執行既有安全 importer。
+- `imported`／`alreadyImported` 後將 ItemCategory／Item read repository 切換至 Drift。
+- 建立底層 SharedPreferences 唯讀 gate，匯入成功後禁止所有 save／remove。
+- blocked 或例外時保持 legacy Item reader、恢復舊 writer 並確保 Drift rollback。
+- 首頁生活總覽、生活項目清單／詳情與 Item 名稱投影改用共同 `ItemReadRepository`。
+- 更新版本為 v0.5.4。
+
+### 明確未修改
+
+不切換 Task、Schedule、MaintenanceRecord 或 WorkCase writer，不修改 UI 設計、Schema、Migration、Domain 或功能，不刪除、覆蓋或回寫 SharedPreferences 與備份。
+
+### 資料影響
+
+只有完整驗證成功時 importer 才寫入 Drift；成功後 SharedPreferences 永久唯讀。任何 blocker 或 transaction 失敗整批 rollback，來源原文保持不變且 Runtime 回到舊來源。
+
+### 驗收結果
+
+以 PR #205 的匯入／rollback、codegen、Analyze、全部測試、Web release build、預覽與 GitHub Actions 結果為準。
+
+### PR
+
+- PR #205
+
+---
+
 ## 後續條目模板
 
 ```text

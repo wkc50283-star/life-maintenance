@@ -8,7 +8,7 @@ import '../models/maintenance_card.dart';
 import '../models/maintenance_record.dart';
 import '../models/schedule.dart';
 import '../models/task.dart' as maintenance_task;
-import '../repositories/item_local_repository.dart';
+import '../repositories/item_read_repository.dart';
 import '../repositories/maintenance_record_local_repository.dart';
 import '../repositories/schedule_local_repository.dart';
 import '../repositories/task_local_repository.dart';
@@ -33,7 +33,7 @@ class TodayScreen extends StatefulWidget {
 enum _ScheduleFollowUpResult { updated, notApplicable, failed }
 
 class _TodayScreenState extends State<TodayScreen> {
-  late ItemLocalRepository _itemRepository;
+  late ItemReadRepository _itemRepository;
   late MaintenanceRecordLocalRepository _recordRepository;
   late ScheduleLocalRepository _scheduleRepository;
   late TaskLocalRepository _taskRepository;
@@ -50,7 +50,7 @@ class _TodayScreenState extends State<TodayScreen> {
       return;
     }
     final root = AppCompositionScope.of(context);
-    _itemRepository = root.itemRepository;
+    _itemRepository = root.itemReadRepository;
     _recordRepository = root.maintenanceRecordRepository;
     _scheduleRepository =
         widget._scheduleRepositoryOverride ?? root.scheduleRepository;
@@ -67,6 +67,9 @@ class _TodayScreenState extends State<TodayScreen> {
   }
 
   Future<void> _loadTasks() async {
+    final legacyWritesEnabled = AppCompositionScope.of(
+      context,
+    ).legacyWritesEnabled;
     final items = await _itemRepository.loadItems();
     final schedules = await _scheduleRepository.loadSchedules();
     final tasks = await _taskRepository.loadTasks();
@@ -79,7 +82,7 @@ class _TodayScreenState extends State<TodayScreen> {
         ? tasks
         : <maintenance_task.Task>[...tasks, ...generatedTasks];
 
-    if (generatedTasks.isNotEmpty) {
+    if (generatedTasks.isNotEmpty && legacyWritesEnabled) {
       await _taskRepository.saveTasks(updatedTasks);
     }
 
@@ -89,7 +92,7 @@ class _TodayScreenState extends State<TodayScreen> {
 
     setState(() {
       _localItems = items;
-      _localTasks = updatedTasks;
+      _localTasks = legacyWritesEnabled ? updatedTasks : tasks;
     });
   }
 
@@ -157,6 +160,12 @@ class _TodayScreenState extends State<TodayScreen> {
   }
 
   Future<void> _showCompleteRecordSheet(maintenance_task.Task task) async {
+    if (!AppCompositionScope.of(context).legacyWritesEnabled) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('完成操作將在正式 Drift 寫入切換後開放')));
+      return;
+    }
     final recordData = await showCompletionRecordSheet(
       context,
       followUpMode: _isManualExpiryReminderTask(task)

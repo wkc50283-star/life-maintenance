@@ -1,6 +1,6 @@
 # 生活管理 App
 
-目前版本：**v0.5.3 Foundation Runtime Composition**
+目前版本：**v0.5.4 Controlled Import and Item Read Cutover**
 
 `life-maintenance` 是一個 Flutter 生活管理 App，目標是管理生活項目、固定週期、到期提醒、階段性重點、突發事項與工程，並保存每一次處理從開始到結束的完整史略。
 
@@ -36,7 +36,7 @@
 
 ## 目前狀態
 
-`v0.5.3` 是 Runtime 組裝基礎版，代表產品身分、Drift Schema v2、Repository 基線、安全匯入器與單一 AppCompositionRoot 已建立；匯入器尚未接入 Runtime，畫面仍使用 SharedPreferences 單一資料來源與 writer，也不代表已執行真機匯入、Repository 切換或正式 UI。
+`v0.5.4` 在正式啟動流程執行一次受控 SharedPreferences → Drift 匯入；只有完整驗證成功或確認已完整匯入時，ItemCategory／Item 讀取才切換至 Drift。SharedPreferences 與不可變備份全程保留為唯讀回復來源；Task、Schedule、MaintenanceRecord 與 WorkCase 寫入尚未切換，也不代表正式 UI 已完成。
 
 已完成的資料與治理基礎：
 
@@ -54,14 +54,15 @@
 - 正式 Runtime SharedPreferences 讀寫稽核與禁止雙寫規則
 - SharedPreferences → Drift v2 dry-run、原子匯入、重跑保護與 rollback 測試
 - AppDatabase、Drift Schema v2 Repository、現行 LocalRepository 與必要 Service 由單一 AppCompositionRoot 建立及注入
+- 啟動時受控匯入、失敗 rollback、重啟零寫入驗證與 ItemCategory／Item Drift 讀取切換
 - 保養項目、排程、任務與案件的資料角色已重新分離
 - Flutter Analyze、Test、Web Build、Drift code generation 與 Web 資產自動 CI
 
 後續依序進行：
 
-1. 完成切換凍結點與真實來源唯讀驗收
-2. 以受控流程執行匯入並完成 read-only shadow 比對
-3. 依單一 writer 規則切換正式 Repository
+1. 完成真實裝置來源唯讀與匯入預覽驗收
+2. 依單一 writer 規則切換 Task／Schedule／MaintenanceRecord 的 Drift transaction
+3. 開放正式 Drift mutation
 4. 保養／修理卡、工程卡與多筆進度 UI
 5. 階段性重點
 6. 統一史略視圖
@@ -84,12 +85,12 @@
 - Flutter
 - Dart
 - Material 3
-- SharedPreferences（正式 Runtime 現行唯一資料來源與 writer，由 AppCompositionRoot 注入）
-- Drift + SQLite（Schema v2、Repository 與安全 importer 已完成，尚未執行匯入或接管 Runtime）
+- SharedPreferences（受控匯入成功後永久唯讀保留為回復來源）
+- Drift + SQLite（Schema v2、Repository、安全 importer 與 ItemCategory／Item 正式讀取已接入 Runtime）
 - GitHub Actions
 - GitHub Pages（Web build）
 
-Drift + SQLite Schema v2、v1 → v2 migration 與受控 importer 已建立；現有 App 尚未正式切換到 Drift，也沒有由 Runtime 執行任何 SharedPreferences 匯入。
+Drift + SQLite Schema v2、v1 → v2 migration 與受控 importer 已建立；Runtime 只在完整驗證通過後切換 ItemCategory／Item 讀取，其他正式 writer 尚未切換。
 
 ## 本機執行
 
