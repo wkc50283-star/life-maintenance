@@ -2,15 +2,19 @@ import 'package:flutter/material.dart';
 
 import '../app/app_composition_root.dart';
 import '../models/enums.dart';
+import '../models/history_projection.dart';
 import '../models/item.dart';
 import '../models/maintenance_record.dart';
+import '../models/milestone_enums.dart';
+import '../models/work_case_enums.dart';
+import '../repositories/history_projection_repository.dart';
 import '../repositories/item_read_repository.dart';
-import '../repositories/maintenance_record_repository.dart';
 import '../widgets/empty_history_state.dart';
 import '../widgets/history_header.dart';
 import '../widgets/history_month_section.dart';
 import '../widgets/history_record_card.dart';
 import '../widgets/maintenance_record_detail_sheet.dart';
+import 'work_case_screens.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -20,10 +24,10 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
-  late MaintenanceRecordRepository _recordRepository;
+  late HistoryProjectionRepository _historyRepository;
   late ItemReadRepository _itemRepository;
   bool _dependenciesInitialized = false;
-  List<MaintenanceRecord>? _localRecords;
+  List<HistoryProjection>? _projections;
   List<Item>? _localItems;
   Object? _loadError;
 
@@ -34,9 +38,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
       return;
     }
     final root = AppCompositionScope.of(context);
-    _recordRepository = root.maintenanceRecordRepository;
-    _itemRepository = root.itemReadRepository;
+    final historyRepository = root.historyProjectionRepository;
     _dependenciesInitialized = true;
+    if (historyRepository == null) {
+      _loadError = StateError('正式史略服務目前無法使用。');
+      return;
+    }
+    _historyRepository = historyRepository;
+    _itemRepository = root.itemReadRepository;
     _loadLocalData();
   }
 
@@ -48,11 +57,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Future<void> _loadLocalData() async {
     try {
-      final records = await _recordRepository.listAll();
       final items = await _itemRepository.loadItems();
+      final projections = await Future.wait([
+        for (final item in items) _historyRepository.projectForItem(item.id),
+      ]);
       if (!mounted) return;
       setState(() {
-        _localRecords = records;
+        _projections = projections;
         _localItems = items;
         _loadError = null;
       });
@@ -67,12 +78,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
     if (_loadError != null) {
       return _HistoryLoadFailure(onRetry: _retry);
     }
-    if (_localRecords == null || _localItems == null) {
+    if (_projections == null || _localItems == null) {
       return const Center(child: CircularProgressIndicator());
     }
-    final records = _localRecords ?? const <MaintenanceRecord>[];
+    final projections = _projections ?? const <HistoryProjection>[];
     final items = _localItems ?? const <Item>[];
-    final sections = _historySectionsFrom(records, items);
+    final sections = _historySectionsFrom(projections, items);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -98,12 +109,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     costLabel: record.costLabel,
                     photoLabel: record.photoLabel,
                     icon: record.icon,
-                    onTap: () {
-                      showMaintenanceRecordDetailSheet(
-                        context,
-                        data: record.detail,
-                      );
-                    },
+                    onTap: record.workCaseId != null || record.detail != null
+                        ? () => _openEntry(record)
+                        : null,
                   ),
               ],
             ),
@@ -114,6 +122,23 @@ class _HistoryScreenState extends State<HistoryScreen> {
   void _retry() {
     setState(() => _loadError = null);
     _loadLocalData();
+  }
+
+  Future<void> _openEntry(_HistoryEntryData entry) async {
+    if (entry.workCaseId case final workCaseId?) {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => WorkCaseDetailScreen(
+            workCaseId: workCaseId,
+            itemName: entry.itemName,
+          ),
+        ),
+      );
+      return;
+    }
+    if (entry.detail case final detail?) {
+      showMaintenanceRecordDetailSheet(context, data: detail);
+    }
   }
 }
 
@@ -164,7 +189,8 @@ class _HistoryEntryData {
   final String? costLabel;
   final String? photoLabel;
   final IconData icon;
-  final MaintenanceRecordDetailData detail;
+  final MaintenanceRecordDetailData? detail;
+  final String? workCaseId;
 
   const _HistoryEntryData({
     required this.date,
@@ -177,27 +203,100 @@ class _HistoryEntryData {
     required this.costLabel,
     required this.photoLabel,
     required this.icon,
-    required this.detail,
+    this.detail,
+    this.workCaseId,
   });
 }
 
 List<_HistoryMonthSection> _historySectionsFrom(
-  List<MaintenanceRecord> records,
+  List<HistoryProjection> projections,
   List<Item> items,
 ) {
   final groupedRecords = <String, List<_HistoryEntryData>>{};
-  final sortedRecords = [...records]..sort((a, b) => b.date.compareTo(a.date));
+  final entries = [
+    for (final projection in projections)
+      for (final entry in projection.entries) entry,
+  ]..sort((a, b) => b.occurredAt.compareTo(a.occurredAt));
 
-  for (final record in sortedRecords) {
-    final month = '${record.date.year} 年 ${record.date.month} 月';
+  for (final entry in entries) {
+    final month = '${entry.occurredAt.year} 年 ${entry.occurredAt.month} 月';
     groupedRecords.putIfAbsent(month, () => []);
-    groupedRecords[month]!.add(_historyEntryFor(record, items));
+    groupedRecords[month]!.add(_historyEntryForProjection(entry, items));
   }
 
   return [
     for (final entry in groupedRecords.entries)
       _HistoryMonthSection(month: entry.key, records: entry.value),
   ];
+}
+
+_HistoryEntryData _historyEntryForProjection(
+  HistoryEntry entry,
+  List<Item> items,
+) => switch (entry) {
+  WorkCaseHistoryEntry() => _historyEntryForWorkCase(entry, items),
+  MaintenanceRecordHistoryEntry(:final record) => _historyEntryFor(
+    record,
+    items,
+  ),
+  TaskHistoryEntry(:final task) => _HistoryEntryData(
+    date: _formatShortDate(entry.occurredAt),
+    title: task.title,
+    itemName: _itemName(task.itemId, items),
+    recordType: '提醒紀錄',
+    description: '提醒日期 ${_formatDate(task.dueDate)}',
+    detailLines: const [],
+    result: task.status == 'completed' ? '已完成' : '已取消',
+    costLabel: null,
+    photoLabel: null,
+    icon: _iconForItem(_itemById(task.itemId, items)),
+  ),
+  MilestoneHistoryEntry(:final milestone, :final attachments) =>
+    _HistoryEntryData(
+      date: _formatShortDate(entry.occurredAt),
+      title: milestone.title,
+      itemName: _itemName(milestone.itemId, items),
+      recordType: '階段性重點',
+      description: _nullableText(milestone.description) ?? '已留下階段性重點紀錄。',
+      detailLines: const [],
+      result: _milestoneStatusLabel(milestone.status),
+      costLabel: null,
+      photoLabel: attachments.isEmpty ? null : '附件 ${attachments.length} 份',
+      icon: _iconForItem(_itemById(milestone.itemId, items)),
+    ),
+};
+
+_HistoryEntryData _historyEntryForWorkCase(
+  WorkCaseHistoryEntry entry,
+  List<Item> items,
+) {
+  final workCase = entry.workCase;
+  final closure = entry.closure;
+  final latestUpdate = entry.updates.isEmpty ? null : entry.updates.last;
+  return _HistoryEntryData(
+    date: _formatShortDate(entry.occurredAt),
+    title: workCase.title,
+    itemName: _itemName(workCase.itemId, items),
+    recordType: '案件史略',
+    description:
+        _nullableText(closure?.completionSummary) ??
+        _nullableText(latestUpdate?.description) ??
+        '案件已正式終止並保留完整過程。',
+    detailLines: [
+      '處理進度：${entry.updates.length} 筆',
+      if (_nullableText(closure?.followUpNotes) case final notes?)
+        '後續注意：$notes',
+    ],
+    result:
+        _nullableText(closure?.finalResult) ??
+        (workCase.status == WorkCaseStatus.canceled ? '已取消' : '已完成'),
+    costLabel: closure == null ? null : '總費用：${closure.totalCost}',
+    photoLabel: entry.attachments.isEmpty
+        ? null
+        : '附件 ${entry.attachments.length} 份',
+    icon: _iconForItem(_itemById(workCase.itemId, items)),
+    workCaseId: workCase.id,
+  );
 }
 
 _HistoryEntryData _historyEntryFor(MaintenanceRecord record, List<Item> items) {
@@ -289,14 +388,18 @@ MaintenanceRecordDetailData _detailDataFor(MaintenanceRecord record) {
 }
 
 Item? _itemForRecord(MaintenanceRecord record, List<Item> items) {
-  for (final item in items) {
-    if (item.id == record.itemId) {
-      return item;
-    }
-  }
+  return _itemById(record.itemId, items);
+}
 
+Item? _itemById(String itemId, List<Item> items) {
+  for (final item in items) {
+    if (item.id == itemId) return item;
+  }
   return null;
 }
+
+String _itemName(String itemId, List<Item> items) =>
+    _itemById(itemId, items)?.name ?? '未命名生活項目';
 
 IconData _iconForItem(Item? item) {
   return switch (item?.category) {
@@ -319,6 +422,16 @@ String _labelForRecordType(RecordType type) {
     RecordType.other => '其他',
   };
 }
+
+String _milestoneStatusLabel(MilestoneStatus status) => switch (status) {
+  MilestoneStatus.completed => '已完成',
+  MilestoneStatus.canceled => '已取消',
+  MilestoneStatus.archived => '已封存',
+  MilestoneStatus.pending => '條件未到',
+  MilestoneStatus.reached => '條件已到',
+  MilestoneStatus.acknowledged => '已確認',
+  MilestoneStatus.inProgress => '處理中',
+};
 
 String? _nullableText(String? value) {
   final trimmed = value?.trim();

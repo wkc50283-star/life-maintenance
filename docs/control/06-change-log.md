@@ -2074,6 +2074,38 @@ Task 已正式切換至 Drift，但畫面仍使用舊保養卡預覽，無法查
 
 ---
 
+## LM-057：v0.5.28 Real User Validation
+
+日期：2026-07-20
+狀態：已核准施工，待 PR #229 驗收
+
+### 變更內容
+
+- 以正式 Drift Runtime 驗證 Item → MaintenancePlan → Task → WorkCase → 多筆 WorkCaseUpdate → 唯一 WorkCaseClosure → History Projection 完整生命週期。
+- 以檔案資料庫跨三個使用日反覆關閉、重啟，確認案件進度、提醒角色、結案與史略不因冷啟動遺失或混用。
+- 關閉資料庫後執行備份與還原，驗證 Item、Plan、Update、Closure、History、foreign key 與 SQLite integrity 均保持完整。
+- 修正正式「史略」頁仍只讀 MaintenanceRecord、導致正式案件結案不可見的阻擋問題；改為既有唯讀 History Projection，未建立新寫入或平行真相。
+- 新增手機尺寸史略 → 案件詳情時間軸操作防回歸測試。
+- 版本更新為 v0.5.28。
+
+### 明確未修改
+
+不新增功能、不重畫 UI，不修改 Schema、Migration、Domain、Repository contract 或正式生命週期；不搬移、刪除或覆蓋既有資料，不做無關重構、不開始下一個 PR。
+
+### 資料與回復
+
+沒有 Schema、Migration 或既有資料格式變更。History 仍為由正式資料組合的唯讀投影；程式回復只需還原史略讀取接線、tests、文件與版本，不需要資料 rollback。
+
+### 驗收依據
+
+以跨日冷啟動、備份／還原、Task 不變性、唯一 Closure、History Projection、SQLite `foreign_key_check`／`integrity_check`、手機操作 Gate、codegen、Analyze、全部 tests、Web／Android／iOS build 與 GitHub Actions 為準。
+
+### 追蹤
+
+- PR #229
+
+---
+
 ## 後續條目模板
 
 ```text
