@@ -2041,6 +2041,39 @@ Task 已正式切換至 Drift，但畫面仍使用舊保養卡預覽，無法查
 
 ---
 
+## LM-056：v0.5.27 Cross Platform Audit
+
+日期：2026-07-20
+狀態：已核准施工，待 PR #228 驗收
+
+### 變更內容
+
+- 稽核 iPhone、iPad、Android、Web，以及 Safari、Chrome、Edge、Firefox 的啟動、版面、輸入、導覽、Drift 與完整正式主流程。
+- 完成 iPhone 16 Pro 與 iPad Pro Simulator 實際安裝／啟動，保留 iPhone／iPad universal target 與正式 Drift sandbox。
+- 接受 Flutter stable 必要的 iOS UIScene／Swift Package Manager 專案更新、CocoaPods lockfile，以及 Android Gradle compatibility flags。
+- 修正 Web 缺少 viewport meta，避免行動 Safari／Chrome 使用寬版 layout viewport 後縮放。
+- 新增 phone／tablet／desktop 尺寸、鍵盤、Unicode 輸入、正式導覽與平台設定防回歸 Gate。
+- CI 新增 Android release APK 與 iPhone／iPad Simulator build Gate。
+- 版本更新為 v0.5.27。
+
+### 明確未修改
+
+不修改 Schema、Migration、Domain、Repository contract 或正式生命週期；不新增產品功能、不重畫 UI、不建立平行流程、不做無關重構、不開始下一個 PR。
+
+### 資料與回復
+
+沒有資料格式、Schema 或既有資料變更。Drift native 與 Web 正式角色不變。回復只需還原平台專案相容更新、viewport、tests、workflow、文件與版本，不需要資料 rollback。
+
+### 驗收依據
+
+以 iPhone／iPad Simulator 實際啟動、Android release APK、iOS Simulator universal build、Chrome release build 輸入／導覽／Drift refresh persistence、Mobile Safari render、跨尺寸／鍵盤測試、codegen、Analyze、全部 tests、Web release build 與 GitHub Actions 為準。
+
+### 追蹤
+
+- PR #228
+
+---
+
 ## 後續條目模板
 
 ```text
