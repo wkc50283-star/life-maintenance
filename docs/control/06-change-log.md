@@ -2106,6 +2106,36 @@ Task 已正式切換至 Drift，但畫面仍使用舊保養卡預覽，無法查
 
 ---
 
+## LM-058：v0.5.29 Release Candidate Preparation
+
+日期：2026-07-20
+狀態：已核准施工，待 PR #230 與正式 Pages 驗收
+
+### 變更內容
+
+- 整合 PR #221～#229 的架構、品質、UI、產品憲法、資料完整性、效能、安全、跨平台與真實使用驗證結果，建立單一 RC Gate。
+- 修正 Pages workflow 仍以 `lib/prototype_main.dart` 建置 review-only 樣板的阻擋問題；改為 Flutter 預設正式 `lib/main.dart`，產物仍固定上傳 `build/web`。
+- Pages artifact Gate 明確拒絕「生活管理樣板審查／首頁樣板」內容，並新增 workflow 防回歸測試。
+- 更新 README、版本、Release Notes 與 RC 控制文件；版本更新為 v0.5.29。
+
+### 明確未修改
+
+不新增產品功能、不重畫 UI，不修改 Schema、Migration、Domain、Repository contract、正式 Runtime 資料行為或生命週期；不開始下一個 PR。
+
+### 資料與回復
+
+沒有資料格式或使用者資料變更，不需要 Migration 或資料 rollback。回復只需還原 Pages workflow、Gate、文件與版本；Drift 正式資料不得刪除或改回 Legacy writer。
+
+### 驗收依據
+
+PR CI 先通過 codegen、Analyze、全部 tests、Web／Android／iOS build；squash merge 後，`main` Pages deploy 必須成功且部署 commit 可追溯至 PR #230。正式網址需於 Chrome、Safari 與隔離／無痕瀏覽情境呈現五入口正式 Runtime，沒有舊 prototype、假資料或 console error，才可宣告 PR #230 完成。
+
+### 追蹤
+
+- PR #230
+
+---
+
 ## 後續條目模板
 
 ```text
