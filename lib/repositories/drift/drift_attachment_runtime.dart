@@ -41,11 +41,26 @@ class DriftAttachmentRuntime implements AttachmentRuntime {
         normalized.startsWith('/') ||
         normalized.startsWith(r'\\') ||
         RegExp(r'^[A-Za-z]:[\\/]').hasMatch(normalized);
-    final looksLikePlatformUri =
-        normalized.startsWith('file:') ||
-        normalized.startsWith('content:') ||
-        normalized.startsWith('ph:');
-    if (looksLikeAbsolutePath || looksLikePlatformUri) {
+    final containsTraversal = normalized
+        .split('/')
+        .any((segment) => segment == '.' || segment == '..');
+    final containsUnsafeEncoding = RegExp(
+      r'%(?:2e|2f|5c)',
+      caseSensitive: false,
+    ).hasMatch(normalized);
+    final looksLikeUri = RegExp(
+      r'^[A-Za-z][A-Za-z0-9+.-]*:',
+    ).hasMatch(normalized);
+    final containsUnsafeCharacters =
+        normalized.contains(r'\') ||
+        normalized.contains('?') ||
+        normalized.contains('#') ||
+        RegExp(r'[\x00-\x1F\x7F]').hasMatch(normalized);
+    if (looksLikeAbsolutePath ||
+        containsTraversal ||
+        containsUnsafeEncoding ||
+        looksLikeUri ||
+        containsUnsafeCharacters) {
       throw const RepositoryConstraintException(
         'Attachment requires a stable managed identifier, not a platform path.',
       );

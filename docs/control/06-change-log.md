@@ -2009,6 +2009,38 @@ Task 已正式切換至 Drift，但畫面仍使用舊保養卡預覽，無法查
 
 ---
 
+## LM-055：v0.5.26 Security Audit
+
+日期：2026-07-20
+狀態：已核准施工，待 PR #227 驗收
+
+### 變更內容
+
+- 稽核 SQLite、Attachment、備份／還原／匯入、檔案路徑、平台與 workflow 權限、敏感資訊及 crash recovery。
+- 阻擋 Attachment traversal、反斜線、URI、encoded separator、query／fragment 與控制字元，Runtime 及 Repository bypass 均套用相同限制。
+- 為 sqlite3 3.4.0 Web WASM 資產鎖定 SHA-256，下載內容驗證通過前不得寫入 build source。
+- 將 GitHub Pages write／OIDC 權限限縮至 deploy job，build job 只保留 contents／Pages read。
+- 新增 SQLite 參數綁定、secret pattern、平台正式權限與供應鏈資產防回歸 Gate。
+- 版本更新為 v0.5.26。
+
+### 明確未修改
+
+不修改 UI、Schema、Migration、Domain 或正式生命週期；不新增功能、資料表、API、檔案 ingestion、加密層或平行流程，不做無關重構、不開始下一個 PR。
+
+### 資料影響與回復
+
+沒有 Schema、Migration 或既有資料變更。既有 Attachment metadata 不改寫；新正式 Attachment identifier 只會更嚴格拒絕可能越界或被解析為 URI 的值。回復只需還原安全驗證、tests、workflow 權限、文件與版本，不需資料 rollback。
+
+### 驗收依據
+
+以 PR #227 的 hostile identifier、Repository bypass、SQLite parameter binding、WASM SHA-256、workflow／平台權限、secret scan、既有 import／backup／rollback／crash recovery Gate、codegen 無差異、Analyze、全部測試、Web release build 與 GitHub Actions 為準。
+
+### 追蹤
+
+- PR #227
+
+---
+
 ## 後續條目模板
 
 ```text
