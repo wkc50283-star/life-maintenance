@@ -1,9 +1,9 @@
-import 'dart:convert';
-
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:life_maintenance/app/app_composition_root.dart';
+import 'package:life_maintenance/database/app_database.dart';
 import 'package:life_maintenance/models/enums.dart';
-import 'package:life_maintenance/models/item.dart';
 import 'package:life_maintenance/models/maintenance_record.dart';
 import 'package:life_maintenance/screens/history_screen.dart';
 import 'package:life_maintenance/screens/items_screen.dart';
@@ -61,16 +61,35 @@ void main() {
   });
 
   testWidgets('history detail hides internal identifiers', (tester) async {
-    final item = Item(
-      id: 'item-1',
-      name: '冷氣',
-      category: ItemCategory.appliance,
-      createdAt: DateTime(2026, 7, 1),
+    final root = AppCompositionRoot(
+      database: AppDatabase(NativeDatabase.memory()),
+    );
+    addTearDown(root.database.close);
+    final createdAt = DateTime.utc(2026, 7, 1);
+    await root.driftRepositories.itemCategories.save(
+      ItemCategoryRow(
+        id: 'category-1',
+        systemCode: 'appliance',
+        displayName: '家電',
+        sortOrder: 0,
+        status: 'active',
+        createdAt: createdAt,
+        updatedAt: createdAt,
+      ),
+    );
+    await root.driftRepositories.items.save(
+      ItemRow(
+        id: 'item-1',
+        name: '冷氣',
+        categoryId: 'category-1',
+        status: 'active',
+        createdAt: createdAt,
+        updatedAt: createdAt,
+      ),
     );
     final record = MaintenanceRecord(
       id: 'record-1',
-      itemId: item.id,
-      taskId: 'task-1',
+      itemId: 'item-1',
       recordType: RecordType.repair,
       date: DateTime(2026, 7, 2),
       title: '冷氣維修',
@@ -78,15 +97,13 @@ void main() {
       result: '正常運作',
       createdAt: DateTime(2026, 7, 2),
     );
-    SharedPreferences.setMockInitialValues({
-      'items': jsonEncode([item.toJson()]),
-      'maintenance_records': jsonEncode([record.toJson()]),
-      'schedules': '[]',
-      'tasks': '[]',
-    });
+    await root.maintenanceRecordRepository.createSimpleRecord(record);
 
     await tester.pumpWidget(
-      const MaterialApp(home: Scaffold(body: HistoryScreen())),
+      AppCompositionScope(
+        root: root,
+        child: const MaterialApp(home: Scaffold(body: HistoryScreen())),
+      ),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('冷氣維修').first);
