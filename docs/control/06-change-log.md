@@ -2136,6 +2136,37 @@ PR CI 先通過 codegen、Analyze、全部 tests、Web／Android／iOS build；s
 
 ---
 
+## LM-059：v0.5.30 Device Validation Baseline
+
+日期：2026-07-20
+狀態：已核准施工，待 PR #231 驗收
+
+### 變更內容
+
+- 建立安裝、原地升級、冷啟動、背景切換、強制關閉重啟、資料持久化與版本相容的正式真機 Checklist。
+- 鎖定相同 application／bundle identifier 原地升級、禁止卸載或清資料後冒充升級成功。
+- 新增檔案 Drift 資料庫在同一 Runtime 與完整 Composition Root 重啟後的持久化、foreign key 與 integrity 防回歸 Gate；背景／前景保留為真機 Checklist，不以 Widget runner 冒充 OS lifecycle。
+- 明確區分實體裝置、simulator、平台 build 與 CI 證據；未執行的實體裝置項目維持未簽核。
+- 版本更新為 v0.5.30。
+
+### 明確未修改
+
+不新增功能、不修改 UI 設計、Schema、Migration、Domain、Repository contract 或正式生命週期；不搬移、刪除或覆蓋既有資料，不做無關重構、不開始下一個 PR。
+
+### 資料與回復
+
+沒有 Schema、Migration 或正式使用者資料變更，不需要資料 rollback。回復只需還原 Checklist、tests、版本與發行文件；不得刪除 Drift 資料或恢復 Legacy writer。
+
+### 驗收依據
+
+以 Device Validation Baseline、自動持久化／平台識別 Gate、codegen 無差異、Analyze、全部 tests、Web／Android／iOS build 與 GitHub Actions 為準。PR #231 施工時 iOS 實體裝置為 Offline，Android ADB／實體裝置不可用，因此不宣稱真機已通過。
+
+### 追蹤
+
+- PR #231
+
+---
+
 ## 後續條目模板
 
 ```text
