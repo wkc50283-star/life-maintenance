@@ -1,14 +1,14 @@
-# Life Management v0.5.30 Device Validation Baseline Notes
+# Life Management v0.5.31 Web Long-term Validation Notes
 
-日期：2026-07-20
+日期：2026-07-21
 
 ## 本版內容
 
-- 建立正式真機驗收基線與可重跑 Checklist。
-- 驗收範圍涵蓋安裝、原地升級、冷啟動、背景切換、強制關閉重啟、資料持久化與版本升級相容。
-- 新增平台識別、Drift 檔案完整重啟、foreign key 與 SQLite integrity 防回歸 Gate；OS 背景切換仍由真機 Checklist 驗收。
-- 明確禁止以 simulator、artifact build 或 CI 冒充實體裝置通過。
-- iPhone Simulator 已完成安裝、強制終止與再次冷啟動；Android APK 與 iOS Simulator App build 通過。
+- 建立正式 Web 長期使用驗收基線與可重跑 Checklist。
+- 驗收範圍涵蓋重新整理、關閉分頁重開、瀏覽器重啟、背景恢復、Drift 持久化與 GitHub Pages 正式部署。
+- Pages build 固定使用 `--pwa-strategy=none`，移除已棄用的 Flutter Service Worker，避免跨部署混用不同世代的 Flutter、Drift worker 與 SQLite WASM 資產。
+- 新增 database identity、相對資產 URL、Pages artifact 與禁止 Service Worker 的防回歸 Gate。
+- 相同 release build 已在全新 Web origin 驗證建立資料、重新整理與關閉分頁重開後仍可由 Drift 讀回。
 
 ## RC 基礎
 
@@ -23,14 +23,14 @@
 
 - Drift codegen 無差異。
 - Flutter Analyze 與全部 tests 通過。
-- Web release、Android release APK、iOS Simulator build 通過。
-- GitHub Actions quality／Android／iOS 與 Pages build／deploy 全綠。
-- 公開 Pages 在 Chrome、Safari 與隔離／無痕情境顯示正式五入口 Runtime，無舊樣板、fixture 或 console error。
+- Web release build 不註冊有版本的 Flutter Service Worker，只保留空白退出標記。
+- GitHub Actions quality 與 Pages build／deploy 必須全綠。
+- 公開 Pages 必須由最新版 `main` 顯示正式五入口 Runtime，並完成 Safari、Chrome、隔離／無痕與既有來源的持久化驗證。
 
 ## 已知限制
 
-- PR #231 施工環境沒有可用的 iOS／Android 實體裝置；實體裝置 Checklist 維持未簽核。
+- iPhone／Android 實體裝置依本 PR 範圍延後，Device Validation Checklist 維持未簽核。
 - Android 正式發佈簽章與 iOS distribution signing 尚未驗證，build artifact 不代表商店安裝資格。
 - 尚未宣告真實裝置舊來源匯入／唯讀預覽完成。
 - Attachment 檔案內容尚未宣告可跨裝置備份／還原。
-- v0.5.30 是 Device Validation Baseline，不是 v1.0 正式產品版，也不代表實體裝置簽核或正式 UI／UX 改版完成。
+- v0.5.31 是 Web Long-term Validation，不是 v1.0 正式產品版，也不代表實體裝置簽核或正式 UI／UX 改版完成。

@@ -52,7 +52,7 @@ jobs:
         run: flutter test
 
       - name: Build formal production app
-        run: flutter build web --release --base-href /life-maintenance/
+        run: flutter build web --release --base-href /life-maintenance/ --pwa-strategy=none
 
       - name: Check web build artifact
         run: |
@@ -60,6 +60,11 @@ jobs:
           test -s build/web/drift_worker.dart.js
           test -s build/web/sqlite3.wasm
           grep -q '<base href="/life-maintenance/">' build/web/index.html
+          test ! -s build/web/flutter_service_worker.js
+          if grep -q 'serviceWorkerVersion: "' build/web/flutter_bootstrap.js; then
+            echo "Deprecated Flutter service worker must stay disabled"
+            exit 1
+          fi
           if grep -R -q '生活管理樣板審查\|首頁樣板' build/web; then
             echo "Prototype content must not be deployed to Pages"
             exit 1

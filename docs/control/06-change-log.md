@@ -2167,6 +2167,37 @@ PR CI 先通過 codegen、Analyze、全部 tests、Web／Android／iOS build；s
 
 ---
 
+## LM-060：v0.5.31 Web Long-term Validation
+
+日期：2026-07-21
+狀態：已核准施工，待 PR #232 驗收
+
+### 變更內容
+
+- 建立重新整理、關閉分頁重開、瀏覽器重啟、背景恢復、Drift 持久化與 GitHub Pages 正式部署 Checklist。
+- 驗證相同 release build 在全新 Web origin 建立正式 Category／Item 後，重新整理與關閉分頁重開仍可讀回同一筆 Drift 資料。
+- 修正 Pages 長期部署的阻擋性快取風險：build 停用已棄用的 Flutter Service Worker，避免 `main.dart.js`、Drift worker 與 SQLite WASM 混用不同部署世代。
+- 新增 database identity、相對資產 URL、Pages PWA strategy 與 artifact 的防回歸 Gate。
+- 版本更新為 v0.5.31。
+
+### 明確未修改
+
+不新增功能、不修改 UI、Schema、Migration、Domain、Repository contract 或正式生命週期；不搬移、刪除或覆蓋資料，不做無關重構、不開始下一個 PR。iPhone／Android 實體裝置延後驗收。
+
+### 資料與回復
+
+沒有 Schema、Migration 或正式使用者資料變更，不需要資料 rollback。回復只可還原 workflow、Gate、控制文件與版本；不得刪除 Drift 資料、改名資料庫、清除網站資料或恢復 Legacy writer。
+
+### 驗收依據
+
+以 Web Long-term Validation Checklist、codegen 無差異、Analyze、全部 tests、Web build、GitHub Actions 與最新版 `main` Pages deploy 為準。瀏覽器程序重啟、背景／休眠與既有資料持久化必須人工驗證，不得由 unit test、artifact build 或無痕新來源冒充。
+
+### 追蹤
+
+- PR #232
+
+---
+
 ## 後續條目模板
 
 ```text
