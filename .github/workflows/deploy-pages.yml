@@ -51,8 +51,8 @@ jobs:
       - name: Test
         run: flutter test
 
-      - name: Build latest visual review app
-        run: flutter build web --release -t lib/prototype_main.dart --base-href /life-maintenance/
+      - name: Build formal production app
+        run: flutter build web --release --base-href /life-maintenance/
 
       - name: Check web build artifact
         run: |
@@ -60,6 +60,10 @@ jobs:
           test -s build/web/drift_worker.dart.js
           test -s build/web/sqlite3.wasm
           grep -q '<base href="/life-maintenance/">' build/web/index.html
+          if grep -R -q '生活管理樣板審查\|首頁樣板' build/web; then
+            echo "Prototype content must not be deployed to Pages"
+            exit 1
+          fi
           if [ ! -s build/web/main.dart.js ] && [ ! -s build/web/flutter_bootstrap.js ]; then
             echo "Flutter web entry bundle not found"
             exit 1
