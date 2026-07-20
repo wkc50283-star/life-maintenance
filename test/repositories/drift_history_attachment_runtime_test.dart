@@ -295,17 +295,37 @@ void main() {
   });
 
   test('Attachment Runtime rejects platform paths and orphan owners', () async {
-    await expectLater(
-      attachmentRuntime.registerManaged(
-        attachment(
-          id: 'absolute-path',
-          ownerType: AttachmentOwnerType.item,
-          ownerId: 'item-1',
-          identifier: '/tmp/photo.jpg',
-        ),
-      ),
-      throwsA(isA<RepositoryConstraintException>()),
-    );
+    const unsafeIdentifiers = <String>[
+      '/tmp/photo.jpg',
+      r'C:\Users\person\photo.jpg',
+      '../private/photo.jpg',
+      'managed/../private/photo.jpg',
+      r'managed\..\private\photo.jpg',
+      'managed/%2e%2e/private/photo.jpg',
+      'FILE:///tmp/photo.jpg',
+      'https://example.test/photo.jpg',
+      'managed/photo.jpg?token=sensitive',
+      'managed/photo.jpg#fragment',
+      'managed/photo\u0000.jpg',
+    ];
+    for (final (index, identifier) in unsafeIdentifiers.indexed) {
+      final unsafe = attachment(
+        id: 'unsafe-$index',
+        ownerType: AttachmentOwnerType.item,
+        ownerId: 'item-1',
+        identifier: identifier,
+      );
+      await expectLater(
+        attachmentRuntime.registerManaged(unsafe),
+        throwsA(isA<RepositoryConstraintException>()),
+        reason: identifier,
+      );
+      await expectLater(
+        repositories.attachments.create(unsafe),
+        throwsA(isA<RepositoryConstraintException>()),
+        reason: 'Repository bypass: $identifier',
+      );
+    }
     await expectLater(
       attachmentRuntime.registerManaged(
         attachment(

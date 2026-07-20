@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -7,6 +8,9 @@ import urllib.request
 
 
 SQLITE3_VERSION = "3.4.0"
+SQLITE3_WASM_SHA256 = (
+    "41cf968998241465d8b1dfffb1eb60dd10c35de5022a3647e14174ea3af84143"
+)
 SQLITE3_RELEASES_API = (
     "https://api.github.com/repos/simolus3/sqlite3.dart/releases?per_page=100"
 )
@@ -57,6 +61,15 @@ def _find_asset_url() -> str:
     )
 
 
+def _verify_asset(data: bytes) -> None:
+    digest = hashlib.sha256(data).hexdigest()
+    if digest != SQLITE3_WASM_SHA256:
+        raise RuntimeError(
+            "Downloaded sqlite3.wasm failed SHA-256 verification: "
+            f"expected {SQLITE3_WASM_SHA256}, got {digest}"
+        )
+
+
 def main() -> None:
     asset_url = _find_asset_url()
     request = urllib.request.Request(
@@ -70,6 +83,8 @@ def main() -> None:
         raise RuntimeError(
             f"Downloaded sqlite3.wasm is unexpectedly small: {len(data)} bytes"
         )
+
+    _verify_asset(data)
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_PATH.write_bytes(data)
