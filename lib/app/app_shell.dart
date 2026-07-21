@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../diagnostics/runtime_diagnostics.dart';
 import '../screens/add_screen.dart';
 import '../screens/history_screen.dart';
 import '../screens/items_screen.dart';
@@ -64,7 +65,12 @@ class _AppShellState extends State<AppShell> {
     setState(() => _initializationError = null);
     try {
       await widget.compositionRoot.initialize();
-    } catch (error) {
+    } catch (error, stackTrace) {
+      RuntimeDiagnostics.report(
+        stage: 'composition_root.initialize',
+        error: error,
+        stackTrace: stackTrace,
+      );
       if (!mounted) return;
       setState(() => _initializationError = error);
       return;
