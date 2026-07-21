@@ -2264,7 +2264,7 @@ PR CI 先通過 codegen、Analyze、全部 tests、Web／Android／iOS build；s
 ## LM-063：v0.5.34 Backup and Restore Core Safety
 
 日期：2026-07-21
-狀態：PR #235 驗收中
+狀態：已完成並合併
 
 ### 變更內容
 
@@ -2290,6 +2290,42 @@ PR CI 先通過 codegen、Analyze、全部 tests、Web／Android／iOS build；s
 ### 追蹤
 
 - PR #235
+
+---
+
+## LM-064：v0.5.35 Attachment Metadata Integrity Validation
+
+日期：2026-07-21
+狀態：PR #236 驗收中
+
+### 變更內容
+
+- 驗收 item、maintenanceRecord、workCaseUpdate、workCaseClosure、milestone 五種既有 Attachment Owner。
+- 防回歸測試涵蓋完整 metadata 建立／查詢、Owner 查詢隔離、available／missing／restored／deleted 狀態與時間戳。
+- Runtime 與 Repository 雙層驗證空白、平台路徑、traversal、encoded separator、URI、query／fragment 與控制字元。
+- 驗證 unknown／不存在 Owner、重複 ID 與非法 lifecycle 時間失敗後不留部分 row、不覆寫既有 metadata。
+- 既有 production Runtime 通過全部矩陣，未發現需修改正式邏輯的阻擋缺陷。
+- 版本更新為 v0.5.35。
+
+### 明確未修改
+
+不修改 UI、Domain、Schema、Migration、Runtime、Repository contract 或正式生命週期；不新增 storage adapter、相簿、分享、雲端、Owner、資料表、功能、無關重構或下一個 PR。
+
+### 未完成邊界
+
+不得宣稱 WorkCase 可直接擁有 Attachment，也不得宣稱實體檔案新增、讀取、預覽、刪除或孤兒實體檔清理已完成。`deleted` 只驗收正式 metadata lifecycle 事實。
+
+### 資料與回復
+
+本 PR 不操作正式使用者資料，沒有 Schema／Migration 或資料格式變更。程式回復只需還原 tests、版本與文件；不得刪除或覆蓋 Drift、SharedPreferences 或 `backup_v1_*`。
+
+### 驗收依據
+
+以 Attachment metadata integrity 防回歸矩陣、codegen 無差異、Analyze、全部 tests、Web／Android／iOS build 與 GitHub Actions 全綠為準。
+
+### 追蹤
+
+- PR #236
 
 ---
 

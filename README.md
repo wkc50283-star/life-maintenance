@@ -1,6 +1,6 @@
 # 生活管理 App
 
-目前版本：**v0.5.34 Backup and Restore Core Safety**
+目前版本：**v0.5.35 Attachment Metadata Integrity Validation**
 
 `life-maintenance` 是一個 Flutter 生活管理 App，目標是管理生活項目、固定週期、到期提醒、階段性重點、突發事項與工程，並保存每一次處理從開始到結束的完整史略。
 
@@ -36,7 +36,7 @@
 
 ## 目前狀態
 
-`v0.5.34` 建立正式 Drift SQLite 備份／還原核心安全邊界：沿用既有 SQLite 檔案格式，先驗證格式版本、必要資料表、資料完整性、外鍵與逐表筆數，再以隔離 staging transaction 與原子替換完成還原；任一步失敗都不會部分覆寫既有目的資料。此核心不接 UI、不改 Schema，也不宣告 Attachment 檔案內容已可跨裝置還原。
+`v0.5.35` 完成既有 Attachment metadata lifecycle 驗收，鎖定 item、maintenanceRecord、workCaseUpdate、workCaseClosure、milestone 五種正式 Owner 的建立、查詢、狀態、刪除事實、identifier、owner existence 與 rollback。此版本不宣告 WorkCase 直接附件、實體檔案讀取／預覽／刪除或孤兒實體檔清理完成。
 
 已完成的資料與治理基礎：
 
@@ -54,6 +54,7 @@
 - 正式 Runtime SharedPreferences 讀寫稽核與禁止雙寫規則
 - SharedPreferences → Drift v2 dry-run、原子匯入、重跑保護與 rollback 測試
 - Drift SQLite 備份完整性、格式／版本驗證、隔離還原與失敗 rollback 核心
+- Attachment 五種既有 Owner、metadata lifecycle、identifier 與 rollback 防回歸 Gate
 - AppDatabase、Drift Schema v2 Repository、現行 LocalRepository 與必要 Service 由單一 AppCompositionRoot 建立及注入
 - 啟動時受控匯入、失敗 rollback、重啟零寫入驗證與 ItemCategory／Item Drift 讀取切換
 - MaintenancePlan、GeneralReminder、Milestone、Schedule 的 Drift Runtime Repository、source contract、anchor policy 與 transaction 切換
@@ -101,6 +102,8 @@ Web 長期使用驗收依 [Web Long-term Validation](docs/control/44-web-long-te
 Pages Drift 根因與驗收證據依 [Pages Drift Root Cause](docs/control/46-pages-drift-root-cause.md) 管理；部署後須辨識 GitHub Pages 的 600 秒 HTTP asset cache，不得把舊 bundle 當作新 commit 的驗收結果。
 
 正式 SQLite 備份／還原安全邊界依 [Backup and Restore Core Safety](docs/control/47-backup-restore-core-safety.md) 驗收；呼叫前必須關閉 Drift，且不得把資料庫 metadata 備份冒充 Attachment 檔案內容備份。
+
+Attachment metadata 完整性依 [Attachment Metadata Integrity Validation](docs/control/48-attachment-metadata-integrity.md) 驗收；不得把 metadata 狀態驗收冒充實體檔案 storage 能力。
 
 Drift + SQLite Schema v2、v1 → v2 migration 與受控 importer 已建立；Runtime 只在完整驗證通過後切換，MaintenanceRecord 只承接不需要案件過程的簡單完成事實。
 
