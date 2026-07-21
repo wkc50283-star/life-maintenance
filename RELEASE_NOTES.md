@@ -1,22 +1,22 @@
-# Life Management v0.5.35 Attachment Metadata Integrity Validation Notes
+# Life Management v0.5.36 History Experience Validation Notes
 
 日期：2026-07-21
 
 ## 本版內容
 
-- 完成 item、maintenanceRecord、workCaseUpdate、workCaseClosure、milestone 五種既有 Attachment Owner 驗收。
-- 驗證完整 metadata 建立、ID 查詢、Owner 查詢與不同 Owner 隔離。
-- 驗證 available、missing、重新驗證 available 與 deleted metadata lifecycle。
-- Runtime 與 Repository 同時拒絕空白、平台 path、traversal、encoded separator、URI、query／fragment 與控制字元。
-- 不存在／unknown Owner、重複 ID 與非法 lifecycle 時間失敗後不留部分資料，原 metadata 保持不變。
-- 既有 production Runtime 通過驗收，沒有為測試修改或弱化正式邏輯。
+- 驗收正式「史略」入口的 Loading、Empty、Error 與 Retry 狀態，載入完成前不誤顯示空資料，失敗後可重新讀取正式投影。
+- 驗證 History 事件依正式發生時間倒序排列，相同時間以穩定來源 ID 排序。
+- 驗證 Item、Task、WorkCase、多筆 WorkCaseUpdate 與唯一 WorkCaseClosure 的投影關係一致，不重複或補造事實。
+- 驗證 History 查詢前後正式來源資料列完全不變，持續維持唯讀架構。
+- 以檔案 Drift database 關閉再重開，確認冷啟動後案件過程、結案與史略結果一致。
+- 既有 production Runtime 通過驗收，沒有需要修改正式程式碼的阻擋問題。
 
 ## 明確邊界
 
-- WorkCase 不是目前的 Attachment Owner；案件附件只依既有模型附屬於 WorkCaseUpdate 或 WorkCaseClosure。
-- `recordStorageDeleted`／`deleted` 只代表 storage 已由外部確認後保存的 metadata 事實，本版沒有操作平台實體檔案。
-- 本版沒有實體檔案新增、讀取、預覽、刪除、孤兒檔清理、storage adapter、相簿、分享或雲端功能。
-- UI、Domain、Schema、Migration、Runtime 與 Repository contract 均未修改。
+- History 仍是由正式資料即時組合的唯讀投影，不提供 create、save、update 或 delete。
+- Task 仍只是提醒；WorkCase 才是案件；WorkCaseClosure 才是正式結案。
+- 本版沒有新增 History table、cache、writer、平行來源或產品功能。
+- UI 設計、Domain、Schema、Migration、Runtime 與 Repository contract 均未修改。
 
 ## 發佈驗證
 
@@ -27,6 +27,6 @@
 
 ## 已知限制
 
-- Attachment 實體檔案 storage lifecycle 仍待未來明確授權與獨立設計。
+- 本版驗收既有史略體驗，不是正式 UI／UX 重畫。
 - iPhone／Android 實體裝置仍依 Device Validation Checklist 個別簽核；平台 build 不等於真機完成。
-- v0.5.35 不是 v1.0 正式產品版，也不代表正式 UI／UX 改版完成。
+- v0.5.36 不是 v1.0 正式產品版。

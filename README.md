@@ -1,6 +1,6 @@
 # 生活管理 App
 
-目前版本：**v0.5.35 Attachment Metadata Integrity Validation**
+目前版本：**v0.5.36 History Experience Validation**
 
 `life-maintenance` 是一個 Flutter 生活管理 App，目標是管理生活項目、固定週期、到期提醒、階段性重點、突發事項與工程，並保存每一次處理從開始到結束的完整史略。
 
@@ -36,7 +36,7 @@
 
 ## 目前狀態
 
-`v0.5.35` 完成既有 Attachment metadata lifecycle 驗收，鎖定 item、maintenanceRecord、workCaseUpdate、workCaseClosure、milestone 五種正式 Owner 的建立、查詢、狀態、刪除事實、identifier、owner existence 與 rollback。此版本不宣告 WorkCase 直接附件、實體檔案讀取／預覽／刪除或孤兒實體檔清理完成。
+`v0.5.36` 完成史略正式體驗驗收，確認 History 維持唯讀投影，Loading／Empty／Error／Retry 狀態清楚，正式事件依時間排序，Item、Task、WorkCase、WorkCaseUpdate 與 WorkCaseClosure 投影一致，且冷啟動後結果不變。本版沒有新增 History writer、資料表或平行真相。
 
 已完成的資料與治理基礎：
 

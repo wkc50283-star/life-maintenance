@@ -2296,7 +2296,7 @@ PR CI 先通過 codegen、Analyze、全部 tests、Web／Android／iOS build；s
 ## LM-064：v0.5.35 Attachment Metadata Integrity Validation
 
 日期：2026-07-21
-狀態：PR #236 驗收中
+狀態：已合併
 
 ### 變更內容
 
@@ -2326,6 +2326,39 @@ PR CI 先通過 codegen、Analyze、全部 tests、Web／Android／iOS build；s
 ### 追蹤
 
 - PR #236
+
+---
+
+## LM-065：v0.5.36 History Experience Validation
+
+日期：2026-07-21
+狀態：PR #237 驗收中
+
+### 變更內容
+
+- 驗收 History 唯讀投影、Loading／Empty／Error／Retry 與正式事件排序。
+- 驗證 Item、Task、WorkCase、多筆 WorkCaseUpdate、唯一 WorkCaseClosure、MaintenanceRecord 與 Milestone 投影一致。
+- 新增 Loading 不誤顯示空資料、失敗後 Retry 恢復正式投影的 Widget 防回歸測試。
+- 擴充唯讀 Gate，確認查詢前後所有正式來源 table row count 不變。
+- 重跑檔案 Drift database 跨日關閉／重開 Gate，確認冷啟動後史略一致。
+- 既有 production Runtime 通過驗收，未發現需修改正式邏輯的阻擋缺陷。
+- 版本更新為 v0.5.36。
+
+### 明確未修改
+
+不新增功能，不修改 UI 設計、Domain、Schema、Migration、Runtime、Repository contract 或正式生命週期；不新增 History writer、table、cache、平行來源、無關重構或下一個 PR。
+
+### 資料與回復
+
+本 PR 不操作正式使用者資料，沒有 Schema／Migration 或資料格式變更。程式回復只需還原 tests、版本與文件；不得刪除、搬移或覆蓋 Drift、SharedPreferences 或 `backup_v1_*`。
+
+### 驗收依據
+
+以 History 畫面狀態、投影一致性、唯讀 row-count、事件排序、檔案資料庫冷啟動、codegen 無差異、Analyze、全部 tests、Web／Android／iOS build 與 GitHub Actions 全綠為準。
+
+### 追蹤
+
+- PR #237
 
 ---
 
