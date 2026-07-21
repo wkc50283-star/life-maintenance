@@ -61,6 +61,15 @@ class AppDatabase extends _$AppDatabase {
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (migrator) async {
+          final existingSchema = await _existingSchemaState();
+          if (existingSchema == _ExistingSchemaState.complete) {
+            return;
+          }
+          if (existingSchema == _ExistingSchemaState.partial) {
+            throw StateError(
+              'Database creation found an incomplete existing formal schema.',
+            );
+          }
           await migrator.createAll();
         },
         onUpgrade: (migrator, from, to) async {
@@ -85,6 +94,40 @@ class AppDatabase extends _$AppDatabase {
           }
         },
       );
+
+  Future<_ExistingSchemaState> _existingSchemaState() async {
+    final rows = await customSelect(
+      "SELECT type, name FROM sqlite_master "
+      "WHERE type IN ('table', 'index') AND name NOT LIKE 'sqlite_%'",
+    ).get();
+    final existingTables = <String>{};
+    final existingIndexes = <String>{};
+    for (final row in rows) {
+      final type = row.read<String>('type');
+      final name = row.read<String>('name');
+      if (type == 'table') {
+        existingTables.add(name);
+      } else if (type == 'index') {
+        existingIndexes.add(name);
+      }
+    }
+
+    final requiredTables = allTables.map((table) => table.entityName).toSet();
+    final requiredIndexes = allSchemaEntities
+        .whereType<Index>()
+        .map((index) => index.entityName)
+        .toSet();
+    final knownTables = existingTables.intersection(requiredTables);
+    final knownIndexes = existingIndexes.intersection(requiredIndexes);
+    if (knownTables.isEmpty && knownIndexes.isEmpty) {
+      return _ExistingSchemaState.empty;
+    }
+    if (existingTables.containsAll(requiredTables) &&
+        existingIndexes.containsAll(requiredIndexes)) {
+      return _ExistingSchemaState.complete;
+    }
+    return _ExistingSchemaState.partial;
+  }
 
   Future<void> _migrateV1ToV2(Migrator migrator) async {
     await customStatement(
@@ -178,3 +221,5 @@ class AppDatabase extends _$AppDatabase {
     }
   }
 }
+
+enum _ExistingSchemaState { empty, complete, partial }
