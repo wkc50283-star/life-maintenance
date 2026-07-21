@@ -2232,7 +2232,7 @@ PR CI 先通過 codegen、Analyze、全部 tests、Web／Android／iOS build；s
 ## LM-062：v0.5.33 Pages Drift Root Cause Fix
 
 日期：2026-07-21
-狀態：PR #234 驗收中
+狀態：已完成並合併
 
 ### 變更內容
 
@@ -2258,6 +2258,38 @@ PR CI 先通過 codegen、Analyze、全部 tests、Web／Android／iOS build；s
 ### 追蹤
 
 - PR #234
+
+---
+
+## LM-063：v0.5.34 Backup and Restore Core Safety
+
+日期：2026-07-21
+狀態：PR #235 驗收中
+
+### 變更內容
+
+- 沿用正式 Schema v2 SQLite database file，不新增或變更備份格式。
+- 建立關閉 Drift 後明確呼叫的 native backup／restore 核心，不接 UI 或正式啟動流程。
+- 在 promotion 前驗證 SQLite 格式、`user_version`、13 張正式資料表、`integrity_check`、`foreign_key_check` 與逐表筆數。
+- 使用 SQLite transaction snapshot、隔離 staging 與同檔案系統原子 promotion，禁止失敗時留下部分還原。
+- 補上格式／版本拒絕、完整備份、成功還原、中途 copy 失敗、promotion 失敗及不可覆寫既有備份的防回歸測試。
+- 版本更新為 v0.5.34。
+
+### 明確未修改
+
+不新增功能、不修改 UI、正式備份格式、Schema、Migration、Domain、Repository contract 或正式生命週期；不接入 Runtime、不讀寫 SharedPreferences／`backup_v1_*`、不做無關重構、不開始下一個 PR。
+
+### 資料與回復
+
+本 PR 不操作正式使用者資料。程式回復只還原 backup service、tests、版本與文件；不得刪除或覆蓋 Drift database、SharedPreferences 或 `backup_v1_*`。Attachment 實體檔案內容的跨裝置備份／還原仍未完成。
+
+### 驗收依據
+
+以格式／版本／完整性 Gate、snapshot 與 promotion 故障注入 rollback、codegen 無差異、Analyze、全部 tests、Web／Android／iOS build 與 GitHub Actions 全綠為準。
+
+### 追蹤
+
+- PR #235
 
 ---
 

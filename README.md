@@ -1,6 +1,6 @@
 # 生活管理 App
 
-目前版本：**v0.5.33 Pages Drift Root Cause Fix**
+目前版本：**v0.5.34 Backup and Restore Core Safety**
 
 `life-maintenance` 是一個 Flutter 生活管理 App，目標是管理生活項目、固定週期、到期提醒、階段性重點、突發事項與工程，並保存每一次處理從開始到結束的完整史略。
 
@@ -36,7 +36,7 @@
 
 ## 目前狀態
 
-`v0.5.33` 修復既有 GitHub Pages origin 開啟 Drift 時重複建立 index 的阻擋問題。正式 Runtime 沿用原 `life_maintenance` database，保留既有資料與 Schema v2，並以可重複執行的 index 建立流程接續 shared IndexedDB；不清除網站資料、不更換資料庫名稱。
+`v0.5.34` 建立正式 Drift SQLite 備份／還原核心安全邊界：沿用既有 SQLite 檔案格式，先驗證格式版本、必要資料表、資料完整性、外鍵與逐表筆數，再以隔離 staging transaction 與原子替換完成還原；任一步失敗都不會部分覆寫既有目的資料。此核心不接 UI、不改 Schema，也不宣告 Attachment 檔案內容已可跨裝置還原。
 
 已完成的資料與治理基礎：
 
@@ -53,6 +53,7 @@
 - 舊資料只讀盤點、關聯稽核與遷移准入閘門
 - 正式 Runtime SharedPreferences 讀寫稽核與禁止雙寫規則
 - SharedPreferences → Drift v2 dry-run、原子匯入、重跑保護與 rollback 測試
+- Drift SQLite 備份完整性、格式／版本驗證、隔離還原與失敗 rollback 核心
 - AppDatabase、Drift Schema v2 Repository、現行 LocalRepository 與必要 Service 由單一 AppCompositionRoot 建立及注入
 - 啟動時受控匯入、失敗 rollback、重啟零寫入驗證與 ItemCategory／Item Drift 讀取切換
 - MaintenancePlan、GeneralReminder、Milestone、Schedule 的 Drift Runtime Repository、source contract、anchor policy 與 transaction 切換
@@ -98,6 +99,8 @@ Web 長期使用驗收依 [Web Long-term Validation](docs/control/44-web-long-te
 既有 Pages origin 接續依 [Pages Origin Continuity](docs/control/45-pages-origin-continuity.md) 驗收；禁止清除 site data 或以 fresh origin 規避。
 
 Pages Drift 根因與驗收證據依 [Pages Drift Root Cause](docs/control/46-pages-drift-root-cause.md) 管理；部署後須辨識 GitHub Pages 的 600 秒 HTTP asset cache，不得把舊 bundle 當作新 commit 的驗收結果。
+
+正式 SQLite 備份／還原安全邊界依 [Backup and Restore Core Safety](docs/control/47-backup-restore-core-safety.md) 驗收；呼叫前必須關閉 Drift，且不得把資料庫 metadata 備份冒充 Attachment 檔案內容備份。
 
 Drift + SQLite Schema v2、v1 → v2 migration 與受控 importer 已建立；Runtime 只在完整驗證通過後切換，MaintenanceRecord 只承接不需要案件過程的簡單完成事實。
 
