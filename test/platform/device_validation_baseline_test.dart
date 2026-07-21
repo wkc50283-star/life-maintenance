@@ -77,7 +77,7 @@ void main() {
 
   test('patch upgrades preserve platform and database identity contracts', () {
     final pubspec = File('pubspec.yaml').readAsStringSync();
-    expect(pubspec, contains('version: 0.5.32+33'));
+    expect(pubspec, contains('version: 0.5.33+34'));
 
     final android = File('android/app/build.gradle.kts').readAsStringSync();
     expect(android, contains('applicationId = "com.example.life_maintenance"'));

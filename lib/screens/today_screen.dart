@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app/app_composition_root.dart';
+import '../diagnostics/runtime_diagnostics.dart';
 import '../models/enums.dart';
 import '../models/history_projection.dart';
 import '../models/item.dart';
@@ -77,16 +78,30 @@ class _TodayScreenState extends State<TodayScreen> {
   Future<void> _loadOverview() async {
     try {
       await _loadOverviewData();
-    } catch (error) {
+    } catch (error, stackTrace) {
+      RuntimeDiagnostics.report(
+        stage: 'home_overview.load',
+        error: error,
+        stackTrace: stackTrace,
+      );
       if (!mounted) return;
       setState(() => _loadError = error);
     }
   }
 
   Future<void> _loadOverviewData() async {
-    final items = await _itemRepository.loadItems();
-    final schedules = await _scheduleRepository.loadSchedules();
-    final tasks = await _taskRepository.loadTasks();
+    final items = await RuntimeDiagnostics.guard(
+      'home_overview.items.load',
+      _itemRepository.loadItems,
+    );
+    final schedules = await RuntimeDiagnostics.guard(
+      'home_overview.schedules.load',
+      _scheduleRepository.loadSchedules,
+    );
+    final tasks = await RuntimeDiagnostics.guard(
+      'home_overview.tasks.load',
+      _taskRepository.loadTasks,
+    );
     final generatedTasks = _taskService.generateDueTasks(
       schedules: schedules,
       existingTasks: tasks,

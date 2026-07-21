@@ -61,7 +61,7 @@ class AppDatabase extends _$AppDatabase {
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (migrator) async {
-          await migrator.createAll();
+          await _createAllIdempotently(migrator);
         },
         onUpgrade: (migrator, from, to) async {
           if (from == 1 && to == 2) {
@@ -85,6 +85,30 @@ class AppDatabase extends _$AppDatabase {
           }
         },
       );
+
+  Future<void> _createAllIdempotently(Migrator migrator) async {
+    for (final table in allTables) {
+      await migrator.createTable(table);
+    }
+    for (final index in allSchemaEntities.whereType<Index>()) {
+      final statement = index.createStatementsByDialect[SqlDialect.sqlite];
+      if (statement == null) {
+        throw StateError('Missing SQLite definition for ${index.entityName}.');
+      }
+      final idempotentStatement = statement
+          .replaceFirst(
+            'CREATE UNIQUE INDEX ',
+            'CREATE UNIQUE INDEX IF NOT EXISTS ',
+          )
+          .replaceFirst('CREATE INDEX ', 'CREATE INDEX IF NOT EXISTS ');
+      if (idempotentStatement == statement) {
+        throw StateError(
+          'Unsupported SQLite index definition for ${index.entityName}.',
+        );
+      }
+      await customStatement(idempotentStatement);
+    }
+  }
 
   Future<void> _migrateV1ToV2(Migrator migrator) async {
     await customStatement(

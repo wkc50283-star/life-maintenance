@@ -1,13 +1,14 @@
-# Life Management v0.5.32 Pages Origin Continuity Notes
+# Life Management v0.5.33 Pages Drift Root Cause Fix Notes
 
 日期：2026-07-21
 
 ## 本版內容
 
-- 修復既有 GitHub Pages origin 的舊 Flutter Service Worker 退休順序。
-- 正式入口先解除 scope 與 `/life-maintenance/` 完全相同的舊 worker；若當頁仍受控制，重載一次後才啟動 Flutter。
+- 根因確認為既有 shared IndexedDB 已有 Schema v2 indexes，但 Drift creation path 再次執行非冪等 `CREATE INDEX`。
+- creation path 改為建立既有 tables 後，以 `CREATE INDEX IF NOT EXISTS`／`CREATE UNIQUE INDEX IF NOT EXISTS` 建立同一組正式 indexes。
+- 加入 release Web 可觀測的 Runtime 階段診斷與既有 index 防回歸測試。
 - Drift 維持原 `life_maintenance` database name；不清除 IndexedDB、Local／Session Storage 或任何網站資料。
-- 新增 bootstrap、scope、禁止破壞性回復與 Pages artifact 防回歸 Gate。
+- GitHub Pages 對 `main.dart.js` 回應 `cache-control: max-age=600`；公開驗收須等待或確認新 bundle，不能以仍在有效期的舊 asset 判斷修正結果。
 
 ## RC 基礎
 
@@ -32,4 +33,4 @@
 - Android 正式發佈簽章與 iOS distribution signing 尚未驗證，build artifact 不代表商店安裝資格。
 - 尚未宣告真實裝置舊來源匯入／唯讀預覽完成。
 - Attachment 檔案內容尚未宣告可跨裝置備份／還原。
-- v0.5.32 是 Pages Origin Continuity 修正，不是 v1.0 正式產品版，也不代表實體裝置簽核或正式 UI／UX 改版完成。
+- v0.5.33 是 Pages Drift 根因修正，不是 v1.0 正式產品版，也不代表實體裝置簽核或正式 UI／UX 改版完成。

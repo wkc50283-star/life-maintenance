@@ -2229,6 +2229,38 @@ PR CI 先通過 codegen、Analyze、全部 tests、Web／Android／iOS build；s
 
 ---
 
+## LM-062：v0.5.33 Pages Drift Root Cause Fix
+
+日期：2026-07-21
+狀態：PR #234 驗收中
+
+### 變更內容
+
+- 加入 release Web Runtime 階段診斷，定位既有 origin 的 Drift 失敗點。
+- 確認 shared IndexedDB 已有正式 index 時，非冪等 `CREATE INDEX` 造成 SQLite `already exists` 並阻擋 Item 查詢。
+- Schema v2 creation path 改以同一份 generated index 定義執行 `IF NOT EXISTS`，不改 index 結構、Schema version 或 database name。
+- 新增既有 Schema v2 index、Item 保留與 version metadata 恢復防回歸測試。
+- 記錄 GitHub Pages `main.dart.js` 的 600 秒 HTTP cache 驗收限制。
+- 版本更新為 v0.5.33。
+
+### 明確未修改
+
+不新增功能、不修改 UI、Schema、Migration、Domain、Repository contract 或正式生命週期；不清除、搬移、刪除或覆蓋資料，不建立平行來源、不開始下一個 PR。
+
+### 資料與回復
+
+既有 Drift tables、indexes 與資料原樣保留。不得以清除 site data、改 database name 或 fresh origin 作為修正或 rollback。若回復會恢復非冪等 index 建立並阻擋既有 origin，必須停止回復。
+
+### 驗收依據
+
+以同一 Pages origin 的 release console 根因證據、既有資料 context 重整讀取、codegen 無差異、Analyze、全部 tests、Web build、GitHub Actions 與 Pages deploy 為準。HTTP cache 尚未到期的舊 bundle 不得冒充最新 commit。
+
+### 追蹤
+
+- PR #234
+
+---
+
 ## 後續條目模板
 
 ```text
