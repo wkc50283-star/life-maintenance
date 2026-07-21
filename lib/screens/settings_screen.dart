@@ -27,18 +27,29 @@ class SettingsScreen extends StatelessWidget {
         const DemoDataNotice(),
         const SizedBox(height: 18),
         for (final setting in _settings)
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
+          Semantics(
+            button: setting.highlighted,
+            focusable: setting.highlighted,
+            label: setting.highlighted ? '開啟${setting.title}說明' : setting.title,
             onTap: setting.highlighted
                 ? () {
                     showSafetyGuideSheet(context);
                   }
                 : null,
-            child: SettingCard(
-              title: setting.title,
-              content: setting.content,
-              icon: setting.icon,
-              highlighted: setting.highlighted,
+            child: ExcludeSemantics(
+              child: InkWell(
+                onTap: setting.highlighted
+                    ? () {
+                        showSafetyGuideSheet(context);
+                      }
+                    : null,
+                child: SettingCard(
+                  title: setting.title,
+                  content: setting.content,
+                  icon: setting.icon,
+                  highlighted: setting.highlighted,
+                ),
+              ),
             ),
           ),
       ],

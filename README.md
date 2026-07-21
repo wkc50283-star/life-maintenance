@@ -1,6 +1,6 @@
 # 生活管理 App
 
-目前版本：**v0.5.36 History Experience Validation**
+目前版本：**v0.5.37 Accessibility & Beta UI Readiness**
 
 `life-maintenance` 是一個 Flutter 生活管理 App，目標是管理生活項目、固定週期、到期提醒、階段性重點、突發事項與工程，並保存每一次處理從開始到結束的完整史略。
 
@@ -36,7 +36,7 @@
 
 ## 目前狀態
 
-`v0.5.36` 完成史略正式體驗驗收，確認 History 維持唯讀投影，Loading／Empty／Error／Retry 狀態清楚，正式事件依時間排序，Item、Task、WorkCase、WorkCaseUpdate 與 WorkCaseClosure 投影一致，且冷啟動後結果不變。本版沒有新增 History writer、資料表或平行真相。
+`v0.5.37` 完成 Beta 前可及性驗收：正式五入口可在 200% 文字縮放與小型螢幕安全使用，主要互動維持至少 48dp 觸控範圍，設定與首頁提醒卡具備按鈕語意、焦點及鍵盤啟用能力，核心文字與圖示配色通過對比 Gate。本版不新增功能，也不改變正式領域或資料架構。
 
 已完成的資料與治理基礎：
 
