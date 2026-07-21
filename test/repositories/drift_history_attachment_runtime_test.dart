@@ -199,6 +199,16 @@ void main() {
         await attachmentRuntime.registerManaged(value);
       }
 
+      final sourceCountsBefore = <int>[
+        (await database.select(database.items).get()).length,
+        (await database.select(database.tasks).get()).length,
+        (await database.select(database.workCases).get()).length,
+        (await database.select(database.workCaseUpdates).get()).length,
+        (await database.select(database.workCaseClosures).get()).length,
+        (await database.select(database.maintenanceRecords).get()).length,
+        (await database.select(database.milestones).get()).length,
+        (await database.select(database.attachments).get()).length,
+      ];
       final projection = await history.projectForItem('item-1');
 
       expect(projection.entries, hasLength(3));
@@ -232,8 +242,71 @@ void main() {
         await database.select(database.workCaseClosures).get(),
         hasLength(1),
       );
+      expect(
+        <int>[
+          (await database.select(database.items).get()).length,
+          (await database.select(database.tasks).get()).length,
+          (await database.select(database.workCases).get()).length,
+          (await database.select(database.workCaseUpdates).get()).length,
+          (await database.select(database.workCaseClosures).get()).length,
+          (await database.select(database.maintenanceRecords).get()).length,
+          (await database.select(database.milestones).get()).length,
+          (await database.select(database.attachments).get()).length,
+        ],
+        sourceCountsBefore,
+        reason: 'History must remain a read-only projection of formal facts.',
+      );
     },
   );
+
+  test('orders events newest first with a stable source tie-breaker', () async {
+    final sameTime = now.add(const Duration(hours: 1));
+    for (final task in [
+      TaskRow(
+        id: 'task-b',
+        itemId: 'item-1',
+        sourceType: 'manual',
+        title: '同時完成 B',
+        dueDate: now,
+        status: 'completed',
+        completedAt: sameTime,
+        createdAt: now,
+        updatedAt: sameTime,
+      ),
+      TaskRow(
+        id: 'task-newest',
+        itemId: 'item-1',
+        sourceType: 'manual',
+        title: '較晚完成',
+        dueDate: now,
+        status: 'completed',
+        completedAt: now.add(const Duration(hours: 2)),
+        createdAt: now,
+        updatedAt: now.add(const Duration(hours: 2)),
+      ),
+      TaskRow(
+        id: 'task-a',
+        itemId: 'item-1',
+        sourceType: 'manual',
+        title: '同時完成 A',
+        dueDate: now,
+        status: 'completed',
+        completedAt: sameTime,
+        createdAt: now,
+        updatedAt: sameTime,
+      ),
+    ]) {
+      await repositories.tasks.save(task);
+    }
+
+    final projection = await history.projectForItem('item-1');
+
+    expect(projection.entries.map((entry) => entry.sourceId), [
+      'task-newest',
+      'task-a',
+      'task-b',
+    ]);
+  });
 
   test(
     'keeps a terminal legacy case visible without inventing Closure',
