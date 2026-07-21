@@ -1,14 +1,13 @@
-# Life Management v0.5.31 Web Long-term Validation Notes
+# Life Management v0.5.32 Pages Origin Continuity Notes
 
 日期：2026-07-21
 
 ## 本版內容
 
-- 建立正式 Web 長期使用驗收基線與可重跑 Checklist。
-- 驗收範圍涵蓋重新整理、關閉分頁重開、瀏覽器重啟、背景恢復、Drift 持久化與 GitHub Pages 正式部署。
-- Pages build 固定使用 `--pwa-strategy=none`，移除已棄用的 Flutter Service Worker，避免跨部署混用不同世代的 Flutter、Drift worker 與 SQLite WASM 資產。
-- 新增 database identity、相對資產 URL、Pages artifact 與禁止 Service Worker 的防回歸 Gate。
-- 相同 release build 已在全新 Web origin 驗證建立資料、重新整理與關閉分頁重開後仍可由 Drift 讀回。
+- 修復既有 GitHub Pages origin 的舊 Flutter Service Worker 退休順序。
+- 正式入口先解除 scope 與 `/life-maintenance/` 完全相同的舊 worker；若當頁仍受控制，重載一次後才啟動 Flutter。
+- Drift 維持原 `life_maintenance` database name；不清除 IndexedDB、Local／Session Storage 或任何網站資料。
+- 新增 bootstrap、scope、禁止破壞性回復與 Pages artifact 防回歸 Gate。
 
 ## RC 基礎
 
@@ -33,4 +32,4 @@
 - Android 正式發佈簽章與 iOS distribution signing 尚未驗證，build artifact 不代表商店安裝資格。
 - 尚未宣告真實裝置舊來源匯入／唯讀預覽完成。
 - Attachment 檔案內容尚未宣告可跨裝置備份／還原。
-- v0.5.31 是 Web Long-term Validation，不是 v1.0 正式產品版，也不代表實體裝置簽核或正式 UI／UX 改版完成。
+- v0.5.32 是 Pages Origin Continuity 修正，不是 v1.0 正式產品版，也不代表實體裝置簽核或正式 UI／UX 改版完成。

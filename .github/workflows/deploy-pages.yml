@@ -59,7 +59,11 @@ jobs:
           test -s build/web/index.html
           test -s build/web/drift_worker.dart.js
           test -s build/web/sqlite3.wasm
+          test -s build/web/service_worker_retirement.js
           grep -q '<base href="/life-maintenance/">' build/web/index.html
+          grep -q 'service_worker_retirement.js' build/web/index.html
+          grep -q 'registration.scope === appScope' build/web/service_worker_retirement.js
+          grep -q 'registration.unregister()' build/web/service_worker_retirement.js
           test ! -s build/web/flutter_service_worker.js
           if grep -q 'serviceWorkerVersion: "' build/web/flutter_bootstrap.js; then
             echo "Deprecated Flutter service worker must stay disabled"

@@ -26,6 +26,24 @@ void main() {
     expect(workflow, contains("grep -q 'serviceWorkerVersion: \"'"));
   });
 
+  test('existing Pages origin retires only this app service worker first', () {
+    final index = File('web/index.html').readAsStringSync();
+    final retirement = File(
+      'web/service_worker_retirement.js',
+    ).readAsStringSync();
+
+    expect(index, contains('service_worker_retirement.js'));
+    expect(index, isNot(contains('flutter_bootstrap.js" async')));
+    expect(retirement, contains('new URL(document.baseURI).href'));
+    expect(retirement, contains('registration.scope === appScope'));
+    expect(retirement, contains('registration.unregister()'));
+    expect(retirement, contains('window.location.reload()'));
+    expect(retirement, contains("bootstrap.src = 'flutter_bootstrap.js'"));
+    expect(retirement, isNot(contains('indexedDB.deleteDatabase')));
+    expect(retirement, isNot(contains('localStorage.clear')));
+    expect(retirement, isNot(contains('sessionStorage.clear')));
+  });
+
   test('web checklist does not overclaim browser lifecycle evidence', () {
     final baseline = File(
       'docs/control/44-web-long-term-validation.md',
@@ -50,6 +68,6 @@ void main() {
 
   test('patch version matches the Web long-term validation baseline', () {
     final pubspec = File('pubspec.yaml').readAsStringSync();
-    expect(pubspec, contains('version: 0.5.31+32'));
+    expect(pubspec, contains('version: 0.5.32+33'));
   });
 }
