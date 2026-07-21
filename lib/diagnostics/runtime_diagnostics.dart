@@ -1,6 +1,6 @@
-import 'dart:developer' as developer;
-
 import 'package:flutter/foundation.dart';
+
+import 'runtime_diagnostic_sink.dart';
 
 typedef RuntimeDiagnosticReporter =
     void Function(String stage, Object error, StackTrace stackTrace);
@@ -33,11 +33,11 @@ final class RuntimeDiagnostics {
       reporter(stage, error, stackTrace);
       return;
     }
-    developer.log(
-      'stage=$stage errorType=${error.runtimeType}',
-      name: 'life_management_runtime',
-      error: error,
-      stackTrace: stackTrace,
+    emitRuntimeDiagnostic(
+      '[LIFE_MANAGEMENT_RUNTIME] '
+      'stage=$stage '
+      'errorType=${error.runtimeType} '
+      'error=$error',
     );
   }
 }
