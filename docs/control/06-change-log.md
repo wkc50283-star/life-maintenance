@@ -2198,6 +2198,37 @@ PR CI 先通過 codegen、Analyze、全部 tests、Web／Android／iOS build；s
 
 ---
 
+## LM-061：v0.5.32 Pages Origin Continuity
+
+日期：2026-07-21
+狀態：已核准施工，待 PR #233 驗收
+
+### 變更內容
+
+- 正式 Web 入口在 Flutter 啟動前，只解除與 App base URI 完全相同 scope 的舊 Service Worker。
+- 若既有頁面仍由成功解除的 worker 控制，重新載入一次後才啟動 Flutter。
+- 沿用 `life_maintenance` Drift database，不清除網站資料、不改名、不建立平行來源。
+- 新增 retirement bootstrap、Pages artifact 與禁止破壞性回復的防回歸 Gate。
+- 版本更新為 v0.5.32。
+
+### 明確未修改
+
+不新增功能、不修改 UI、Schema、Migration、Domain、Repository contract 或正式生命週期；不清除、搬移、刪除或覆蓋資料，不做無關重構、不開始下一個 PR。
+
+### 資料與回復
+
+沒有 Schema、Migration 或正式資料寫入變更。回復只可還原 Web retirement bootstrap、Gate、版本與文件；不得清除網站資料、改名資料庫或恢復 Legacy writer。
+
+### 驗收依據
+
+以既有 Pages origin 的 Drift 接續、重新整理、關閉分頁重開與真正瀏覽器程序重啟驗證，以及 codegen、Analyze、全部 tests、Web build、GitHub Actions 和 Pages deploy 為準。fresh origin／無痕不可替代既有資料驗收。
+
+### 追蹤
+
+- PR #233
+
+---
+
 ## 後續條目模板
 
 ```text
