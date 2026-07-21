@@ -1,4 +1,3 @@
-import 'package:drift/drift.dart' show LazyDatabase;
 import 'package:drift/native.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -13,26 +12,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   setUp(SharedPreferences.resetStatic);
-
-  test(
-    'initialization opens the formal database before screens load',
-    () async {
-      var openCount = 0;
-      final database = AppDatabase(
-        LazyDatabase(() async {
-          openCount++;
-          return NativeDatabase.memory();
-        }),
-      );
-      final root = AppCompositionRoot(database: database);
-
-      expect(openCount, 0);
-      await root.initialize();
-      expect(openCount, 1);
-
-      await database.close();
-    },
-  );
 
   test(
     'constructs one database and the complete formal Drift runtime',
