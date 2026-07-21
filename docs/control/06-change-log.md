@@ -2332,7 +2332,7 @@ PR CI 先通過 codegen、Analyze、全部 tests、Web／Android／iOS build；s
 ## LM-065：v0.5.36 History Experience Validation
 
 日期：2026-07-21
-狀態：PR #237 驗收中
+狀態：已合併
 
 ### 變更內容
 
@@ -2359,6 +2359,37 @@ PR CI 先通過 codegen、Analyze、全部 tests、Web／Android／iOS build；s
 ### 追蹤
 
 - PR #237
+
+---
+
+## LM-066：v0.5.37 Accessibility & Beta UI Readiness
+
+日期：2026-07-21
+狀態：已合併
+
+### 變更內容
+
+- 以 320×568 與 200% 文字縮放驗收正式五入口，修正首頁狀態標籤水平溢位。
+- 為設定安全界線與首頁提醒卡補上明確中文按鈕語意、焦點與鍵盤啟用能力。
+- 驗證底部五入口至少 48dp，核心文字達 4.5:1、非文字圖示達 3:1 對比。
+- 新增 Dynamic Type、Semantics、觸控範圍、對比與 Tab／Enter 防回歸 Gate。
+- 版本更新為 v0.5.37。
+
+### 明確未修改
+
+不重做美術、不新增功能，不修改 Domain、Schema、Migration、Runtime、Repository、資料生命週期、無關程式或下一個 PR。
+
+### 資料與回復
+
+本 PR 不操作正式使用者資料；程式回復只需還原本 PR 的介面、測試、版本與文件變更。
+
+### 驗收依據
+
+以 Accessibility Gate、codegen 無差異、Analyze、全部 tests、Web／Android／iOS build、Web 鍵盤預覽與 GitHub Actions 全綠為準。
+
+### 追蹤
+
+- PR #238
 
 ---
 

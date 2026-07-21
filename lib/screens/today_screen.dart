@@ -224,10 +224,18 @@ class _TodayScreenState extends State<TodayScreen> {
           const _OverviewEmptyState(message: '今天沒有需要留意的提醒。')
         else
           for (final task in reminders)
-            GestureDetector(
+            Semantics(
+              button: true,
+              focusable: true,
+              label: '開啟提醒：${task.title}',
               onTap: () => _openTaskDetail(task.id),
-              child: TaskCard(
-                task: _taskCardDataFor(task, localItems: localItems),
+              child: ExcludeSemantics(
+                child: InkWell(
+                  onTap: () => _openTaskDetail(task.id),
+                  child: TaskCard(
+                    task: _taskCardDataFor(task, localItems: localItems),
+                  ),
+                ),
               ),
             ),
         const SizedBox(height: 20),
