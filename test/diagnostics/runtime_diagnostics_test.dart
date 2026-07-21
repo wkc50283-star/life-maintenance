@@ -1,13 +1,17 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_maintenance/diagnostics/runtime_diagnostics.dart';
 
 void main() {
   test('guard reports the exact runtime stage and rethrows', () async {
-    final originalHandler = FlutterError.onError;
-    FlutterErrorDetails? captured;
-    FlutterError.onError = (details) => captured = details;
-    addTearDown(() => FlutterError.onError = originalHandler);
+    String? capturedStage;
+    Object? capturedError;
+    StackTrace? capturedStack;
+    RuntimeDiagnostics.testReporter = (stage, error, stackTrace) {
+      capturedStage = stage;
+      capturedError = error;
+      capturedStack = stackTrace;
+    };
+    addTearDown(() => RuntimeDiagnostics.testReporter = null);
 
     await expectLater(
       RuntimeDiagnostics.guard<void>(
@@ -17,12 +21,8 @@ void main() {
       throwsStateError,
     );
 
-    expect(captured?.library, 'life_management_runtime');
-    expect(
-      captured?.context.toString(),
-      'while running home_overview.items.load',
-    );
-    expect(captured?.exception, isA<StateError>());
-    expect(captured?.stack, isNotNull);
+    expect(capturedStage, 'home_overview.items.load');
+    expect(capturedError, isA<StateError>());
+    expect(capturedStack, isNotNull);
   });
 }

@@ -1,7 +1,15 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter/foundation.dart';
+
+typedef RuntimeDiagnosticReporter =
+    void Function(String stage, Object error, StackTrace stackTrace);
 
 final class RuntimeDiagnostics {
   const RuntimeDiagnostics._();
+
+  @visibleForTesting
+  static RuntimeDiagnosticReporter? testReporter;
 
   static Future<T> guard<T>(
     String stage,
@@ -20,13 +28,16 @@ final class RuntimeDiagnostics {
     required Object error,
     required StackTrace stackTrace,
   }) {
-    FlutterError.reportError(
-      FlutterErrorDetails(
-        exception: error,
-        stack: stackTrace,
-        library: 'life_management_runtime',
-        context: ErrorDescription('while running $stage'),
-      ),
+    final reporter = testReporter;
+    if (reporter != null) {
+      reporter(stage, error, stackTrace);
+      return;
+    }
+    developer.log(
+      'stage=$stage errorType=${error.runtimeType}',
+      name: 'life_management_runtime',
+      error: error,
+      stackTrace: stackTrace,
     );
   }
 }
