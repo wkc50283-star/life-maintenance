@@ -130,10 +130,12 @@ class AppCompositionRoot implements AppRuntimeDependencies {
   @override
   bool get formalWritesEnabled => true;
 
-  Future<RuntimeInitializationResult> initialize() async =>
-      const RuntimeInitializationResult(
-        mode: RuntimeDataMode.driftMaintenanceRecords,
-      );
+  Future<RuntimeInitializationResult> initialize() async {
+    await database.customSelect('SELECT 1').get();
+    return const RuntimeInitializationResult(
+      mode: RuntimeDataMode.driftMaintenanceRecords,
+    );
+  }
 
   Future<void> dispose() async {
     if (ownsDatabase) {
