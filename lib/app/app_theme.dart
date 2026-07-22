@@ -1,46 +1,48 @@
 import 'package:flutter/material.dart';
 
+import 'ui_tokens.dart';
+
 abstract final class AppTheme {
   static ThemeData get light {
     return ThemeData(
       colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF6F8FAF),
+        seedColor: UiColors.seed,
         brightness: Brightness.light,
-        surface: const Color(0xFFF7F3EA),
-        primary: const Color(0xFF5D7893),
-        secondary: const Color(0xFF8FA4B8),
+        surface: UiColors.canvas,
+        primary: UiColors.primary,
+        secondary: UiColors.secondary,
       ),
-      scaffoldBackgroundColor: const Color(0xFFF7F3EA),
+      scaffoldBackgroundColor: UiColors.canvas,
       useMaterial3: true,
       appBarTheme: const AppBarTheme(
         centerTitle: true,
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: Color(0xFFF7F3EA),
-        foregroundColor: Color(0xFF263746),
+        backgroundColor: UiColors.canvas,
+        foregroundColor: UiColors.textPrimary,
         titleTextStyle: TextStyle(
-          color: Color(0xFF263746),
+          color: UiColors.textPrimary,
           fontSize: 18,
           fontWeight: FontWeight.w700,
         ),
       ),
       cardTheme: CardThemeData(
         elevation: 0,
-        color: Colors.white,
+        color: UiColors.surface,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: Color(0xFFE4E0D8)),
+          borderRadius: BorderRadius.circular(UiRadius.card),
+          side: const BorderSide(color: UiColors.border),
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: const Color(0xFFFFFCF6),
-        indicatorColor: const Color(0xFFDCE8F2),
+        backgroundColor: UiColors.surfaceWarm,
+        indicatorColor: UiColors.selectedSurface,
         labelTextStyle: WidgetStateProperty.resolveWith(
           (states) => TextStyle(
             color: states.contains(WidgetState.selected)
-                ? const Color(0xFF263746)
-                : const Color(0xFF687887),
+                ? UiColors.textPrimary
+                : UiColors.textSecondary,
             fontWeight: states.contains(WidgetState.selected)
                 ? FontWeight.w700
                 : FontWeight.w500,
@@ -49,16 +51,20 @@ abstract final class AppTheme {
         iconTheme: WidgetStateProperty.resolveWith(
           (states) => IconThemeData(
             color: states.contains(WidgetState.selected)
-                ? const Color(0xFF5D7893)
-                : const Color(0xFF7C8995),
+                ? UiColors.primary
+                : UiColors.iconMuted,
           ),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: const Color(0xFF5D7893),
+          backgroundColor: UiColors.primary,
           foregroundColor: Colors.white,
-          textStyle: const TextStyle(fontWeight: FontWeight.w700),
+          minimumSize: const Size(48, 54),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(UiRadius.control),
+          ),
+          textStyle: UiType.button,
         ),
       ),
     );
