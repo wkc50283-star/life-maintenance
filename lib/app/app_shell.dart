@@ -7,6 +7,7 @@ import '../screens/items_screen.dart';
 import '../screens/settings_screen.dart';
 import '../screens/today_screen.dart';
 import 'app_composition_root.dart';
+import 'ui_tokens.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({required this.compositionRoot, super.key});
@@ -23,31 +24,26 @@ class _AppShellState extends State<AppShell> {
       title: '生活總覽',
       icon: Icons.home_outlined,
       selectedIcon: Icons.home,
-      screen: TodayScreen(),
     ),
     _AppShellDestination(
       title: '生活項目',
       icon: Icons.inventory_2_outlined,
       selectedIcon: Icons.inventory_2,
-      screen: ItemsScreen(),
     ),
     _AppShellDestination(
       title: '新增',
       icon: Icons.add_circle_outline,
       selectedIcon: Icons.add_circle,
-      screen: AddScreen(),
     ),
     _AppShellDestination(
       title: '史略',
       icon: Icons.history_outlined,
       selectedIcon: Icons.history,
-      screen: HistoryScreen(),
     ),
     _AppShellDestination(
       title: '設定',
       icon: Icons.settings_outlined,
       selectedIcon: Icons.settings,
-      screen: SettingsScreen(),
     ),
   ];
 
@@ -88,34 +84,112 @@ class _AppShellState extends State<AppShell> {
   @override
   Widget build(BuildContext context) {
     final destination = _destinations[_currentIndex];
+    final transitionDuration = UiMotion.durationOf(context);
 
     return Scaffold(
       key: const ValueKey('app-shell'),
-      appBar: AppBar(title: Text(destination.title)),
+      appBar: AppBar(
+        centerTitle: false,
+        toolbarHeight: 68,
+        titleSpacing: UiSpace.md,
+        title: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: UiColors.iconSurface,
+                borderRadius: BorderRadius.circular(UiRadius.control),
+              ),
+              child: Icon(destination.selectedIcon, color: UiColors.primary),
+            ),
+            const SizedBox(width: UiSpace.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    '生活管理',
+                    style: TextStyle(
+                      color: UiColors.textSecondary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(destination.title),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
       body: switch ((_runtimeReady, _initializationError)) {
         (false, null) => const Center(child: CircularProgressIndicator()),
         (false, _) => _RuntimeLoadFailure(onRetry: _initializeRuntime),
-        (true, _) => destination.screen,
-      },
-      bottomNavigationBar: NavigationBar(
-        key: const ValueKey('primary-navigation'),
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        destinations: [
-          for (final item in _destinations)
-            NavigationDestination(
-              icon: Icon(item.icon),
-              selectedIcon: Icon(item.selectedIcon),
-              label: item.title,
+        (true, _) => AnimatedSwitcher(
+          key: const ValueKey('shell-tab-transition'),
+          duration: transitionDuration,
+          switchInCurve: UiMotion.standardCurve,
+          switchOutCurve: UiMotion.standardCurve,
+          transitionBuilder: (child, animation) => FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0.025, 0),
+                end: Offset.zero,
+              ).animate(animation),
+              child: child,
             ),
-        ],
+          ),
+          child: KeyedSubtree(
+            key: ValueKey('shell-destination-$_currentIndex'),
+            child: _destinationScreen(_currentIndex),
+          ),
+        ),
+      },
+      bottomNavigationBar: DecoratedBox(
+        decoration: const BoxDecoration(
+          color: UiColors.surfaceWarm,
+          border: Border(top: BorderSide(color: UiColors.border)),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x0F263746),
+              blurRadius: 18,
+              offset: Offset(0, -6),
+            ),
+          ],
+        ),
+        child: NavigationBar(
+          key: const ValueKey('primary-navigation'),
+          selectedIndex: _currentIndex,
+          onDestinationSelected: _selectDestination,
+          destinations: [
+            for (final item in _destinations)
+              NavigationDestination(
+                icon: Icon(item.icon),
+                selectedIcon: Icon(item.selectedIcon),
+                label: item.title,
+              ),
+          ],
+        ),
       ),
     );
   }
+
+  void _selectDestination(int index) {
+    if (index == _currentIndex) return;
+    setState(() => _currentIndex = index);
+  }
+
+  Widget _destinationScreen(int index) => switch (index) {
+    0 => TodayScreen(onQuickAdd: () => _selectDestination(2)),
+    1 => const ItemsScreen(),
+    2 => const AddScreen(),
+    3 => const HistoryScreen(),
+    4 => const SettingsScreen(),
+    _ => const SizedBox.shrink(),
+  };
 }
 
 class _RuntimeLoadFailure extends StatelessWidget {
@@ -166,11 +240,9 @@ class _AppShellDestination {
     required this.title,
     required this.icon,
     required this.selectedIcon,
-    required this.screen,
   });
 
   final String title;
   final IconData icon;
   final IconData selectedIcon;
-  final Widget screen;
 }

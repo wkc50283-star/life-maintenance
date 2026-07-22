@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app/app_composition_root.dart';
+import '../app/ui_tokens.dart';
 import '../diagnostics/runtime_diagnostics.dart';
 import '../models/enums.dart';
 import '../models/history_projection.dart';
@@ -17,16 +18,20 @@ import '../repositories/schedule_repository.dart';
 import '../repositories/task_repository.dart';
 import '../repositories/work_case_runtime.dart';
 import '../services/maintenance_task_service.dart';
-import '../widgets/task_card.dart';
 import '../widgets/today_hero.dart';
+import '../widgets/ui_v2_components.dart';
 import 'task_reminder_screens.dart';
 import 'work_case_screens.dart';
 
 class TodayScreen extends StatefulWidget {
-  const TodayScreen({super.key, ScheduleRepository? scheduleRepository})
-    : _scheduleRepositoryOverride = scheduleRepository;
+  const TodayScreen({
+    super.key,
+    ScheduleRepository? scheduleRepository,
+    this.onQuickAdd,
+  }) : _scheduleRepositoryOverride = scheduleRepository;
 
   final ScheduleRepository? _scheduleRepositoryOverride;
+  final VoidCallback? onQuickAdd;
 
   @override
   State<TodayScreen> createState() => _TodayScreenState();
@@ -196,121 +201,158 @@ class _TodayScreenState extends State<TodayScreen> {
         .toList(growable: false);
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      key: const ValueKey('overview-scroll'),
+      padding: const EdgeInsets.fromLTRB(
+        UiSpace.md,
+        UiSpace.xs,
+        UiSpace.md,
+        UiSpace.xxl,
+      ),
       children: [
-        TodayHero(
-          reminderCount: reminders.length,
-          openCaseCount: _openCases.length,
-          milestoneCount: _activeMilestones.length,
+        UiMotionEntrance(
+          duration: UiMotion.standard,
+          child: TodayHero(
+            reminderCount: reminders.length,
+            openCaseCount: _openCases.length,
+            milestoneCount: _activeMilestones.length,
+            onQuickAdd: widget.onQuickAdd,
+          ),
         ),
-        const SizedBox(height: 20),
-        _OverviewSectionHeader(
-          title: '今日提醒',
-          description: '今天到期或仍需要留意的提醒。',
-          actionLabel: _runtime.taskReminderRuntime == null ? null : '查看全部',
-          onAction: _runtime.taskReminderRuntime == null
-              ? null
-              : () async {
-                  await Navigator.of(context).push<void>(
-                    MaterialPageRoute(
-                      builder: (_) => const TaskReminderListScreen(),
+        const SizedBox(height: UiSpace.xl),
+        UiMotionEntrance(
+          key: const ValueKey('overview-section-reminders'),
+          duration: UiMotion.standard,
+          child: _OverviewSection(
+            title: '今日提醒',
+            description: '今天到期或仍需要留意的提醒。',
+            actionLabel: _runtime.taskReminderRuntime == null ? null : '查看全部',
+            onAction: _runtime.taskReminderRuntime == null
+                ? null
+                : () async {
+                    await Navigator.of(context).push<void>(
+                      MaterialPageRoute(
+                        builder: (_) => const TaskReminderListScreen(),
+                      ),
+                    );
+                    await _loadOverview();
+                  },
+            children: reminders.isEmpty
+                ? const [
+                    _OverviewEmptyState(
+                      icon: Icons.notifications_none_rounded,
+                      message: '今天沒有需要留意的提醒。',
                     ),
-                  );
-                  await _loadOverview();
-                },
+                  ]
+                : [
+                    for (final task in reminders)
+                      _OverviewFactCard(
+                        icon: Icons.notifications_none_rounded,
+                        title: task.title,
+                        subtitle: _itemName(task.itemId, localItems),
+                        detail: '原定 ${_formatDate(task.dueDate)}',
+                        status: _labelForStatus(task.status),
+                        semanticLabel: '開啟提醒：${task.title}',
+                        onTap: () => _openTaskDetail(task.id),
+                      ),
+                  ],
+          ),
         ),
-        const SizedBox(height: 12),
-        if (reminders.isEmpty)
-          const _OverviewEmptyState(message: '今天沒有需要留意的提醒。')
-        else
-          for (final task in reminders)
-            Semantics(
-              button: true,
-              focusable: true,
-              label: '開啟提醒：${task.title}',
-              onTap: () => _openTaskDetail(task.id),
-              child: ExcludeSemantics(
-                child: InkWell(
-                  onTap: () => _openTaskDetail(task.id),
-                  child: TaskCard(
-                    task: _taskCardDataFor(task, localItems: localItems),
-                  ),
-                ),
-              ),
-            ),
-        const SizedBox(height: 20),
-        _OverviewSectionHeader(
-          title: '進行中案件',
-          description: '已經開始處理、仍在進行或等待中的事情。',
-          actionLabel: _workCaseRuntime == null ? null : '全部案件',
-          onAction: _workCaseRuntime == null
-              ? null
-              : () async {
-                  await Navigator.of(context).push<void>(
-                    MaterialPageRoute(
-                      builder: (_) => const WorkCaseListScreen(),
+        UiMotionEntrance(
+          key: const ValueKey('overview-section-cases'),
+          duration: UiMotion.emphasized,
+          child: _OverviewSection(
+            title: '進行中案件',
+            description: '已經開始處理、仍在進行或等待中的事情。',
+            actionLabel: _workCaseRuntime == null ? null : '全部案件',
+            onAction: _workCaseRuntime == null
+                ? null
+                : () async {
+                    await Navigator.of(context).push<void>(
+                      MaterialPageRoute(
+                        builder: (_) => const WorkCaseListScreen(),
+                      ),
+                    );
+                    await _loadOverview();
+                  },
+            children: _openCases.isEmpty
+                ? const [
+                    _OverviewEmptyState(
+                      icon: Icons.handyman_outlined,
+                      message: '目前沒有進行中的案件。',
                     ),
-                  );
-                  await _loadOverview();
-                },
+                  ]
+                : [
+                    for (final entry in _openCases.take(3))
+                      _OverviewFactCard(
+                        icon: Icons.handyman_outlined,
+                        title: entry.workCase.title,
+                        subtitle: entry.itemName,
+                        detail: _caseDetail(entry),
+                        status: _labelForCaseStatus(entry.workCase.status),
+                        onTap: () async {
+                          final changed = await Navigator.of(context)
+                              .push<bool>(
+                                MaterialPageRoute(
+                                  builder: (_) => WorkCaseDetailScreen(
+                                    workCaseId: entry.workCase.id,
+                                    itemName: entry.itemName,
+                                  ),
+                                ),
+                              );
+                          if (changed == true) await _loadOverview();
+                        },
+                      ),
+                  ],
+          ),
         ),
-        const SizedBox(height: 12),
-        if (_openCases.isEmpty)
-          const _OverviewEmptyState(message: '目前沒有進行中的案件。')
-        else
-          for (final entry in _openCases.take(3))
-            _OverviewFactCard(
-              icon: Icons.handyman_outlined,
-              title: entry.workCase.title,
-              subtitle: entry.itemName,
-              detail: _caseDetail(entry),
-              status: _labelForCaseStatus(entry.workCase.status),
-              onTap: () async {
-                final changed = await Navigator.of(context).push<bool>(
-                  MaterialPageRoute(
-                    builder: (_) => WorkCaseDetailScreen(
-                      workCaseId: entry.workCase.id,
-                      itemName: entry.itemName,
+        UiMotionEntrance(
+          duration: UiMotion.emphasized,
+          child: _OverviewSection(
+            title: '階段性重點',
+            description: '生活項目正在接近或已達到的重要階段。',
+            children: _activeMilestones.isEmpty
+                ? const [
+                    _OverviewEmptyState(
+                      icon: Icons.flag_outlined,
+                      message: '目前沒有需要留意的階段性重點。',
                     ),
-                  ),
-                );
-                if (changed == true) await _loadOverview();
-              },
-            ),
-        const SizedBox(height: 20),
-        const _OverviewSectionHeader(
-          title: '階段性重點',
-          description: '生活項目正在接近或已達到的重要階段。',
+                  ]
+                : [
+                    for (final milestone in _activeMilestones.take(3))
+                      _OverviewFactCard(
+                        icon: Icons.flag_outlined,
+                        title: milestone.title,
+                        subtitle: _itemName(milestone.itemId, localItems),
+                        detail: _milestoneTriggerLabel(milestone),
+                        status: _labelForMilestoneStatus(milestone.status),
+                      ),
+                  ],
+          ),
         ),
-        const SizedBox(height: 12),
-        if (_activeMilestones.isEmpty)
-          const _OverviewEmptyState(message: '目前沒有需要留意的階段性重點。')
-        else
-          for (final milestone in _activeMilestones.take(3))
-            _OverviewFactCard(
-              icon: Icons.flag_outlined,
-              title: milestone.title,
-              subtitle: _itemName(milestone.itemId, localItems),
-              detail: _milestoneTriggerLabel(milestone),
-              status: _labelForMilestoneStatus(milestone.status),
-            ),
-        const SizedBox(height: 20),
-        const _OverviewSectionHeader(
-          title: '最近完成',
-          description: '近期已處理完成並留在正式史略中的紀錄。',
+        UiMotionEntrance(
+          duration: UiMotion.emphasized,
+          child: _OverviewSection(
+            title: '最近完成',
+            description: '近期已處理完成並留在正式史略中的紀錄。',
+            children: _recentCompletions.isEmpty
+                ? const [
+                    _OverviewEmptyState(
+                      icon: Icons.history_rounded,
+                      message: '目前還沒有完成紀錄。',
+                    ),
+                  ]
+                : [
+                    for (final completion in _recentCompletions)
+                      _OverviewFactCard(
+                        icon: Icons.check_circle_outline,
+                        title: _historyEntryTitle(completion.entry),
+                        subtitle: completion.itemName,
+                        detail: _formatDate(completion.entry.occurredAt),
+                        status: '已完成',
+                      ),
+                  ],
+          ),
         ),
-        const SizedBox(height: 12),
-        if (_recentCompletions.isEmpty)
-          const _OverviewEmptyState(message: '目前還沒有完成紀錄。')
-        else
-          for (final completion in _recentCompletions)
-            _OverviewFactCard(
-              icon: Icons.check_circle_outline,
-              title: _historyEntryTitle(completion.entry),
-              subtitle: completion.itemName,
-              detail: _formatDate(completion.entry.occurredAt),
-              status: '已完成',
-            ),
       ],
     );
   }
@@ -359,39 +401,6 @@ class _OverviewLoadFailure extends StatelessWidget {
       ),
     );
   }
-}
-
-TaskCardData _taskCardDataFor(
-  maintenance_task.Task task, {
-  required List<Item> localItems,
-}) {
-  final item = _itemForTask(task, localItems: localItems);
-  final isManualExpiryReminder = _isManualExpiryReminderTask(task);
-
-  return TaskCardData(
-    itemName: item?.name ?? '未命名生活項目',
-    taskName: task.title,
-    cycle: '原定 ${_formatDate(task.dueDate)}',
-    estimatedTime: isManualExpiryReminder ? '請確認' : '提醒事項',
-    riskLabel: isManualExpiryReminder ? '到期提醒' : _labelForStatus(task.status),
-  );
-}
-
-bool _isManualExpiryReminderTask(maintenance_task.Task task) {
-  return task.cardId == 'manual-expiry-reminder';
-}
-
-Item? _itemForTask(
-  maintenance_task.Task task, {
-  required List<Item> localItems,
-}) {
-  for (final item in localItems) {
-    if (item.id == task.itemId) {
-      return item;
-    }
-  }
-
-  return null;
 }
 
 String _labelForStatus(TaskStatus status) {
@@ -543,6 +552,40 @@ class _RecentCompletion {
   final String itemName;
 }
 
+class _OverviewSection extends StatelessWidget {
+  const _OverviewSection({
+    required this.title,
+    required this.description,
+    required this.children,
+    this.actionLabel,
+    this.onAction,
+  });
+
+  final String title;
+  final String description;
+  final List<Widget> children;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: UiSpace.xl),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _OverviewSectionHeader(
+          title: title,
+          description: description,
+          actionLabel: actionLabel,
+          onAction: onAction,
+        ),
+        const SizedBox(height: UiSpace.sm),
+        ...children,
+      ],
+    ),
+  );
+}
+
 class _OverviewSectionHeader extends StatelessWidget {
   const _OverviewSectionHeader({
     required this.title,
@@ -566,49 +609,55 @@ class _OverviewSectionHeader extends StatelessWidget {
             Expanded(
               child: Text(
                 title,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: const Color(0xFF263746),
-                  fontWeight: FontWeight.w800,
-                ),
+                style: UiType.pageTitle.copyWith(fontSize: 21),
               ),
             ),
             if (actionLabel != null && onAction != null)
               TextButton(onPressed: onAction, child: Text(actionLabel!)),
           ],
         ),
-        const SizedBox(height: 4),
-        Text(
-          description,
-          style: Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(color: const Color(0xFF687887)),
-        ),
+        const SizedBox(height: UiSpace.xxs),
+        Text(description, style: UiType.body),
       ],
     );
   }
 }
 
 class _OverviewEmptyState extends StatelessWidget {
-  const _OverviewEmptyState({required this.message});
+  const _OverviewEmptyState({required this.icon, required this.message});
 
+  final IconData icon;
   final String message;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(UiSpace.lg),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFCF6),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE4E0D8)),
+        color: UiColors.surfaceWarm,
+        borderRadius: BorderRadius.circular(UiRadius.card),
+        border: Border.all(color: UiColors.border),
       ),
-      child: Text(
-        message,
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: const Color(0xFF687887),
-          fontWeight: FontWeight.w600,
-        ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: UiColors.iconSurface,
+              borderRadius: BorderRadius.circular(UiRadius.control),
+            ),
+            child: Icon(icon, color: UiColors.primary),
+          ),
+          const SizedBox(width: UiSpace.sm),
+          Expanded(
+            child: Text(
+              message,
+              style: UiType.body.copyWith(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -622,6 +671,7 @@ class _OverviewFactCard extends StatelessWidget {
     required this.detail,
     required this.status,
     this.onTap,
+    this.semanticLabel,
   });
 
   final IconData icon;
@@ -630,69 +680,67 @@ class _OverviewFactCard extends StatelessWidget {
   final String detail;
   final String status;
   final VoidCallback? onTap;
+  final String? semanticLabel;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE8F0F6),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Icon(icon, color: const Color(0xFF5D7893)),
+    return UiActionCard(
+      onTap: onTap,
+      semanticLabel: semanticLabel,
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: UiColors.iconSurface,
+                borderRadius: BorderRadius.circular(UiRadius.control),
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: const Color(0xFF263746),
-                        fontWeight: FontWeight.w800,
-                      ),
+              child: Icon(icon, color: UiColors.primary),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: UiColors.textPrimary,
+                      fontWeight: FontWeight.w800,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF5D7893),
-                        fontWeight: FontWeight.w700,
-                      ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: UiColors.primary,
+                      fontWeight: FontWeight.w700,
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      detail,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF687887),
-                        height: 1.4,
-                      ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    detail,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: UiColors.textSecondary,
+                      height: 1.4,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 10),
-              Text(
-                status,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: const Color(0xFF4D5D6B),
-                  fontWeight: FontWeight.w800,
-                ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              status,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: UiColors.textSupporting,
+                fontWeight: FontWeight.w800,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
