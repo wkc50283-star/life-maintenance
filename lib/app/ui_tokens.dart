@@ -1,31 +1,51 @@
 import 'package:flutter/material.dart';
 
 abstract final class UiColors {
-  static const seed = Color(0xFF6F8FAF);
-  static const canvas = Color(0xFFF7F3EA);
+  static const seed = Color(0xFF2F80ED);
+  static const canvas = Color(0xFFFAF8F4);
   static const surface = Color(0xFFFFFFFF);
-  static const surfaceWarm = Color(0xFFFFFCF6);
-  static const primary = Color(0xFF5D7893);
-  static const secondary = Color(0xFF8FA4B8);
-  static const textPrimary = Color(0xFF263746);
-  static const textSecondary = Color(0xFF687887);
-  static const textSupporting = Color(0xFF526575);
-  static const border = Color(0xFFE4E0D8);
-  static const iconSurface = Color(0xFFE8F0F6);
-  static const iconMuted = Color(0xFF7C8995);
-  static const selectedSurface = Color(0xFFDCE8F2);
+  static const surfaceWarm = Color(0xFFF6F3EE);
+  static const primary = Color(0xFF173B63);
+  static const accent = Color(0xFF2F80ED);
+  static const secondary = accent;
+  static const textPrimary = Color(0xFF18324B);
+  static const textSecondary = Color(0xFF52677B);
+  static const textSupporting = Color(0xFF66788A);
+  static const border = Color(0xFFE1E7ED);
+  static const borderStrong = Color(0xFFCDD7E1);
+  static const iconSurface = Color(0xFFEAF2FC);
+  static const iconMuted = Color(0xFF708397);
+  static const selectedSurface = Color(0xFFE5F0FF);
+  static const success = Color(0xFF2F7D62);
+  static const successSurface = Color(0xFFE7F4EE);
+  static const warning = Color(0xFF9A681A);
+  static const warningSurface = Color(0xFFFFF2D9);
+  static const danger = Color(0xFFB84A4A);
+  static const dangerSurface = Color(0xFFFBE8E8);
+  static const info = accent;
+  static const infoSurface = selectedSurface;
 }
 
 abstract final class UiType {
-  static const pageTitle = TextStyle(
-    color: UiColors.textPrimary,
-    fontSize: 26,
-    height: 1.18,
-    fontWeight: FontWeight.w800,
+  static const caption = TextStyle(
+    color: UiColors.textSupporting,
+    fontSize: 12,
+    height: 1.4,
+    fontWeight: FontWeight.w600,
+  );
+  static const body = TextStyle(
+    color: UiColors.textSecondary,
+    fontSize: 14,
+    height: 1.5,
+  );
+  static const button = TextStyle(
+    fontSize: 14,
+    height: 1.2,
+    fontWeight: FontWeight.w700,
   );
   static const pageIntro = TextStyle(
     color: UiColors.textSecondary,
-    fontSize: 15,
+    fontSize: 14,
     height: 1.5,
     fontWeight: FontWeight.w500,
   );
@@ -33,43 +53,55 @@ abstract final class UiType {
     color: UiColors.textPrimary,
     fontSize: 16,
     height: 1.35,
+    fontWeight: FontWeight.w700,
+  );
+  static const sectionTitle = TextStyle(
+    color: UiColors.textPrimary,
+    fontSize: 18,
+    height: 1.3,
+    fontWeight: FontWeight.w700,
+  );
+  static const pageTitle = TextStyle(
+    color: UiColors.textPrimary,
+    fontSize: 22,
+    height: 1.25,
     fontWeight: FontWeight.w800,
   );
-  static const body = TextStyle(
-    color: UiColors.textSecondary,
-    fontSize: 14,
-    height: 1.5,
-  );
-  static const button = TextStyle(fontWeight: FontWeight.w700);
 }
 
 abstract final class UiSpace {
-  static const xxs = 4.0;
   static const xs = 8.0;
   static const sm = 12.0;
   static const md = 16.0;
-  static const lg = 20.0;
-  static const xl = 24.0;
-  static const xxl = 32.0;
+  static const lg = 24.0;
+  static const xl = 32.0;
+
+  // Compatibility aliases keep existing page layouts source-compatible while
+  // the UI v3 scale is adopted page by page. New UI v3 work must use xs–xl.
+  static const xxs = 4.0;
+  static const xxl = xl;
 }
 
 abstract final class UiRadius {
-  static const control = 14.0;
-  static const card = 20.0;
-  static const hero = 28.0;
-  static const pill = 999.0;
+  static const control = 12.0;
+  static const card = 16.0;
+  static const hero = 16.0;
+  static const pill = 16.0;
 }
 
 abstract final class UiShadow {
   static const card = <BoxShadow>[
-    BoxShadow(color: Color(0x12263746), blurRadius: 18, offset: Offset(0, 8)),
+    BoxShadow(color: Color(0x0F173B63), blurRadius: 16, offset: Offset(0, 6)),
+  ];
+  static const navigation = <BoxShadow>[
+    BoxShadow(color: Color(0x0A173B63), blurRadius: 14, offset: Offset(0, -4)),
   ];
 }
 
 abstract final class UiMotion {
-  static const quick = Duration(milliseconds: 160);
-  static const standard = Duration(milliseconds: 220);
-  static const emphasized = Duration(milliseconds: 280);
+  static const quick = Duration(milliseconds: 120);
+  static const standard = Duration(milliseconds: 180);
+  static const emphasized = Duration(milliseconds: 260);
   static const standardCurve = Curves.easeOutCubic;
   static const emphasizedCurve = Curves.easeInOutCubic;
 

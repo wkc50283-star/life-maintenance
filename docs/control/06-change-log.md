@@ -2458,6 +2458,38 @@ PR CI 先通過 codegen、Analyze、全部 tests、Web／Android／iOS build；s
 
 ---
 
+## LM-069：v0.5.40 UI v3 Foundation & Formal App Shell
+
+日期：2026-07-23
+狀態：已合併
+
+### 變更內容
+
+- 建立暖白、深藍／亮藍、狀態色、12～22pt 字級、五級間距、12～16 圓角、輕邊框與低陰影 UI v3 Token。
+- 建立共用頁首、底部導覽、卡片、主要／次要按鈕、表單欄位、狀態標籤、步驟指示器與 120～260ms Motion 元件。
+- App Shell 移除重複的「生活管理／分頁名稱」AppBar，改由各 Screen 原有頁首承接。
+- 五入口名稱、順序、Screen、Composition Root 與正式資料流程不變。
+- 新增 320×568、390×844、200% 文字、SafeArea、Reduce Motion、五入口與元件 Gate。
+- 版本更新為 v0.5.40。
+
+### 明確未修改
+
+PMS 方案只作視覺品質標準，不改產品定位；不修改各頁內容、Domain、Schema、Migration、Repository、Runtime、資料流程、產品邏輯、新功能或下一個 PR。
+
+### 資料與回復
+
+本 PR 不操作正式使用者資料。回復只需還原 Foundation、Theme、Shell、測試、版本與文件，不得刪除或修改任何正式資料。
+
+### 驗收依據
+
+以 UI v3 Foundation／Shell Gate、既有 UI／Accessibility Gate、codegen 無差異、Analyze、全部 tests、Web／Android／iOS build 及 GitHub Actions 全綠為準。
+
+### 追蹤
+
+- PR #241
+
+---
+
 ## 後續條目模板
 
 ```text

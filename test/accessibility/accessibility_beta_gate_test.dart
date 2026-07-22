@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_maintenance/app/app_composition_root.dart';
 import 'package:life_maintenance/app/app_theme.dart';
+import 'package:life_maintenance/app/ui_tokens.dart';
 import 'package:life_maintenance/database/app_database.dart';
 import 'package:life_maintenance/main.dart';
 import 'package:life_maintenance/screens/settings_screen.dart';
@@ -19,11 +20,11 @@ void main() {
       greaterThanOrEqualTo(4.5),
     );
     expect(
-      _contrast(const Color(0xFF687887), const Color(0xFFFFFFFC)),
+      _contrast(UiColors.textSecondary, UiColors.canvas),
       greaterThanOrEqualTo(4.5),
     );
     expect(
-      _contrast(const Color(0xFF7C8995), const Color(0xFFFFFCF6)),
+      _contrast(UiColors.iconMuted, UiColors.surfaceWarm),
       greaterThanOrEqualTo(3),
     );
   });

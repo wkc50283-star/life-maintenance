@@ -6,6 +6,7 @@ import '../screens/history_screen.dart';
 import '../screens/items_screen.dart';
 import '../screens/settings_screen.dart';
 import '../screens/today_screen.dart';
+import '../widgets/ui_v2_components.dart';
 import 'app_composition_root.dart';
 import 'ui_tokens.dart';
 
@@ -83,96 +84,49 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
-    final destination = _destinations[_currentIndex];
     final transitionDuration = UiMotion.durationOf(context);
 
     return Scaffold(
       key: const ValueKey('app-shell'),
-      appBar: AppBar(
-        centerTitle: false,
-        toolbarHeight: 68,
-        titleSpacing: UiSpace.md,
-        title: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: UiColors.iconSurface,
-                borderRadius: BorderRadius.circular(UiRadius.control),
-              ),
-              child: Icon(destination.selectedIcon, color: UiColors.primary),
-            ),
-            const SizedBox(width: UiSpace.sm),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    '生活管理',
-                    style: TextStyle(
-                      color: UiColors.textSecondary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Text(destination.title),
-                ],
+      body: SafeArea(
+        bottom: false,
+        child: switch ((_runtimeReady, _initializationError)) {
+          (false, null) => const Center(child: CircularProgressIndicator()),
+          (false, _) => _RuntimeLoadFailure(onRetry: _initializeRuntime),
+          (true, _) => AnimatedSwitcher(
+            key: const ValueKey('shell-tab-transition'),
+            duration: transitionDuration,
+            switchInCurve: UiMotion.standardCurve,
+            switchOutCurve: UiMotion.standardCurve,
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0.02, 0),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
               ),
             ),
-          ],
-        ),
+            child: KeyedSubtree(
+              key: ValueKey('shell-destination-$_currentIndex'),
+              child: _destinationScreen(_currentIndex),
+            ),
+          ),
+        },
       ),
-      body: switch ((_runtimeReady, _initializationError)) {
-        (false, null) => const Center(child: CircularProgressIndicator()),
-        (false, _) => _RuntimeLoadFailure(onRetry: _initializeRuntime),
-        (true, _) => AnimatedSwitcher(
-          key: const ValueKey('shell-tab-transition'),
-          duration: transitionDuration,
-          switchInCurve: UiMotion.standardCurve,
-          switchOutCurve: UiMotion.standardCurve,
-          transitionBuilder: (child, animation) => FadeTransition(
-            opacity: animation,
-            child: SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0.025, 0),
-                end: Offset.zero,
-              ).animate(animation),
-              child: child,
+      bottomNavigationBar: UiBottomNavigation(
+        navigationKey: const ValueKey('primary-navigation'),
+        currentIndex: _currentIndex,
+        onSelected: _selectDestination,
+        items: [
+          for (final item in _destinations)
+            UiNavigationItem(
+              label: item.title,
+              icon: item.icon,
+              selectedIcon: item.selectedIcon,
             ),
-          ),
-          child: KeyedSubtree(
-            key: ValueKey('shell-destination-$_currentIndex'),
-            child: _destinationScreen(_currentIndex),
-          ),
-        ),
-      },
-      bottomNavigationBar: DecoratedBox(
-        decoration: const BoxDecoration(
-          color: UiColors.surfaceWarm,
-          border: Border(top: BorderSide(color: UiColors.border)),
-          boxShadow: [
-            BoxShadow(
-              color: Color(0x0F263746),
-              blurRadius: 18,
-              offset: Offset(0, -6),
-            ),
-          ],
-        ),
-        child: NavigationBar(
-          key: const ValueKey('primary-navigation'),
-          selectedIndex: _currentIndex,
-          onDestinationSelected: _selectDestination,
-          destinations: [
-            for (final item in _destinations)
-              NavigationDestination(
-                icon: Icon(item.icon),
-                selectedIcon: Icon(item.selectedIcon),
-                label: item.title,
-              ),
-          ],
-        ),
+        ],
       ),
     );
   }
