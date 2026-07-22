@@ -2393,6 +2393,38 @@ PR CI 先通過 codegen、Analyze、全部 tests、Web／Android／iOS build；s
 
 ---
 
+## LM-067：v0.5.38 UI v2 Design System & Device UX Fixes
+
+日期：2026-07-22
+狀態：已合併
+
+### 變更內容
+
+- 建立集中式色彩、字級、間距、圓角、陰影與動畫 duration／curve Token。
+- 建立共用主要按鈕、操作卡及精簡頁首，限縮套用於新增入口與正式表單。
+- 修正全新資料沒有分類時生活項目分類無法操作，沿用既有 CategoryForm 與 Drift Repository。
+- 修正鍵盤遮住儲存、表單底部不可達及 SafeArea 阻擋問題。
+- 新增分類正式關聯、320×568 鍵盤、200% 文字、390×844／360×800 SafeArea Gate。
+- 版本更新為 v0.5.38。
+
+### 明確未修改
+
+不全面改造其他頁面、不新增功能或欄位，不修改 Domain、Schema、Migration、Repository、Runtime、產品邏輯、資料生命週期、五入口或下一個 PR。
+
+### 資料與回復
+
+所有寫入仍走既有 FormalPlanningEditor 與 Drift Repository；沒有資料格式或 Migration。回復只需還原本 PR 程式、測試、版本與文件。
+
+### 驗收依據
+
+以 UI v2 Token／元件 Gate、分類操作與正式關聯、鍵盤／捲動／SafeArea、200% 文字、codegen 無差異、Analyze、全部 tests、Web／Android／iOS build、預覽及 GitHub Actions 全綠為準。
+
+### 追蹤
+
+- PR #239
+
+---
+
 ## 後續條目模板
 
 ```text

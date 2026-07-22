@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app/app_composition_root.dart';
+import '../app/ui_tokens.dart';
 import '../models/enums.dart';
 import '../models/maintenance_plan.dart';
 import '../models/maintenance_plan_enums.dart';
@@ -8,6 +9,7 @@ import '../models/maintenance_plan_step.dart';
 import '../models/milestone.dart';
 import '../models/milestone_enums.dart';
 import '../repositories/formal_planning_editor.dart';
+import '../widgets/ui_v2_components.dart';
 
 enum PlanningContentKind { maintenancePlan, reminder, milestone, schedule }
 
@@ -245,7 +247,9 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
     return _FormScaffold(
       title: widget.value == null ? '新增生活項目' : '編輯生活項目',
       saving: _saving,
-      onSave: archived ? null : _save,
+      onSave: archived || _categories == null || _categories!.isEmpty
+          ? null
+          : _save,
       child: _categories == null
           ? const Center(child: CircularProgressIndicator())
           : Form(
@@ -260,22 +264,30 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
                     validator: _requiredText,
                   ),
                   const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    key: const ValueKey('item-category'),
-                    initialValue: _categoryId,
-                    decoration: const InputDecoration(labelText: '分類'),
-                    items: [
-                      for (final category in _categories!)
-                        DropdownMenuItem(
-                          value: category.id,
-                          child: Text(category.displayName),
-                        ),
-                    ],
-                    onChanged: archived
-                        ? null
-                        : (value) => setState(() => _categoryId = value),
-                    validator: (value) => value == null ? '請選擇分類' : null,
-                  ),
+                  if (_categories!.isEmpty)
+                    _MissingCategoryAction(onCreate: _createFirstCategory)
+                  else
+                    DropdownButtonFormField<String>(
+                      key: const ValueKey('item-category'),
+                      initialValue: _categoryId,
+                      isExpanded: true,
+                      menuMaxHeight: 320,
+                      decoration: const InputDecoration(labelText: '分類'),
+                      items: [
+                        for (final category in _categories!)
+                          DropdownMenuItem(
+                            value: category.id,
+                            child: Text(
+                              category.displayName,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                      ],
+                      onChanged: archived
+                          ? null
+                          : (value) => setState(() => _categoryId = value),
+                      validator: (value) => value == null ? '請選擇分類' : null,
+                    ),
                   const SizedBox(height: 16),
                   _StatusField(
                     value: _status,
@@ -320,6 +332,13 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
               ),
             ),
     );
+  }
+
+  Future<void> _createFirstCategory() async {
+    final changed = await Navigator.of(
+      context,
+    ).push<bool>(MaterialPageRoute(builder: (_) => const CategoryFormScreen()));
+    if (changed == true) await _loadCategories();
   }
 
   Future<void> _save() async {
@@ -1475,26 +1494,77 @@ class _FormScaffold extends StatelessWidget {
   final VoidCallback? onSave;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(title)),
-    body: ListView(
-      padding: const EdgeInsets.fromLTRB(18, 8, 18, 32),
-      children: [child],
-    ),
-    bottomNavigationBar: SafeArea(
-      minimum: const EdgeInsets.fromLTRB(18, 8, 18, 18),
-      child: FilledButton.icon(
-        key: const ValueKey('save-form'),
-        onPressed: saving ? null : onSave,
-        icon: saving
-            ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : const Icon(Icons.save_outlined),
-        label: Text(onSave == null ? '目前不可修改' : '儲存'),
+  Widget build(BuildContext context) {
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    return Scaffold(
+      resizeToAvoidBottomInset: false,
+      appBar: AppBar(title: Text(title)),
+      body: SafeArea(
+        bottom: false,
+        child: ListView(
+          key: const ValueKey('item-form-scroll'),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: const EdgeInsets.fromLTRB(
+            UiSpace.md,
+            UiSpace.xs,
+            UiSpace.md,
+            UiSpace.xxl,
+          ),
+          children: [child],
+        ),
       ),
+      bottomNavigationBar: AnimatedPadding(
+        duration: UiMotion.standard,
+        curve: UiMotion.standardCurve,
+        padding: EdgeInsets.only(bottom: keyboardInset),
+        child: SafeArea(
+          minimum: const EdgeInsets.fromLTRB(
+            UiSpace.md,
+            UiSpace.xs,
+            UiSpace.md,
+            UiSpace.md,
+          ),
+          child: UiPrimaryButton(
+            key: const ValueKey('save-form'),
+            label: onSave == null ? '目前不可修改' : '儲存',
+            icon: Icons.save_outlined,
+            onPressed: onSave,
+            loading: saving,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MissingCategoryAction extends StatelessWidget {
+  const _MissingCategoryAction({required this.onCreate});
+
+  final VoidCallback onCreate;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(UiSpace.md),
+    decoration: BoxDecoration(
+      color: UiColors.surfaceWarm,
+      borderRadius: BorderRadius.circular(UiRadius.card),
+      border: Border.all(color: UiColors.border),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('目前還沒有可使用的分類。', style: UiType.cardTitle),
+        const SizedBox(height: UiSpace.xs),
+        const Text('先建立一個熟悉的分類，完成後會回到這份生活項目表單。', style: UiType.body),
+        const SizedBox(height: UiSpace.sm),
+        OutlinedButton.icon(
+          key: const ValueKey('create-first-category'),
+          onPressed: onCreate,
+          icon: const Icon(Icons.add_rounded),
+          label: const Text('新增分類'),
+        ),
+      ],
     ),
   );
 }
@@ -1509,14 +1579,14 @@ class _FormIntro extends StatelessWidget {
     margin: const EdgeInsets.only(bottom: 20),
     padding: const EdgeInsets.all(18),
     decoration: BoxDecoration(
-      color: const Color(0xFFFFFCF6),
-      borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: const Color(0xFFE4E0D8)),
+      color: UiColors.surfaceWarm,
+      borderRadius: BorderRadius.circular(UiRadius.card),
+      border: Border.all(color: UiColors.border),
     ),
     child: Text(
       text,
       style: const TextStyle(
-        color: Color(0xFF526575),
+        color: UiColors.textSupporting,
         height: 1.5,
         fontWeight: FontWeight.w600,
       ),

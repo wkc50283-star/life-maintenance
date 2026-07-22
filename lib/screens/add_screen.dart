@@ -5,6 +5,7 @@ import '../widgets/add_item_preview_sheet.dart';
 import '../widgets/expiry_reminder_preview_sheet.dart';
 import '../widgets/maintenance_record_preview_sheet.dart';
 import '../widgets/reminder_list_sheet.dart';
+import '../widgets/ui_v2_components.dart';
 import 'formal_planning_screens.dart';
 
 class AddScreen extends StatelessWidget {
@@ -21,22 +22,10 @@ class AddScreen extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
-        const SizedBox(height: 8),
-        const Text(
-          '你要新增什麼？',
-          style: TextStyle(
-            color: Color(0xFF263746),
-            fontSize: 28,
-            fontWeight: FontWeight.w800,
-            height: 1.15,
-          ),
+        const UiCompactPageHeader(
+          title: '你要新增什麼？',
+          description: '新增生活項目、提醒或完成紀錄，方便之後查看與管理。',
         ),
-        const SizedBox(height: 8),
-        const Text(
-          '新增生活項目、提醒或完成紀錄，方便之後查看與管理。',
-          style: TextStyle(color: Color(0xFF687887), fontSize: 15, height: 1.5),
-        ),
-        const SizedBox(height: 20),
         AddEntryCard(
           icon: Icons.add_a_photo_outlined,
           title: '新增生活項目',
@@ -83,22 +72,10 @@ class _FormalAddScreen extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
-        const SizedBox(height: 8),
-        const Text(
-          '新增與整理',
-          style: TextStyle(
-            color: Color(0xFF263746),
-            fontSize: 28,
-            fontWeight: FontWeight.w800,
-            height: 1.15,
-          ),
+        const UiCompactPageHeader(
+          title: '新增與整理',
+          description: '先建立生活項目，再加入需要長期管理的保養、提醒、階段重點與排程。',
         ),
-        const SizedBox(height: 8),
-        const Text(
-          '先建立生活項目，再加入需要長期管理的保養、提醒、階段重點與排程。',
-          style: TextStyle(color: Color(0xFF687887), fontSize: 15, height: 1.5),
-        ),
-        const SizedBox(height: 20),
         AddEntryCard(
           icon: Icons.inventory_2_outlined,
           title: '生活項目',
