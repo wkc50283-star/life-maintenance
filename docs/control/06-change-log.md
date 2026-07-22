@@ -2425,6 +2425,39 @@ PR CI 先通過 codegen、Analyze、全部 tests、Web／Android／iOS build；s
 
 ---
 
+## LM-068：v0.5.39 App Shell & Life Overview UI v2 Motion
+
+日期：2026-07-22
+狀態：已合併
+
+### 變更內容
+
+- 將既有 UI v2 Design System 套用至正式 App Shell 與生活總覽，維持五入口名稱、順序與 Screen 不變。
+- 重整首頁 TodayHero、正式資料區塊、卡片與平靜空狀態的視覺層級。
+- 快速新增只切換至既有第三個「新增」入口，沒有新增 writer 或平行流程。
+- 加入 160～280ms Tab 淡入／輕移、區塊進場、卡片及按鈕按壓回饋。
+- 支援系統減少動態效果，裝飾動畫 duration 歸零。
+- 新增五入口、快速新增、Motion、320×568、200% 文字與 reduce-motion Gate。
+- 版本更新為 v0.5.39。
+
+### 明確未修改
+
+不修改 Domain、Schema、Migration、Repository、Runtime、產品邏輯、資料生命週期或其他頁面功能；不新增遊戲機制或下一個 PR。
+
+### 資料與回復
+
+本 PR 不操作正式使用者資料。回復只需還原 Shell／首頁 UI、Motion 元件、測試、版本與文件，不得刪除或修改任何正式資料。
+
+### 驗收依據
+
+以 UI v2 Shell／首頁 Motion Gate、既有 Drift 真實資料與 Accessibility Gate、codegen 無差異、Analyze、全部 tests、Web／Android／iOS build 及 GitHub Actions 全綠為準。
+
+### 追蹤
+
+- PR #240
+
+---
+
 ## 後續條目模板
 
 ```text

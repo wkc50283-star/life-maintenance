@@ -67,9 +67,18 @@ abstract final class UiShadow {
 }
 
 abstract final class UiMotion {
-  static const quick = Duration(milliseconds: 140);
+  static const quick = Duration(milliseconds: 160);
   static const standard = Duration(milliseconds: 220);
-  static const emphasized = Duration(milliseconds: 320);
+  static const emphasized = Duration(milliseconds: 280);
   static const standardCurve = Curves.easeOutCubic;
   static const emphasizedCurve = Curves.easeInOutCubic;
+
+  static Duration durationOf(
+    BuildContext context, [
+    Duration preferred = standard,
+  ]) {
+    return MediaQuery.maybeOf(context)?.disableAnimations ?? false
+        ? Duration.zero
+        : preferred;
+  }
 }

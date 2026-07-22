@@ -1,27 +1,32 @@
 import 'package:flutter/material.dart';
 
+import '../app/ui_tokens.dart';
+import 'ui_v2_components.dart';
+
 class TodayHero extends StatelessWidget {
   final int reminderCount;
   final int openCaseCount;
   final int milestoneCount;
+  final VoidCallback? onQuickAdd;
 
   const TodayHero({
     super.key,
     required this.reminderCount,
     required this.openCaseCount,
     required this.milestoneCount,
+    this.onQuickAdd,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(22),
+      padding: const EdgeInsets.all(UiSpace.xl),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(UiRadius.hero),
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF5D7893), Color(0xFF8FA4B8)],
+          colors: [UiColors.primary, UiColors.secondary],
         ),
         boxShadow: const [
           BoxShadow(
@@ -50,7 +55,7 @@ class TodayHero extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 26),
+          const SizedBox(height: UiSpace.xl),
           const Text(
             '生活總覽',
             style: TextStyle(
@@ -60,7 +65,7 @@ class TodayHero extends StatelessWidget {
               height: 1.12,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: UiSpace.xs),
           Text(
             '管理生活項目、提醒與處理紀錄',
             style: TextStyle(
@@ -69,7 +74,7 @@ class TodayHero extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: UiSpace.lg),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -88,6 +93,22 @@ class TodayHero extends StatelessWidget {
               ),
             ],
           ),
+          if (onQuickAdd != null) ...[
+            const SizedBox(height: UiSpace.lg),
+            UiPressFeedback(
+              child: FilledButton.icon(
+                key: const ValueKey('overview-quick-add'),
+                onPressed: onQuickAdd,
+                style: FilledButton.styleFrom(
+                  backgroundColor: UiColors.surface,
+                  foregroundColor: UiColors.primary,
+                  minimumSize: const Size(48, 50),
+                ),
+                icon: const Icon(Icons.add_rounded),
+                label: const Text('快速新增'),
+              ),
+            ),
+          ],
         ],
       ),
     );
