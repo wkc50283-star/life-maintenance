@@ -63,9 +63,9 @@ void main() {
         find.byKey(const ValueKey('shell-tab-transition')),
       );
       expect(switcher.duration, UiMotion.standard);
-      expect(UiMotion.quick.inMilliseconds, inInclusiveRange(150, 300));
-      expect(UiMotion.standard.inMilliseconds, inInclusiveRange(150, 300));
-      expect(UiMotion.emphasized.inMilliseconds, inInclusiveRange(150, 300));
+      expect(UiMotion.quick.inMilliseconds, inInclusiveRange(120, 300));
+      expect(UiMotion.standard.inMilliseconds, inInclusiveRange(120, 300));
+      expect(UiMotion.emphasized.inMilliseconds, inInclusiveRange(120, 300));
       expect(
         find.byKey(const ValueKey('overview-section-reminders')),
         findsOneWidget,

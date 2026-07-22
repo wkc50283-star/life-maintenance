@@ -9,12 +9,12 @@ import 'package:life_maintenance/repositories/formal_planning_editor.dart';
 import 'package:life_maintenance/widgets/add_entry_card.dart';
 
 void main() {
-  test('UI v2 exposes centralized visual and motion tokens', () {
-    expect(UiColors.primary, const Color(0xFF5D7893));
+  test('UI foundation exposes centralized visual and motion tokens', () {
+    expect(UiColors.primary, const Color(0xFF173B63));
     expect(UiSpace.md, 16);
-    expect(UiRadius.card, 20);
+    expect(UiRadius.card, 16);
     expect(UiShadow.card, isNotEmpty);
-    expect(UiMotion.standard, const Duration(milliseconds: 220));
+    expect(UiMotion.standard, const Duration(milliseconds: 180));
     expect(UiMotion.standardCurve, Curves.easeOutCubic);
   });
 

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_maintenance/app/app_composition_root.dart';
 import 'package:life_maintenance/app/app_shell.dart';
+import 'package:life_maintenance/app/ui_tokens.dart';
 import 'package:life_maintenance/database/app_database.dart';
 import 'package:life_maintenance/main.dart';
 import 'package:life_maintenance/models/item.dart';
@@ -30,11 +31,8 @@ void main() {
     expect(AppCompositionScope.of(shellContext), same(root));
     expect(materialApp.title, '生活管理');
     expect(Theme.of(shellContext).useMaterial3, isTrue);
-    expect(
-      Theme.of(shellContext).scaffoldBackgroundColor,
-      const Color(0xFFF7F3EA),
-    );
-    expect(Theme.of(shellContext).colorScheme.primary, const Color(0xFF5D7893));
+    expect(Theme.of(shellContext).scaffoldBackgroundColor, UiColors.canvas);
+    expect(Theme.of(shellContext).colorScheme.primary, UiColors.primary);
     await root.database.close();
   });
 

@@ -10,19 +10,19 @@ abstract final class AppTheme {
         brightness: Brightness.light,
         surface: UiColors.canvas,
         primary: UiColors.primary,
-        secondary: UiColors.secondary,
+        secondary: UiColors.accent,
       ),
       scaffoldBackgroundColor: UiColors.canvas,
       useMaterial3: true,
       appBarTheme: const AppBarTheme(
-        centerTitle: true,
+        centerTitle: false,
         elevation: 0,
         scrolledUnderElevation: 0,
         backgroundColor: UiColors.canvas,
         foregroundColor: UiColors.textPrimary,
         titleTextStyle: TextStyle(
           color: UiColors.textPrimary,
-          fontSize: 18,
+          fontSize: 20,
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -36,12 +36,13 @@ abstract final class AppTheme {
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: UiColors.surfaceWarm,
+        height: 68,
+        backgroundColor: UiColors.surface,
         indicatorColor: UiColors.selectedSurface,
         labelTextStyle: WidgetStateProperty.resolveWith(
           (states) => TextStyle(
             color: states.contains(WidgetState.selected)
-                ? UiColors.textPrimary
+                ? UiColors.primary
                 : UiColors.textSecondary,
             fontWeight: states.contains(WidgetState.selected)
                 ? FontWeight.w700
@@ -51,7 +52,7 @@ abstract final class AppTheme {
         iconTheme: WidgetStateProperty.resolveWith(
           (states) => IconThemeData(
             color: states.contains(WidgetState.selected)
-                ? UiColors.primary
+                ? UiColors.accent
                 : UiColors.iconMuted,
           ),
         ),
@@ -60,11 +61,44 @@ abstract final class AppTheme {
         style: FilledButton.styleFrom(
           backgroundColor: UiColors.primary,
           foregroundColor: Colors.white,
-          minimumSize: const Size(48, 54),
+          minimumSize: const Size(48, 52),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(UiRadius.control),
           ),
           textStyle: UiType.button,
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: UiColors.primary,
+          minimumSize: const Size(48, 52),
+          side: const BorderSide(color: UiColors.borderStrong),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(UiRadius.control),
+          ),
+          textStyle: UiType.button,
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: UiColors.surface,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: UiSpace.md,
+          vertical: UiSpace.md,
+        ),
+        labelStyle: UiType.body,
+        hintStyle: UiType.body.copyWith(color: UiColors.iconMuted),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(UiRadius.control),
+          borderSide: const BorderSide(color: UiColors.border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(UiRadius.control),
+          borderSide: const BorderSide(color: UiColors.border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(UiRadius.control),
+          borderSide: const BorderSide(color: UiColors.accent, width: 1.5),
         ),
       ),
     );
