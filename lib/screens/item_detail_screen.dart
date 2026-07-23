@@ -212,11 +212,6 @@ class _ItemDetailBody extends StatelessWidget {
         _ItemHero(item: item, openCaseCount: openCases.length),
         const SizedBox(height: UiSpace.lg),
         _DetailSection(
-          title: '主資訊',
-          icon: Icons.info_outline_rounded,
-          child: _MainInformation(item: item),
-        ),
-        _DetailSection(
           title: '保養項目',
           icon: Icons.home_repair_service_outlined,
           onManage: () => _openPlanning(
@@ -366,6 +361,11 @@ class _ItemDetailBody extends StatelessWidget {
                       ),
                   ],
                 ),
+        ),
+        _DetailSection(
+          title: '主資訊',
+          icon: Icons.info_outline_rounded,
+          child: _MainInformation(item: item),
         ),
       ],
     );

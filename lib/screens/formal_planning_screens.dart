@@ -1622,14 +1622,43 @@ class _ManagementTile extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Card(
-    margin: const EdgeInsets.only(bottom: 12),
-    child: ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
-      subtitle: Text(enabled ? subtitle : '$subtitle · 已結束，僅供查看'),
-      trailing: const Icon(Icons.chevron_right_rounded),
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: UiSpace.sm),
+    child: UiActionCard(
       onTap: onTap,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: enabled ? UiColors.iconSurface : UiColors.surfaceWarm,
+              borderRadius: BorderRadius.circular(UiRadius.control),
+            ),
+            child: Icon(
+              enabled ? Icons.edit_calendar_outlined : Icons.lock_outline,
+              color: enabled ? UiColors.primary : UiColors.iconMuted,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: UiSpace.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: UiType.cardTitle),
+                const SizedBox(height: UiSpace.xxs),
+                Text(
+                  enabled ? subtitle : '$subtitle · 已結束，僅供查看',
+                  style: UiType.body,
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right_rounded, color: UiColors.iconMuted),
+        ],
+      ),
     ),
   );
 }
@@ -1690,12 +1719,21 @@ class _ReadOnlyNotice extends StatelessWidget {
   final String text;
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 16),
-    child: Text(
-      text,
-      style: const TextStyle(
-        color: Color(0xFF687887),
-        fontWeight: FontWeight.w600,
+    padding: const EdgeInsets.symmetric(vertical: UiSpace.md),
+    child: DecoratedBox(
+      decoration: BoxDecoration(
+        color: UiColors.surfaceWarm,
+        borderRadius: BorderRadius.circular(UiRadius.control),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(UiSpace.md),
+        child: Row(
+          children: [
+            const Icon(Icons.lock_outline, color: UiColors.iconMuted),
+            const SizedBox(width: UiSpace.sm),
+            Expanded(child: Text(text, style: UiType.body)),
+          ],
+        ),
       ),
     ),
   );
