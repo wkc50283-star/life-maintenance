@@ -213,7 +213,7 @@ class _TodayScreenState extends State<TodayScreen> {
             onQuickAdd: widget.onQuickAdd,
           ),
         ),
-        const SizedBox(height: UiSpace.lg),
+        const SizedBox(height: UiSpace.md),
         UiMotionEntrance(
           key: const ValueKey('overview-section-reminders'),
           duration: UiMotion.standard,
@@ -665,20 +665,20 @@ class _OverviewFactCard extends StatelessWidget {
       onTap: onTap,
       semanticLabel: semanticLabel,
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(14),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: 44,
-              height: 44,
+              width: 38,
+              height: 38,
               decoration: BoxDecoration(
                 color: UiColors.iconSurface,
                 borderRadius: BorderRadius.circular(UiRadius.control),
               ),
-              child: Icon(icon, color: UiColors.primary),
+              child: Icon(icon, color: UiColors.primary, size: 19),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: UiSpace.sm),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

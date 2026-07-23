@@ -25,9 +25,9 @@ class SettingsScreen extends StatelessWidget {
       padding: UiInsets.pageCompact,
       children: [
         const UiMotionEntrance(child: SettingsHeader()),
-        const SizedBox(height: UiSpace.xs),
+        const SizedBox(height: UiSpace.xxs),
         const UiMotionEntrance(child: DemoDataNotice()),
-        const SizedBox(height: UiSpace.lg),
+        const SizedBox(height: UiSpace.md),
         const UiSectionHeader(
           title: '資料與安全',
           icon: Icons.shield_outlined,

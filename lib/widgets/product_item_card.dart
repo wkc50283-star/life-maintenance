@@ -29,7 +29,7 @@ class ProductItemCard extends StatelessWidget {
       onTap: onTap,
       semanticLabel: '開啟生活項目：$title',
       child: Padding(
-        padding: const EdgeInsets.all(UiSpace.md),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -37,13 +37,13 @@ class ProductItemCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  width: 48,
-                  height: 48,
+                  width: 40,
+                  height: 40,
                   decoration: BoxDecoration(
                     color: UiColors.iconSurface,
                     borderRadius: BorderRadius.circular(UiRadius.control),
                   ),
-                  child: Icon(icon, color: UiColors.primary),
+                  child: Icon(icon, color: UiColors.primary, size: 20),
                 ),
                 const SizedBox(width: UiSpace.sm),
                 Expanded(
@@ -51,7 +51,7 @@ class ProductItemCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(title, style: UiType.cardTitle),
-                      const SizedBox(height: UiSpace.xs),
+                      const SizedBox(height: 6),
                       Wrap(
                         spacing: UiSpace.xs,
                         runSpacing: UiSpace.xs,
@@ -72,7 +72,7 @@ class ProductItemCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: UiSpace.md),
+            const SizedBox(height: UiSpace.sm),
             _ItemInfoRow(icon: Icons.place_outlined, text: '位置：$location'),
             const SizedBox(height: UiSpace.xs),
             _ItemInfoRow(icon: Icons.event_available_outlined, text: dateLine),
@@ -91,7 +91,7 @@ class _InfoPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
         color: UiColors.surfaceBlue,
         borderRadius: BorderRadius.circular(UiRadius.pill),
@@ -124,7 +124,7 @@ class _ItemInfoRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 18, color: UiColors.iconMuted),
+        Icon(icon, size: 16, color: UiColors.iconMuted),
         const SizedBox(width: 8),
         Expanded(
           child: Text(

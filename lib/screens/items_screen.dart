@@ -59,7 +59,7 @@ class _ItemsScreenState extends State<ItemsScreen> {
       padding: UiInsets.pageCompact,
       children: [
         const UiMotionEntrance(child: ItemsHeader()),
-        const SizedBox(height: UiSpace.xs),
+        const SizedBox(height: UiSpace.xxs),
         if (_loadError != null)
           _ItemsLoadFailure(onRetry: _loadItems)
         else if (items == null)
@@ -137,7 +137,7 @@ class _ItemsMessageCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(UiSpace.lg),
+      padding: const EdgeInsets.all(UiSpace.md),
       decoration: BoxDecoration(
         color: UiColors.surface,
         borderRadius: BorderRadius.circular(UiRadius.card),
@@ -148,15 +148,15 @@ class _ItemsMessageCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: UiColors.iconSurface,
               borderRadius: BorderRadius.circular(UiRadius.control),
             ),
             child: Icon(icon, color: UiColors.primary),
           ),
-          const SizedBox(height: UiSpace.md),
+          const SizedBox(height: UiSpace.sm),
           Text(message, style: UiType.cardTitle),
           const SizedBox(height: UiSpace.xs),
           Text(supporting, style: UiType.body),

@@ -257,13 +257,18 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
               child: Column(
                 children: [
                   const _FormIntro(text: '先填最重要的名稱與分類，其他資料可以之後再補。'),
+                  const _FormSectionHeading(
+                    step: '1',
+                    title: '名稱與分類',
+                    description: '先完成辨識這個生活項目所需的基本資料。',
+                  ),
                   TextFormField(
                     key: const ValueKey('item-name'),
                     controller: _name,
                     decoration: const InputDecoration(labelText: '項目名稱'),
                     validator: _requiredText,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   if (_categories!.isEmpty)
                     _MissingCategoryAction(onCreate: _createFirstCategory)
                   else
@@ -288,17 +293,22 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
                           : (value) => setState(() => _categoryId = value),
                       validator: (value) => value == null ? '請選擇分類' : null,
                     ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   _StatusField(
                     value: _status,
                     onChanged: (value) => setState(() => _status = value),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: UiSpace.md),
+                  const _FormSectionHeading(
+                    step: '2',
+                    title: '補充資訊',
+                    description: '這些內容可以先留白，之後再慢慢補齊。',
+                  ),
                   TextFormField(
                     controller: _location,
                     decoration: const InputDecoration(labelText: '放置位置（選填）'),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   TextFormField(
                     controller: _years,
                     keyboardType: TextInputType.number,
@@ -309,7 +319,7 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
                       return years == null || years <= 0 ? '請輸入大於 0 的年數' : null;
                     },
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   _DateField(
                     label: '購買或開始日期',
                     value: _purchaseDate,
@@ -321,7 +331,7 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
                     value: _warrantyDate,
                     onChanged: (value) => setState(() => _warrantyDate = value),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   TextFormField(
                     controller: _note,
                     maxLines: 3,
@@ -1522,7 +1532,7 @@ class _FormScaffold extends StatelessWidget {
           children: [
             UiMotionEntrance(
               child: UiSurfaceCard(
-                padding: const EdgeInsets.all(UiSpace.md),
+                padding: const EdgeInsets.all(14),
                 child: child,
               ),
             ),
@@ -1551,6 +1561,52 @@ class _FormScaffold extends StatelessWidget {
       ),
     );
   }
+}
+
+class _FormSectionHeading extends StatelessWidget {
+  const _FormSectionHeading({
+    required this.step,
+    required this.title,
+    required this.description,
+  });
+
+  final String step;
+  final String title;
+  final String description;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: UiSpace.sm),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 26,
+          height: 26,
+          alignment: Alignment.center,
+          decoration: const BoxDecoration(
+            color: UiColors.primary,
+            shape: BoxShape.circle,
+          ),
+          child: Text(
+            step,
+            style: UiType.caption.copyWith(color: Colors.white),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: UiType.cardTitle),
+              const SizedBox(height: 2),
+              Text(description, style: UiType.caption),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _MissingCategoryAction extends StatelessWidget {

@@ -37,35 +37,35 @@ abstract final class UiType {
   );
   static const body = TextStyle(
     color: UiColors.textSecondary,
-    fontSize: 14,
-    height: 1.5,
+    fontSize: 13,
+    height: 1.42,
   );
   static const button = TextStyle(
-    fontSize: 14,
+    fontSize: 13,
     height: 1.2,
     fontWeight: FontWeight.w700,
   );
   static const pageIntro = TextStyle(
     color: UiColors.textSecondary,
-    fontSize: 14,
-    height: 1.5,
+    fontSize: 13,
+    height: 1.42,
     fontWeight: FontWeight.w500,
   );
   static const cardTitle = TextStyle(
     color: UiColors.textPrimary,
-    fontSize: 16,
-    height: 1.35,
+    fontSize: 15,
+    height: 1.3,
     fontWeight: FontWeight.w700,
   );
   static const sectionTitle = TextStyle(
     color: UiColors.textPrimary,
-    fontSize: 18,
+    fontSize: 16,
     height: 1.3,
     fontWeight: FontWeight.w700,
   );
   static const pageTitle = TextStyle(
     color: UiColors.textPrimary,
-    fontSize: 22,
+    fontSize: 20,
     height: 1.25,
     fontWeight: FontWeight.w800,
   );
@@ -109,7 +109,7 @@ abstract final class UiInsets {
 
 abstract final class UiShadow {
   static const card = <BoxShadow>[
-    BoxShadow(color: Color(0x0F173B63), blurRadius: 16, offset: Offset(0, 6)),
+    BoxShadow(color: Color(0x0A173B63), blurRadius: 10, offset: Offset(0, 3)),
   ];
   static const navigation = <BoxShadow>[
     BoxShadow(color: Color(0x0A173B63), blurRadius: 14, offset: Offset(0, -4)),

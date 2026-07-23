@@ -34,12 +34,12 @@ class AddEntryCard extends StatelessWidget {
             );
           },
       child: Padding(
-        padding: const EdgeInsets.all(UiSpace.md),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(
           children: [
             Container(
-              width: 48,
-              height: 48,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
                 color: emphasized ? UiColors.accent : UiColors.iconSurface,
                 borderRadius: BorderRadius.circular(UiRadius.control),
@@ -47,6 +47,7 @@ class AddEntryCard extends StatelessWidget {
               child: Icon(
                 icon,
                 color: emphasized ? Colors.white : UiColors.primary,
+                size: 20,
               ),
             ),
             const SizedBox(width: UiSpace.sm),

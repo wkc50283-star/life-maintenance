@@ -36,77 +36,71 @@ class HistoryRecordCard extends StatelessWidget {
     return UiActionCard(
       onTap: onTap,
       semanticLabel: onTap == null ? null : '開啟史略：$title',
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(UiSpace.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: UiColors.iconSurface,
+                    borderRadius: BorderRadius.circular(UiRadius.control),
+                  ),
+                  child: Icon(icon, color: UiColors.primary, size: 20),
+                ),
+                const SizedBox(width: UiSpace.sm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: UiType.cardTitle),
+                      const SizedBox(height: 5),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        children: [
+                          _SoftTag(label: date),
+                          _SoftTag(label: recordType),
+                          _SoftTag(label: itemName),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Flexible(child: _ResultTag(label: result)),
+              ],
+            ),
+            const SizedBox(height: UiSpace.sm),
+            Text(
+              description,
+              style: UiType.body.copyWith(color: UiColors.textPrimary),
+            ),
+            if (detailLines.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              for (final line in detailLines) _DetailLine(text: line),
+            ],
+            if (costLabel != null || photoLabel != null) ...[
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
                 children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: UiColors.iconSurface,
-                      borderRadius: BorderRadius.circular(UiRadius.control),
+                  if (costLabel != null)
+                    _MetaTag(icon: Icons.payments_outlined, label: costLabel!),
+                  if (photoLabel != null)
+                    _MetaTag(
+                      icon: Icons.photo_library_outlined,
+                      label: photoLabel!,
                     ),
-                    child: Icon(icon, color: UiColors.primary),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(title, style: UiType.cardTitle),
-                        const SizedBox(height: 7),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            _SoftTag(label: date),
-                            _SoftTag(label: recordType),
-                            _SoftTag(label: itemName),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  Flexible(child: _ResultTag(label: result)),
                 ],
               ),
-              const SizedBox(height: UiSpace.md),
-              Text(
-                description,
-                style: UiType.body.copyWith(color: UiColors.textPrimary),
-              ),
-              if (detailLines.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                for (final line in detailLines) _DetailLine(text: line),
-              ],
-              if (costLabel != null || photoLabel != null) ...[
-                const SizedBox(height: 14),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    if (costLabel != null)
-                      _MetaTag(
-                        icon: Icons.payments_outlined,
-                        label: costLabel!,
-                      ),
-                    if (photoLabel != null)
-                      _MetaTag(
-                        icon: Icons.photo_library_outlined,
-                        label: photoLabel!,
-                      ),
-                  ],
-                ),
-              ],
             ],
-          ),
+          ],
         ),
       ),
     );
@@ -142,7 +136,7 @@ class _SoftTag extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
         color: UiColors.surfaceBlue,
         borderRadius: BorderRadius.circular(UiRadius.pill),
@@ -166,7 +160,7 @@ class _ResultTag extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
         color: UiColors.successSurface,
         borderRadius: BorderRadius.circular(UiRadius.pill),

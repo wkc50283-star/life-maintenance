@@ -20,7 +20,7 @@ class TodayHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(UiSpace.lg),
+      padding: const EdgeInsets.all(UiSpace.md),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(UiRadius.hero),
         gradient: const LinearGradient(
@@ -28,103 +28,95 @@ class TodayHero extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: [Color(0xFF173B63), Color(0xFF275D98)],
         ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x21173B63),
-            blurRadius: 20,
-            offset: Offset(0, 10),
-          ),
-        ],
+        boxShadow: UiShadow.card,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.24),
+              const Expanded(
+                child: Text(
+                  '生活總覽',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    height: 1.12,
                   ),
                 ),
-                child: const Icon(Icons.home_outlined, color: Colors.white),
               ),
               const SizedBox(width: UiSpace.sm),
-              Expanded(
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: MediaQuery.withClampedTextScaling(
-                    maxScaleFactor: 1.3,
-                    child: Text(
-                      _todayLabel(),
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+              MediaQuery.withClampedTextScaling(
+                maxScaleFactor: 1.3,
+                child: Text(
+                  _todayLabel(),
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: UiSpace.md),
-          const Text(
-            '生活總覽',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              height: 1.12,
-            ),
-          ),
-          const SizedBox(height: UiSpace.xs),
+          const SizedBox(height: UiSpace.xxs),
           Text(
             '管理生活項目、提醒與處理紀錄',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.86),
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
+              color: Colors.white.withValues(alpha: 0.82),
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: UiSpace.md),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _StatusPill(
-                icon: Icons.notifications_none_rounded,
-                label: '今日提醒 $reminderCount',
-              ),
-              _StatusPill(
-                icon: Icons.handyman_outlined,
-                label: '進行中案件 $openCaseCount',
-              ),
-              _StatusPill(
-                icon: Icons.flag_outlined,
-                label: '階段性重點 $milestoneCount',
-              ),
-            ],
+          const SizedBox(height: UiSpace.sm),
+          MediaQuery.withClampedTextScaling(
+            maxScaleFactor: 1.1,
+            child: Row(
+              children: [
+                Expanded(
+                  child: _StatusPill(
+                    icon: Icons.notifications_none_rounded,
+                    label: '今日提醒',
+                    count: reminderCount,
+                  ),
+                ),
+                const SizedBox(width: UiSpace.xs),
+                Expanded(
+                  child: _StatusPill(
+                    icon: Icons.handyman_outlined,
+                    label: '進行中案件',
+                    count: openCaseCount,
+                  ),
+                ),
+                const SizedBox(width: UiSpace.xs),
+                Expanded(
+                  child: _StatusPill(
+                    icon: Icons.flag_outlined,
+                    label: '階段性重點',
+                    count: milestoneCount,
+                  ),
+                ),
+              ],
+            ),
           ),
           if (onQuickAdd != null) ...[
-            const SizedBox(height: UiSpace.md),
+            const SizedBox(height: UiSpace.sm),
             UiPressFeedback(
               child: SizedBox(
                 width: double.infinity,
+                height: 40,
                 child: FilledButton.icon(
                   key: const ValueKey('overview-quick-add'),
                   onPressed: onQuickAdd,
                   style: FilledButton.styleFrom(
                     backgroundColor: UiColors.surface,
                     foregroundColor: UiColors.primary,
-                    minimumSize: const Size(48, 50),
+                    minimumSize: const Size(48, 40),
                   ),
-                  icon: const Icon(Icons.add_rounded),
-                  label: const Text('建立第一筆生活管理'),
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text('新增生活項目'),
                 ),
               ),
             ),
@@ -142,36 +134,48 @@ String _todayLabel() {
 }
 
 class _StatusPill extends StatelessWidget {
-  const _StatusPill({required this.icon, required this.label});
+  const _StatusPill({
+    required this.icon,
+    required this.label,
+    required this.count,
+  });
 
   final IconData icon;
   final String label;
+  final int count;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(UiRadius.pill),
         border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: Colors.white, size: 18),
-          const SizedBox(width: 7),
-          Flexible(
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
+      child: LayoutBuilder(
+        builder: (context, constraints) => Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (constraints.maxWidth >= 72) ...[
+              Icon(icon, color: Colors.white, size: 15),
+              const SizedBox(width: 5),
+            ],
+            Flexible(
+              child: Text(
+                '$label $count',
+                maxLines: 1,
+                overflow: TextOverflow.fade,
+                softWrap: false,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

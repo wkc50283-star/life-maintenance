@@ -102,7 +102,7 @@ class _FormalAddScreen extends StatelessWidget {
             description: '用自己熟悉的名稱整理生活項目，不必一開始就分得很細。',
             onTap: () => open(const CategoryManagementScreen()),
           ),
-          const SizedBox(height: UiSpace.md),
+          const SizedBox(height: UiSpace.sm),
           const _AddSectionHeader(
             step: '2',
             title: '再安排需要長期記住的事',
@@ -166,8 +166,8 @@ class _AddSectionHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 32,
-          height: 32,
+          width: 28,
+          height: 28,
           alignment: Alignment.center,
           decoration: const BoxDecoration(
             color: UiColors.primary,
@@ -175,7 +175,7 @@ class _AddSectionHeader extends StatelessWidget {
           ),
           child: Text(step, style: UiType.button.copyWith(color: Colors.white)),
         ),
-        const SizedBox(width: UiSpace.sm),
+        const SizedBox(width: 10),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

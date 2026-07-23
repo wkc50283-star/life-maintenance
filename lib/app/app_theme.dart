@@ -21,11 +21,11 @@ abstract final class AppTheme {
         scrolledUnderElevation: 0,
         backgroundColor: UiColors.canvas,
         foregroundColor: UiColors.textPrimary,
-        toolbarHeight: 56,
+        toolbarHeight: 52,
         surfaceTintColor: Colors.transparent,
         titleTextStyle: TextStyle(
           color: UiColors.textPrimary,
-          fontSize: 20,
+          fontSize: 18,
           fontWeight: FontWeight.w700,
         ),
         iconTheme: IconThemeData(color: UiColors.primary, size: 22),
@@ -71,7 +71,7 @@ abstract final class AppTheme {
         style: FilledButton.styleFrom(
           backgroundColor: UiColors.primary,
           foregroundColor: Colors.white,
-          minimumSize: const Size(48, 52),
+          minimumSize: const Size(48, 46),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(UiRadius.control),
           ),
@@ -81,7 +81,7 @@ abstract final class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: UiColors.primary,
-          minimumSize: const Size(48, 52),
+          minimumSize: const Size(48, 46),
           side: const BorderSide(color: UiColors.borderStrong),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(UiRadius.control),
@@ -101,7 +101,7 @@ abstract final class AppTheme {
         fillColor: UiColors.surface,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: UiSpace.md,
-          vertical: UiSpace.md,
+          vertical: 12,
         ),
         labelStyle: UiType.body,
         hintStyle: UiType.body.copyWith(color: UiColors.iconMuted),

@@ -210,7 +210,7 @@ class _ItemDetailBody extends StatelessWidget {
       padding: UiInsets.pageCompact,
       children: [
         _ItemHero(item: item, openCaseCount: openCases.length),
-        const SizedBox(height: UiSpace.lg),
+        const SizedBox(height: UiSpace.md),
         _DetailSection(
           title: '保養項目',
           icon: Icons.home_repair_service_outlined,
@@ -391,7 +391,7 @@ class _ItemHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(UiSpace.lg),
+      padding: const EdgeInsets.all(UiSpace.md),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [UiColors.primary, Color(0xFF275D98)],
@@ -399,47 +399,51 @@ class _ItemHero extends StatelessWidget {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(UiRadius.hero),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x21173B63),
-            blurRadius: 20,
-            offset: Offset(0, 10),
-          ),
-        ],
+        boxShadow: UiShadow.card,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 44,
-            height: 44,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.18),
               borderRadius: BorderRadius.circular(UiRadius.control),
             ),
-            child: Icon(_iconForCategory(item.category), color: Colors.white),
-          ),
-          const SizedBox(height: UiSpace.md),
-          Text(
-            item.name,
-            style: UiType.pageTitle.copyWith(color: Colors.white),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '${_categoryLabel(item.category)} · ${_itemStatusLabel(item.status)}',
-            style: const TextStyle(
+            child: Icon(
+              _iconForCategory(item.category),
               color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
+              size: 20,
             ),
           ),
-          const SizedBox(height: UiSpace.md),
-          Text(
-            openCaseCount == 0 ? '目前沒有進行中的案件' : '有 $openCaseCount 件事情正在處理',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.92),
-              fontWeight: FontWeight.w700,
+          const SizedBox(width: UiSpace.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.name,
+                  style: UiType.pageTitle.copyWith(color: Colors.white),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${_categoryLabel(item.category)} · ${_itemStatusLabel(item.status)}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ),
+          ),
+          const SizedBox(width: UiSpace.xs),
+          UiStatusTag(
+            label: openCaseCount == 0 ? '無進行案件' : '案件 $openCaseCount',
+            tone: openCaseCount == 0
+                ? UiStatusTone.neutral
+                : UiStatusTone.warning,
           ),
         ],
       ),
@@ -515,9 +519,9 @@ class _DetailSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: UiSpace.sm),
       child: UiSurfaceCard(
-        padding: const EdgeInsets.all(UiSpace.md),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -527,7 +531,7 @@ class _DetailSection extends StatelessWidget {
               actionLabel: onManage == null ? null : '管理',
               onAction: onManage,
             ),
-            const SizedBox(height: UiSpace.md),
+            const SizedBox(height: UiSpace.sm),
             child,
           ],
         ),
@@ -562,7 +566,7 @@ class _FactCard extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(UiSpace.md),
+            padding: const EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -582,7 +586,7 @@ class _FactCard extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Text(
                   detail,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -612,7 +616,7 @@ class _EmptyMessage extends StatelessWidget {
         borderRadius: BorderRadius.circular(UiRadius.control),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(UiSpace.md),
+        padding: const EdgeInsets.all(12),
         child: Row(
           children: [
             const Icon(Icons.inbox_outlined, color: UiColors.iconMuted),

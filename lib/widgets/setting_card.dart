@@ -23,18 +23,18 @@ class SettingCard extends StatelessWidget {
         ? UiColors.warningSurface
         : UiColors.iconSurface;
     return Padding(
-      padding: const EdgeInsets.all(UiSpace.md),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: iconBackground,
               borderRadius: BorderRadius.circular(UiRadius.control),
             ),
-            child: Icon(icon, color: iconColor),
+            child: Icon(icon, color: iconColor, size: 20),
           ),
           const SizedBox(width: UiSpace.sm),
           Expanded(
@@ -43,28 +43,12 @@ class SettingCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              color: UiColors.textPrimary,
-                              fontWeight: FontWeight.w800,
-                            ),
-                      ),
-                    ),
+                    Expanded(child: Text(title, style: UiType.cardTitle)),
                     if (highlighted) const _SafetyBadge(),
                   ],
                 ),
-                const SizedBox(height: UiSpace.xs),
-                Text(
-                  content,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: UiColors.textSecondary,
-                    height: 1.4,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+                const SizedBox(height: 5),
+                Text(content, style: UiType.body),
               ],
             ),
           ),

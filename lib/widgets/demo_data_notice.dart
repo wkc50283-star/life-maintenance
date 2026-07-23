@@ -8,7 +8,7 @@ class DemoDataNotice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(UiSpace.md),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: UiColors.surfaceBlue,
         borderRadius: BorderRadius.circular(UiRadius.card),

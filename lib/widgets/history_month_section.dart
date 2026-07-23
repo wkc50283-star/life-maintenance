@@ -15,12 +15,12 @@ class HistoryMonthSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: UiSpace.lg),
+      padding: const EdgeInsets.only(bottom: UiSpace.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(left: 2, bottom: UiSpace.sm),
+            padding: const EdgeInsets.only(left: 2, bottom: UiSpace.xs),
             child: Text(month, style: UiType.sectionTitle),
           ),
           for (var index = 0; index < children.length; index++)
@@ -29,12 +29,12 @@ class HistoryMonthSection extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   SizedBox(
-                    width: 20,
+                    width: 16,
                     child: Column(
                       children: [
                         Container(
-                          width: 12,
-                          height: 12,
+                          width: 10,
+                          height: 10,
                           decoration: BoxDecoration(
                             color: UiColors.accent,
                             shape: BoxShape.circle,
@@ -61,7 +61,7 @@ class HistoryMonthSection extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(width: UiSpace.sm),
+                  const SizedBox(width: 10),
                   Expanded(child: children[index]),
                 ],
               ),

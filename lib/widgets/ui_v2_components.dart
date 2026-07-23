@@ -22,13 +22,13 @@ class UiCompactPageHeader extends StatelessWidget {
     final iconWidget = icon == null
         ? null
         : Container(
-            width: 44,
-            height: 44,
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
               color: UiColors.iconSurface,
               borderRadius: BorderRadius.circular(UiRadius.control),
             ),
-            child: Icon(icon, color: UiColors.primary, size: 22),
+            child: Icon(icon, color: UiColors.primary, size: 19),
           );
     final copy = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -39,7 +39,7 @@ class UiCompactPageHeader extends StatelessWidget {
       ],
     );
     return Padding(
-      padding: const EdgeInsets.only(top: UiSpace.xs, bottom: UiSpace.lg),
+      padding: const EdgeInsets.only(top: UiSpace.xxs, bottom: UiSpace.md),
       child: largeText
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -87,10 +87,7 @@ class UiSurfaceCard extends StatelessWidget {
       border: Border.all(color: UiColors.border),
       boxShadow: UiShadow.card,
     ),
-    child: Padding(
-      padding: padding ?? const EdgeInsets.all(UiSpace.md),
-      child: child,
-    ),
+    child: Padding(padding: padding ?? const EdgeInsets.all(14), child: child),
   );
 }
 
@@ -117,13 +114,13 @@ class UiSectionHeader extends StatelessWidget {
       children: [
         if (icon != null) ...[
           Container(
-            width: 34,
-            height: 34,
+            width: 30,
+            height: 30,
             decoration: BoxDecoration(
               color: UiColors.iconSurface,
               borderRadius: BorderRadius.circular(UiRadius.control),
             ),
-            child: Icon(icon, color: UiColors.primary, size: 18),
+            child: Icon(icon, color: UiColors.primary, size: 16),
           ),
           const SizedBox(width: UiSpace.sm),
         ],
@@ -171,20 +168,20 @@ class UiEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => UiSurfaceCard(
-    padding: const EdgeInsets.all(UiSpace.lg),
+    padding: const EdgeInsets.all(UiSpace.md),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 44,
-          height: 44,
+          width: 40,
+          height: 40,
           decoration: BoxDecoration(
             color: UiColors.iconSurface,
             borderRadius: BorderRadius.circular(UiRadius.control),
           ),
           child: Icon(icon, color: UiColors.primary),
         ),
-        const SizedBox(height: UiSpace.md),
+        const SizedBox(height: UiSpace.sm),
         Text(title, style: UiType.cardTitle),
         const SizedBox(height: UiSpace.xs),
         Text(description, style: UiType.body),
@@ -283,7 +280,7 @@ class UiPrimaryButton extends StatelessWidget {
     enabled: !loading && onPressed != null,
     child: SizedBox(
       width: double.infinity,
-      height: 52,
+      height: 46,
       child: FilledButton.icon(
         onPressed: loading ? null : onPressed,
         icon: loading
@@ -315,7 +312,7 @@ class UiSecondaryButton extends StatelessWidget {
     enabled: onPressed != null,
     child: SizedBox(
       width: double.infinity,
-      height: 52,
+      height: 46,
       child: OutlinedButton.icon(
         onPressed: onPressed,
         icon: Icon(icon),
@@ -392,10 +389,7 @@ class UiStatusTag extends StatelessWidget {
           border: Border.all(color: foreground.withValues(alpha: 0.22)),
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: UiSpace.sm,
-            vertical: UiSpace.xs,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           child: Text(label, style: UiType.caption.copyWith(color: foreground)),
         ),
       ),
@@ -486,7 +480,7 @@ class UiBottomNavigation extends StatelessWidget {
         maxScaleFactor: 1.3,
         child: NavigationBar(
           key: navigationKey,
-          height: 64,
+          height: 60,
           selectedIndex: currentIndex,
           onDestinationSelected: onSelected,
           destinations: [
