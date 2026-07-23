@@ -251,6 +251,8 @@ class UiActionCard extends StatelessWidget {
       enabled: onTap != null,
       child: Semantics(
         button: onTap != null,
+        focusable: onTap != null,
+        onTap: onTap,
         label: semanticLabel,
         excludeSemantics: semanticLabel != null,
         child: Card(

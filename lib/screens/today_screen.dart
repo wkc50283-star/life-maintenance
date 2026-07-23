@@ -219,6 +219,7 @@ class _TodayScreenState extends State<TodayScreen> {
           duration: UiMotion.standard,
           child: _OverviewSection(
             title: '今日提醒',
+            icon: Icons.notifications_none_rounded,
             description: '今天到期或仍需要留意的提醒。',
             actionLabel: _runtime.taskReminderRuntime == null ? null : '查看全部',
             onAction: _runtime.taskReminderRuntime == null
@@ -246,6 +247,9 @@ class _TodayScreenState extends State<TodayScreen> {
                         subtitle: _itemName(task.itemId, localItems),
                         detail: '原定 ${_formatDate(task.dueDate)}',
                         status: _labelForStatus(task.status),
+                        statusTone: task.status == TaskStatus.overdue
+                            ? UiStatusTone.warning
+                            : UiStatusTone.info,
                         semanticLabel: '開啟提醒：${task.title}',
                         onTap: () => _openTaskDetail(task.id),
                       ),
@@ -257,6 +261,7 @@ class _TodayScreenState extends State<TodayScreen> {
           duration: UiMotion.emphasized,
           child: _OverviewSection(
             title: '進行中案件',
+            icon: Icons.handyman_outlined,
             description: '已經開始處理、仍在進行或等待中的事情。',
             actionLabel: _workCaseRuntime == null ? null : '全部案件',
             onAction: _workCaseRuntime == null
@@ -284,6 +289,10 @@ class _TodayScreenState extends State<TodayScreen> {
                         subtitle: entry.itemName,
                         detail: _caseDetail(entry),
                         status: _labelForCaseStatus(entry.workCase.status),
+                        statusTone:
+                            entry.workCase.status == WorkCaseStatus.waiting
+                            ? UiStatusTone.warning
+                            : UiStatusTone.info,
                         onTap: () async {
                           final changed = await Navigator.of(context)
                               .push<bool>(
@@ -304,6 +313,7 @@ class _TodayScreenState extends State<TodayScreen> {
           duration: UiMotion.emphasized,
           child: _OverviewSection(
             title: '階段性重點',
+            icon: Icons.flag_outlined,
             description: '生活項目正在接近或已達到的重要階段。',
             children: _activeMilestones.isEmpty
                 ? const [
@@ -320,6 +330,9 @@ class _TodayScreenState extends State<TodayScreen> {
                         subtitle: _itemName(milestone.itemId, localItems),
                         detail: _milestoneTriggerLabel(milestone),
                         status: _labelForMilestoneStatus(milestone.status),
+                        statusTone: milestone.status == MilestoneStatus.reached
+                            ? UiStatusTone.warning
+                            : UiStatusTone.info,
                       ),
                   ],
           ),
@@ -328,6 +341,7 @@ class _TodayScreenState extends State<TodayScreen> {
           duration: UiMotion.emphasized,
           child: _OverviewSection(
             title: '最近完成',
+            icon: Icons.history_rounded,
             description: '近期已處理完成並留在正式史略中的紀錄。',
             children: _recentCompletions.isEmpty
                 ? const [
@@ -344,6 +358,7 @@ class _TodayScreenState extends State<TodayScreen> {
                         subtitle: completion.itemName,
                         detail: _formatDate(completion.entry.occurredAt),
                         status: '已完成',
+                        statusTone: UiStatusTone.success,
                       ),
                   ],
           ),
@@ -378,20 +393,12 @@ class _OverviewLoadFailure extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.refresh_outlined, size: 40),
-            const SizedBox(height: 12),
-            Text(
-              '暫時無法讀取生活總覽。',
-              style: Theme.of(context).textTheme.titleMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            OutlinedButton(onPressed: onRetry, child: const Text('重新讀取')),
-          ],
+        padding: const EdgeInsets.all(UiSpace.md),
+        child: UiEmptyState(
+          icon: Icons.refresh_outlined,
+          title: '暫時無法讀取生活總覽。',
+          description: '資料仍完整保留，可以稍後再次讀取。',
+          action: OutlinedButton(onPressed: onRetry, child: const Text('重新讀取')),
         ),
       ),
     );
@@ -550,6 +557,7 @@ class _RecentCompletion {
 class _OverviewSection extends StatelessWidget {
   const _OverviewSection({
     required this.title,
+    required this.icon,
     required this.description,
     required this.children,
     this.actionLabel,
@@ -557,6 +565,7 @@ class _OverviewSection extends StatelessWidget {
   });
 
   final String title;
+  final IconData icon;
   final String description;
   final List<Widget> children;
   final String? actionLabel;
@@ -568,8 +577,9 @@ class _OverviewSection extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _OverviewSectionHeader(
+        UiSectionHeader(
           title: title,
+          icon: icon,
           description: description,
           actionLabel: actionLabel,
           onAction: onAction,
@@ -579,45 +589,6 @@ class _OverviewSection extends StatelessWidget {
       ],
     ),
   );
-}
-
-class _OverviewSectionHeader extends StatelessWidget {
-  const _OverviewSectionHeader({
-    required this.title,
-    required this.description,
-    this.actionLabel,
-    this.onAction,
-  });
-
-  final String title;
-  final String description;
-  final String? actionLabel;
-  final VoidCallback? onAction;
-
-  @override
-  Widget build(BuildContext context) {
-    final largeText = MediaQuery.textScalerOf(context).scale(14) >= 21;
-    final action = actionLabel != null && onAction != null
-        ? TextButton(onPressed: onAction, child: Text(actionLabel!))
-        : null;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (largeText) ...[
-          Text(title, style: UiType.sectionTitle),
-          ?action,
-        ] else
-          Row(
-            children: [
-              Expanded(child: Text(title, style: UiType.sectionTitle)),
-              ?action,
-            ],
-          ),
-        const SizedBox(height: UiSpace.xxs),
-        Text(description, style: UiType.body),
-      ],
-    );
-  }
 }
 
 class _OverviewEmptyState extends StatelessWidget {
@@ -649,9 +620,16 @@ class _OverviewEmptyState extends StatelessWidget {
           ),
           const SizedBox(width: UiSpace.sm),
           Expanded(
-            child: Text(
-              message,
-              style: UiType.body.copyWith(fontWeight: FontWeight.w600),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  message,
+                  style: UiType.body.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: UiSpace.xxs),
+                const Text('你可以先新增生活項目，或從現有項目繼續安排。', style: UiType.caption),
+              ],
             ),
           ),
         ],
@@ -667,6 +645,7 @@ class _OverviewFactCard extends StatelessWidget {
     required this.subtitle,
     required this.detail,
     required this.status,
+    this.statusTone = UiStatusTone.info,
     this.onTap,
     this.semanticLabel,
   });
@@ -676,6 +655,7 @@ class _OverviewFactCard extends StatelessWidget {
   final String subtitle;
   final String detail;
   final String status;
+  final UiStatusTone statusTone;
   final VoidCallback? onTap;
   final String? semanticLabel;
 
@@ -730,13 +710,7 @@ class _OverviewFactCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 10),
-            Text(
-              status,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: UiColors.textSupporting,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
+            UiStatusTag(label: status, tone: statusTone),
           ],
         ),
       ),

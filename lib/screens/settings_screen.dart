@@ -27,35 +27,28 @@ class SettingsScreen extends StatelessWidget {
         const UiMotionEntrance(child: SettingsHeader()),
         const SizedBox(height: UiSpace.xs),
         const UiMotionEntrance(child: DemoDataNotice()),
-        const SizedBox(height: UiSpace.md),
+        const SizedBox(height: UiSpace.lg),
+        const UiSectionHeader(
+          title: '資料與安全',
+          icon: Icons.shield_outlined,
+          description: '了解資料保存方式與處理生活事項時的安全邊界。',
+        ),
+        const SizedBox(height: UiSpace.sm),
         for (final setting in _settings)
           UiMotionEntrance(
             duration: UiMotion.emphasized,
-            child: Semantics(
-              button: setting.highlighted,
-              focusable: setting.highlighted,
-              label: setting.highlighted
+            child: UiActionCard(
+              semanticLabel: setting.highlighted
                   ? '開啟${setting.title}說明'
                   : setting.title,
               onTap: setting.highlighted
-                  ? () {
-                      showSafetyGuideSheet(context);
-                    }
+                  ? () => showSafetyGuideSheet(context)
                   : null,
-              child: ExcludeSemantics(
-                child: InkWell(
-                  onTap: setting.highlighted
-                      ? () {
-                          showSafetyGuideSheet(context);
-                        }
-                      : null,
-                  child: SettingCard(
-                    title: setting.title,
-                    content: setting.content,
-                    icon: setting.icon,
-                    highlighted: setting.highlighted,
-                  ),
-                ),
+              child: SettingCard(
+                title: setting.title,
+                content: setting.content,
+                icon: setting.icon,
+                highlighted: setting.highlighted,
               ),
             ),
           ),

@@ -8,6 +8,7 @@ class AddEntryCard extends StatelessWidget {
   final String title;
   final String description;
   final VoidCallback? onTap;
+  final bool emphasized;
 
   const AddEntryCard({
     super.key,
@@ -15,6 +16,7 @@ class AddEntryCard extends StatelessWidget {
     required this.title,
     required this.description,
     this.onTap,
+    this.emphasized = false,
   });
 
   @override
@@ -39,10 +41,13 @@ class AddEntryCard extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: UiColors.iconSurface,
+                color: emphasized ? UiColors.accent : UiColors.iconSurface,
                 borderRadius: BorderRadius.circular(UiRadius.control),
               ),
-              child: Icon(icon, color: UiColors.primary),
+              child: Icon(
+                icon,
+                color: emphasized ? Colors.white : UiColors.primary,
+              ),
             ),
             const SizedBox(width: UiSpace.sm),
             Expanded(
@@ -56,7 +61,10 @@ class AddEntryCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: UiSpace.xs),
-            const Icon(Icons.chevron_right, color: UiColors.secondary),
+            Icon(
+              Icons.chevron_right,
+              color: emphasized ? UiColors.accent : UiColors.iconMuted,
+            ),
           ],
         ),
       ),

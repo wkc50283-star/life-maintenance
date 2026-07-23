@@ -28,52 +28,55 @@ class ProductItemCard extends StatelessWidget {
     return UiActionCard(
       onTap: onTap,
       semanticLabel: '開啟生活項目：$title',
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(UiSpace.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: UiColors.iconSurface,
-                      borderRadius: BorderRadius.circular(UiRadius.control),
-                    ),
-                    child: Icon(icon, color: UiColors.primary),
+      child: Padding(
+        padding: const EdgeInsets.all(UiSpace.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: UiColors.iconSurface,
+                    borderRadius: BorderRadius.circular(UiRadius.control),
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(color: UiColors.textPrimary),
-                        ),
-                        const SizedBox(height: 7),
-                        _InfoPill(label: categoryLabel),
-                      ],
-                    ),
+                  child: Icon(icon, color: UiColors.primary),
+                ),
+                const SizedBox(width: UiSpace.sm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: UiType.cardTitle),
+                      const SizedBox(height: UiSpace.xs),
+                      Wrap(
+                        spacing: UiSpace.xs,
+                        runSpacing: UiSpace.xs,
+                        children: [
+                          _InfoPill(label: categoryLabel),
+                          UiStatusTag(
+                            label: statusLabel,
+                            tone: _toneForStatus(statusLabel),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  _StatusTag(label: statusLabel),
-                ],
-              ),
-              const SizedBox(height: UiSpace.md),
-              _ItemInfoRow(icon: Icons.place_outlined, text: '位置：$location'),
-              const SizedBox(height: 10),
-              _ItemInfoRow(
-                icon: Icons.event_available_outlined,
-                text: dateLine,
-              ),
-            ],
-          ),
+                ),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: UiColors.iconMuted,
+                ),
+              ],
+            ),
+            const SizedBox(height: UiSpace.md),
+            _ItemInfoRow(icon: Icons.place_outlined, text: '位置：$location'),
+            const SizedBox(height: UiSpace.xs),
+            _ItemInfoRow(icon: Icons.event_available_outlined, text: dateLine),
+          ],
         ),
       ),
     );
@@ -104,30 +107,11 @@ class _InfoPill extends StatelessWidget {
   }
 }
 
-class _StatusTag extends StatelessWidget {
-  final String label;
-
-  const _StatusTag({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: UiColors.successSurface,
-        borderRadius: BorderRadius.circular(UiRadius.pill),
-        border: Border.all(color: UiColors.success.withValues(alpha: 0.22)),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-          color: UiColors.success,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
-  }
-}
+UiStatusTone _toneForStatus(String label) => switch (label) {
+  '正常追蹤' => UiStatusTone.success,
+  '暫停' => UiStatusTone.warning,
+  _ => UiStatusTone.neutral,
+};
 
 class _ItemInfoRow extends StatelessWidget {
   final IconData icon;

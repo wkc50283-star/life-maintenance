@@ -7,6 +7,7 @@ import '../models/item.dart';
 import '../repositories/item_read_repository.dart';
 import '../widgets/items_header.dart';
 import '../widgets/product_item_card.dart';
+import '../widgets/ui_v2_components.dart';
 import 'item_detail_screen.dart';
 
 class ItemsScreen extends StatefulWidget {
@@ -57,7 +58,7 @@ class _ItemsScreenState extends State<ItemsScreen> {
     return ListView(
       padding: UiInsets.pageCompact,
       children: [
-        const ItemsHeader(),
+        const UiMotionEntrance(child: ItemsHeader()),
         const SizedBox(height: UiSpace.xs),
         if (_loadError != null)
           _ItemsLoadFailure(onRetry: _loadItems)
@@ -67,21 +68,24 @@ class _ItemsScreenState extends State<ItemsScreen> {
           const _EmptyItemsState()
         else
           for (final item in items)
-            ProductItemCard(
-              title: item.name,
-              categoryLabel: _labelForCategory(item.category),
-              statusLabel: _labelForStatus(item.status),
-              location: item.location ?? '未設定',
-              dateLine: _dateLineForItem(item),
-              icon: _iconForCategory(item.category),
-              onTap: () async {
-                final changed = await Navigator.of(context).push<bool>(
-                  MaterialPageRoute<bool>(
-                    builder: (_) => ItemDetailScreen(item: item),
-                  ),
-                );
-                if (changed == true) await _loadItems();
-              },
+            UiMotionEntrance(
+              duration: UiMotion.emphasized,
+              child: ProductItemCard(
+                title: item.name,
+                categoryLabel: _labelForCategory(item.category),
+                statusLabel: _labelForStatus(item.status),
+                location: item.location ?? '未設定',
+                dateLine: _dateLineForItem(item),
+                icon: _iconForCategory(item.category),
+                onTap: () async {
+                  final changed = await Navigator.of(context).push<bool>(
+                    MaterialPageRoute<bool>(
+                      builder: (_) => ItemDetailScreen(item: item),
+                    ),
+                  );
+                  if (changed == true) await _loadItems();
+                },
+              ),
             ),
       ],
     );

@@ -113,16 +113,19 @@ class TodayHero extends StatelessWidget {
           if (onQuickAdd != null) ...[
             const SizedBox(height: UiSpace.md),
             UiPressFeedback(
-              child: FilledButton.icon(
-                key: const ValueKey('overview-quick-add'),
-                onPressed: onQuickAdd,
-                style: FilledButton.styleFrom(
-                  backgroundColor: UiColors.surface,
-                  foregroundColor: UiColors.primary,
-                  minimumSize: const Size(48, 50),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  key: const ValueKey('overview-quick-add'),
+                  onPressed: onQuickAdd,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: UiColors.surface,
+                    foregroundColor: UiColors.primary,
+                    minimumSize: const Size(48, 50),
+                  ),
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text('建立第一筆生活管理'),
                 ),
-                icon: const Icon(Icons.add_rounded),
-                label: const Text('快速新增'),
               ),
             ),
           ],
