@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../app/ui_tokens.dart';
+
 class HistoryMonthSection extends StatelessWidget {
   final String month;
   final List<Widget> children;
@@ -13,19 +15,13 @@ class HistoryMonthSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: UiSpace.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(left: 2, bottom: 10),
-            child: Text(
-              month,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: const Color(0xFF263746),
-                fontWeight: FontWeight.w800,
-              ),
-            ),
+            padding: const EdgeInsets.only(left: 2, bottom: UiSpace.sm),
+            child: Text(month, style: UiType.sectionTitle),
           ),
           for (var index = 0; index < children.length; index++)
             IntrinsicHeight(
@@ -33,34 +29,44 @@ class HistoryMonthSection extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   SizedBox(
-                    width: 18,
+                    width: 20,
                     child: Column(
                       children: [
                         Container(
-                          width: 10,
-                          height: 10,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF5D7893),
+                          width: 12,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: UiColors.accent,
                             shape: BoxShape.circle,
+                            border: Border.all(
+                              color: UiColors.surface,
+                              width: 3,
+                            ),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x332F80ED),
+                                blurRadius: 6,
+                              ),
+                            ],
                           ),
                         ),
                         if (index != children.length - 1)
                           Expanded(
                             child: Container(
                               width: 2,
-                              margin: const EdgeInsets.only(top: 4),
-                              color: const Color(0xFFD6E2EC),
+                              margin: const EdgeInsets.only(top: UiSpace.xxs),
+                              color: UiColors.borderStrong,
                             ),
                           ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: UiSpace.sm),
                   Expanded(child: children[index]),
                 ],
               ),
             ),
-          const SizedBox(height: 10),
+          const SizedBox(height: UiSpace.xs),
         ],
       ),
     );

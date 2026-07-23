@@ -7,6 +7,7 @@ import '../models/work_case.dart';
 import '../models/work_case_enums.dart';
 import '../repositories/repository_constraint_exception.dart';
 import '../repositories/task_reminder_runtime.dart';
+import '../widgets/ui_v2_components.dart';
 
 class TaskReminderListScreen extends StatefulWidget {
   const TaskReminderListScreen({super.key});
@@ -425,13 +426,15 @@ class _ReminderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return UiActionCard(
+      onTap: onTap,
+      semanticLabel: '開啟提醒：${detail.task.title}',
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
         onTap: onTap,
         leading: const CircleAvatar(
-          backgroundColor: Color(0xFFE8F0F6),
-          child: Icon(Icons.notifications_none, color: Color(0xFF5D7893)),
+          backgroundColor: UiColors.iconSurface,
+          child: Icon(Icons.notifications_none, color: UiColors.primary),
         ),
         title: Text(
           detail.task.title,
@@ -440,7 +443,12 @@ class _ReminderCard extends StatelessWidget {
         subtitle: Text(
           '${detail.itemName} · ${_formatDate(detail.task.dueDate)}',
         ),
-        trailing: Text(_statusLabel(detail.task.status)),
+        trailing: UiStatusTag(
+          label: _statusLabel(detail.task.status),
+          tone: detail.task.status == TaskStatus.overdue
+              ? UiStatusTone.warning
+              : UiStatusTone.info,
+        ),
       ),
     );
   }
@@ -454,31 +462,27 @@ class _ReminderHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(22),
+      padding: const EdgeInsets.all(UiSpace.lg),
       decoration: BoxDecoration(
-        color: const Color(0xFFE8F0F6),
-        borderRadius: BorderRadius.circular(24),
+        color: UiColors.surfaceBlue,
+        borderRadius: BorderRadius.circular(UiRadius.card),
+        border: Border.all(color: UiColors.border),
+        boxShadow: UiShadow.card,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Icon(
             Icons.notifications_active_outlined,
-            color: Color(0xFF5D7893),
+            color: UiColors.primary,
           ),
           const SizedBox(height: 14),
-          Text(
-            detail.task.title,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: const Color(0xFF263746),
-              fontWeight: FontWeight.w800,
-            ),
-          ),
+          Text(detail.task.title, style: UiType.pageTitle),
           const SizedBox(height: 8),
           Text(
             '這是一則提醒；開始處理後，案件會另外承接過程與結果。',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: const Color(0xFF516778),
+              color: UiColors.textSecondary,
               height: 1.5,
             ),
           ),
@@ -496,24 +500,20 @@ class _InformationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return UiSurfaceCard(
+      padding: const EdgeInsets.all(UiSpace.md),
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: EdgeInsets.zero,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-            ),
+            Text(title, style: UiType.sectionTitle),
             const SizedBox(height: 12),
             for (final row in rows) ...[
               Text(
                 row.$1,
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: const Color(0xFF5D7893),
+                  color: UiColors.primary,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -537,8 +537,13 @@ class _EmptyState extends StatelessWidget {
   const _EmptyState();
 
   @override
-  Widget build(BuildContext context) => const Center(
-    child: Padding(padding: EdgeInsets.all(32), child: Text('目前沒有需要安排的提醒。')),
+  Widget build(BuildContext context) => const Padding(
+    padding: EdgeInsets.all(UiSpace.md),
+    child: UiEmptyState(
+      icon: Icons.notifications_none_rounded,
+      title: '目前沒有提醒',
+      description: '需要留意的日期或事項出現時，會整理在這裡。',
+    ),
   );
 }
 

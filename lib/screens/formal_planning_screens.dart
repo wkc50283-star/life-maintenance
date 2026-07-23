@@ -1459,7 +1459,7 @@ class _ManagementScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: Text(title),
+      title: const SizedBox.shrink(),
       actions: [
         if (onAdd != null)
           IconButton(
@@ -1519,7 +1519,14 @@ class _FormScaffold extends StatelessWidget {
             UiSpace.md,
             UiSpace.xxl,
           ),
-          children: [child],
+          children: [
+            UiMotionEntrance(
+              child: UiSurfaceCard(
+                padding: const EdgeInsets.all(UiSpace.md),
+                child: child,
+              ),
+            ),
+          ],
         ),
       ),
       bottomNavigationBar: AnimatedPadding(
@@ -1585,20 +1592,19 @@ class _FormIntro extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     width: double.infinity,
-    margin: const EdgeInsets.only(bottom: 20),
-    padding: const EdgeInsets.all(18),
+    margin: const EdgeInsets.only(bottom: UiSpace.lg),
+    padding: const EdgeInsets.all(UiSpace.md),
     decoration: BoxDecoration(
-      color: UiColors.surfaceWarm,
-      borderRadius: BorderRadius.circular(UiRadius.card),
-      border: Border.all(color: UiColors.border),
+      color: UiColors.surfaceBlue,
+      borderRadius: BorderRadius.circular(UiRadius.control),
     ),
-    child: Text(
-      text,
-      style: const TextStyle(
-        color: UiColors.textSupporting,
-        height: 1.5,
-        fontWeight: FontWeight.w600,
-      ),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Icon(Icons.edit_note_rounded, color: UiColors.primary),
+        const SizedBox(width: UiSpace.sm),
+        Expanded(child: Text(text, style: UiType.body)),
+      ],
     ),
   );
 }

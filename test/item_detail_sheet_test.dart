@@ -54,6 +54,14 @@ void main() {
     expect(find.byType(BottomSheet), findsNothing);
     expect(find.text('生活項目詳情'), findsOneWidget);
     expect(find.text('主資訊'), findsOneWidget);
+    expect(find.text('清洗濾網'), findsOneWidget);
+    expect(find.text('保固到期提醒'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('提醒與排程'),
+      300,
+      scrollable: find.byType(Scrollable),
+    );
     expect(find.text('清洗濾網'), findsNWidgets(2));
     expect(find.text('保固到期提醒'), findsNWidgets(2));
     expect(find.text('每月'), findsOneWidget);

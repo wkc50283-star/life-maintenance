@@ -94,6 +94,144 @@ class UiSurfaceCard extends StatelessWidget {
   );
 }
 
+class UiSectionHeader extends StatelessWidget {
+  const UiSectionHeader({
+    super.key,
+    required this.title,
+    this.description,
+    this.icon,
+    this.actionLabel,
+    this.onAction,
+  });
+
+  final String title;
+  final String? description;
+  final IconData? icon;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final largeText = MediaQuery.textScalerOf(context).scale(14) >= 21;
+    final titleRow = Row(
+      children: [
+        if (icon != null) ...[
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: UiColors.iconSurface,
+              borderRadius: BorderRadius.circular(UiRadius.control),
+            ),
+            child: Icon(icon, color: UiColors.primary, size: 18),
+          ),
+          const SizedBox(width: UiSpace.sm),
+        ],
+        Expanded(child: Text(title, style: UiType.sectionTitle)),
+      ],
+    );
+    final action = actionLabel != null && onAction != null
+        ? TextButton(onPressed: onAction, child: Text(actionLabel!))
+        : null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (largeText) ...[
+          titleRow,
+          ?action,
+        ] else
+          Row(
+            children: [
+              Expanded(child: titleRow),
+              ?action,
+            ],
+          ),
+        if (description case final value?) ...[
+          const SizedBox(height: UiSpace.xxs),
+          Text(value, style: UiType.body),
+        ],
+      ],
+    );
+  }
+}
+
+class UiEmptyState extends StatelessWidget {
+  const UiEmptyState({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.description,
+    this.action,
+  });
+
+  final IconData icon;
+  final String title;
+  final String description;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) => UiSurfaceCard(
+    padding: const EdgeInsets.all(UiSpace.lg),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: UiColors.iconSurface,
+            borderRadius: BorderRadius.circular(UiRadius.control),
+          ),
+          child: Icon(icon, color: UiColors.primary),
+        ),
+        const SizedBox(height: UiSpace.md),
+        Text(title, style: UiType.cardTitle),
+        const SizedBox(height: UiSpace.xs),
+        Text(description, style: UiType.body),
+        if (action != null) ...[const SizedBox(height: UiSpace.md), action!],
+      ],
+    ),
+  );
+}
+
+class UiInformationRow extends StatelessWidget {
+  const UiInformationRow({
+    super.key,
+    required this.label,
+    required this.value,
+    this.icon,
+  });
+
+  final String label;
+  final String value;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: UiSpace.sm),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (icon != null) ...[
+          Icon(icon, size: 18, color: UiColors.iconMuted),
+          const SizedBox(width: UiSpace.xs),
+        ],
+        SizedBox(width: 76, child: Text(label, style: UiType.caption)),
+        const SizedBox(width: UiSpace.xs),
+        Expanded(
+          child: Text(
+            value,
+            style: UiType.body.copyWith(
+              color: UiColors.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 class UiActionCard extends StatelessWidget {
   const UiActionCard({
     super.key,

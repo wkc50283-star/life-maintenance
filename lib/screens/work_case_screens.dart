@@ -11,6 +11,7 @@ import '../models/work_case_closure.dart';
 import '../models/work_case_enums.dart';
 import '../models/work_case_update.dart';
 import '../repositories/repository_constraint_exception.dart';
+import '../widgets/ui_v2_components.dart';
 
 class WorkCaseListScreen extends StatefulWidget {
   const WorkCaseListScreen({super.key});
@@ -788,7 +789,9 @@ class _WorkCaseBody extends StatelessWidget {
     return ListView(
       padding: UiInsets.pageCompact,
       children: [
-        _CaseHero(workCase: workCase, itemName: itemName),
+        UiMotionEntrance(
+          child: _CaseHero(workCase: workCase, itemName: itemName),
+        ),
         const SizedBox(height: 16),
         _InformationCard(
           title: '主資訊',
@@ -802,11 +805,10 @@ class _WorkCaseBody extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 18),
-        Row(
-          children: [
-            const Expanded(child: _SectionTitle('案件時間軸')),
-            Text('累計費用 ${_money(snapshot.totalUpdateCost)}'),
-          ],
+        UiSectionHeader(
+          title: '案件時間軸',
+          icon: Icons.timeline_rounded,
+          description: '累計費用 ${_money(snapshot.totalUpdateCost)}',
         ),
         const SizedBox(height: 10),
         if (snapshot.updates.isEmpty)
@@ -832,7 +834,7 @@ class _WorkCaseBody extends StatelessWidget {
           ),
         ],
         const SizedBox(height: 18),
-        const _SectionTitle('附件'),
+        const UiSectionHeader(title: '附件', icon: Icons.attach_file_rounded),
         const SizedBox(height: 8),
         if (snapshot.allAttachments.isEmpty)
           const _EmptyState(
@@ -982,29 +984,29 @@ class _TimelineEntry extends StatelessWidget {
                   width: 12,
                   height: 12,
                   decoration: const BoxDecoration(
-                    color: Color(0xFF5D7893),
+                    color: UiColors.accent,
                     shape: BoxShape.circle,
                   ),
                 ),
                 if (!isLast)
                   Expanded(
-                    child: Container(width: 2, color: const Color(0xFFD5E0E9)),
+                    child: Container(width: 2, color: UiColors.borderStrong),
                   ),
               ],
             ),
           ),
           Expanded(
-            child: Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: UiSpace.sm),
+              child: UiSurfaceCard(
+                padding: const EdgeInsets.all(UiSpace.md),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       _formatDateTime(update.occurredAt),
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: const Color(0xFF5D7893),
+                        color: UiColors.primary,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -1262,21 +1264,10 @@ class _EmptyState extends StatelessWidget {
   final String message;
 
   @override
-  Widget build(BuildContext context) => Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(18),
-    decoration: BoxDecoration(
-      color: const Color(0xFFFFFCF6),
-      borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: const Color(0xFFE4E0D8)),
-    ),
-    child: Row(
-      children: [
-        Icon(icon, color: const Color(0xFF5D7893)),
-        const SizedBox(width: 12),
-        Expanded(child: Text(message)),
-      ],
-    ),
+  Widget build(BuildContext context) => UiEmptyState(
+    icon: icon,
+    title: message,
+    description: '有新的處理內容時，可以在這裡繼續留下完整過程。',
   );
 }
 

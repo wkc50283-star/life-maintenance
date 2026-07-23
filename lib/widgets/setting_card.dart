@@ -27,7 +27,7 @@ class SettingCard extends StatelessWidget {
         : UiColors.border;
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: UiSpace.sm),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(UiRadius.card),
         side: BorderSide(color: borderColor),
@@ -46,7 +46,7 @@ class SettingCard extends StatelessWidget {
               ),
               child: Icon(icon, color: iconColor),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: UiSpace.sm),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -66,13 +66,13 @@ class SettingCard extends StatelessWidget {
                       if (highlighted) const _SafetyBadge(),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: UiSpace.xs),
                   Text(
                     content,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: UiColors.textSecondary,
                       height: 1.4,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
@@ -93,14 +93,14 @@ class _SafetyBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7E6),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFEAD9B8)),
+        color: UiColors.warningSurface,
+        borderRadius: BorderRadius.circular(UiRadius.pill),
+        border: Border.all(color: UiColors.warning.withValues(alpha: 0.22)),
       ),
       child: Text(
         '重要',
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: const Color(0xFF7A6338),
+          color: UiColors.warning,
           fontWeight: FontWeight.w800,
         ),
       ),

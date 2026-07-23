@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../app/ui_tokens.dart';
+import 'ui_v2_components.dart';
+
 class HistoryRecordCard extends StatelessWidget {
   final String date;
   final String title;
@@ -30,12 +33,13 @@ class HistoryRecordCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+    return UiActionCard(
+      onTap: onTap,
+      semanticLabel: onTap == null ? null : '開啟史略：$title',
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(UiSpace.md),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -46,25 +50,17 @@ class HistoryRecordCard extends StatelessWidget {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE8F0F6),
-                      borderRadius: BorderRadius.circular(16),
+                      color: UiColors.iconSurface,
+                      borderRadius: BorderRadius.circular(UiRadius.control),
                     ),
-                    child: Icon(icon, color: const Color(0xFF5D7893)),
+                    child: Icon(icon, color: UiColors.primary),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          title,
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(
-                                color: const Color(0xFF263746),
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                              ),
-                        ),
+                        Text(title, style: UiType.cardTitle),
                         const SizedBox(height: 7),
                         Wrap(
                           spacing: 8,
@@ -78,17 +74,13 @@ class HistoryRecordCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  _ResultTag(label: result),
+                  Flexible(child: _ResultTag(label: result)),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: UiSpace.md),
               Text(
                 description,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFF4D5D6B),
-                  height: 1.4,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: UiType.body.copyWith(color: UiColors.textPrimary),
               ),
               if (detailLines.isNotEmpty) ...[
                 const SizedBox(height: 12),
@@ -133,7 +125,7 @@ class _DetailLine extends StatelessWidget {
       child: Text(
         text,
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: const Color(0xFF687887),
+          color: UiColors.textSecondary,
           height: 1.4,
           fontWeight: FontWeight.w600,
         ),
@@ -152,13 +144,13 @@ class _SoftTag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F5F8),
-        borderRadius: BorderRadius.circular(999),
+        color: UiColors.surfaceBlue,
+        borderRadius: BorderRadius.circular(UiRadius.pill),
       ),
       child: Text(
         label,
         style: Theme.of(context).textTheme.labelMedium?.copyWith(
-          color: const Color(0xFF5D7893),
+          color: UiColors.primary,
           fontWeight: FontWeight.w800,
         ),
       ),
@@ -176,14 +168,14 @@ class _ResultTag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: const Color(0xFFEAF4EA),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFC9DEC9)),
+        color: UiColors.successSurface,
+        borderRadius: BorderRadius.circular(UiRadius.pill),
+        border: Border.all(color: UiColors.success.withValues(alpha: 0.22)),
       ),
       child: Text(
         label,
         style: Theme.of(context).textTheme.labelMedium?.copyWith(
-          color: const Color(0xFF456A4A),
+          color: UiColors.success,
           fontWeight: FontWeight.w800,
         ),
       ),
@@ -202,19 +194,19 @@ class _MetaTag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7E6),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFEAD9B8)),
+        color: UiColors.warningSurface,
+        borderRadius: BorderRadius.circular(UiRadius.pill),
+        border: Border.all(color: UiColors.warning.withValues(alpha: 0.22)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 15, color: const Color(0xFF7A6338)),
+          Icon(icon, size: 15, color: UiColors.warning),
           const SizedBox(width: 5),
           Text(
             label,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: const Color(0xFF7A6338),
+              color: UiColors.warning,
               fontWeight: FontWeight.w800,
             ),
           ),
