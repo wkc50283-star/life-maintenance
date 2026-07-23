@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../app/ui_tokens.dart';
 import '../widgets/demo_data_notice.dart';
 import '../widgets/safety_guide_sheet.dart';
 import '../widgets/setting_card.dart';
@@ -20,12 +21,12 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      padding: UiInsets.pageCompact,
       children: [
         const SettingsHeader(),
-        const SizedBox(height: 12),
+        const SizedBox(height: UiSpace.xs),
         const DemoDataNotice(),
-        const SizedBox(height: 18),
+        const SizedBox(height: UiSpace.md),
         for (final setting in _settings)
           Semantics(
             button: setting.highlighted,

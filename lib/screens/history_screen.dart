@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app/app_composition_root.dart';
+import '../app/ui_tokens.dart';
 import '../models/enums.dart';
 import '../models/history_projection.dart';
 import '../models/item.dart';
@@ -86,10 +87,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final sections = _historySectionsFrom(projections, items);
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      padding: UiInsets.pageCompact,
       children: [
         const HistoryHeader(),
-        const SizedBox(height: 20),
+        const SizedBox(height: UiSpace.xs),
         if (sections.isEmpty)
           const EmptyHistoryState()
         else

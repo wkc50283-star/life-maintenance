@@ -202,12 +202,7 @@ class _TodayScreenState extends State<TodayScreen> {
 
     return ListView(
       key: const ValueKey('overview-scroll'),
-      padding: const EdgeInsets.fromLTRB(
-        UiSpace.md,
-        UiSpace.xs,
-        UiSpace.md,
-        UiSpace.xxl,
-      ),
+      padding: UiInsets.pageCompact,
       children: [
         UiMotionEntrance(
           duration: UiMotion.standard,
@@ -218,7 +213,7 @@ class _TodayScreenState extends State<TodayScreen> {
             onQuickAdd: widget.onQuickAdd,
           ),
         ),
-        const SizedBox(height: UiSpace.xl),
+        const SizedBox(height: UiSpace.lg),
         UiMotionEntrance(
           key: const ValueKey('overview-section-reminders'),
           duration: UiMotion.standard,
@@ -569,7 +564,7 @@ class _OverviewSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: UiSpace.xl),
+    padding: const EdgeInsets.only(bottom: UiSpace.lg),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -601,21 +596,23 @@ class _OverviewSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final largeText = MediaQuery.textScalerOf(context).scale(14) >= 21;
+    final action = actionLabel != null && onAction != null
+        ? TextButton(onPressed: onAction, child: Text(actionLabel!))
+        : null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                title,
-                style: UiType.pageTitle.copyWith(fontSize: 21),
-              ),
-            ),
-            if (actionLabel != null && onAction != null)
-              TextButton(onPressed: onAction, child: Text(actionLabel!)),
-          ],
-        ),
+        if (largeText) ...[
+          Text(title, style: UiType.sectionTitle),
+          ?action,
+        ] else
+          Row(
+            children: [
+              Expanded(child: Text(title, style: UiType.sectionTitle)),
+              ?action,
+            ],
+          ),
         const SizedBox(height: UiSpace.xxs),
         Text(description, style: UiType.body),
       ],

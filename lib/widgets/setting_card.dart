@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../app/ui_tokens.dart';
+
 class SettingCard extends StatelessWidget {
   final String title;
   final String content;
@@ -16,24 +18,22 @@ class SettingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final iconColor = highlighted
-        ? const Color(0xFF7A6338)
-        : const Color(0xFF5D7893);
+    final iconColor = highlighted ? UiColors.warning : UiColors.primary;
     final iconBackground = highlighted
-        ? const Color(0xFFFFF7E6)
-        : const Color(0xFFE8F0F6);
+        ? UiColors.warningSurface
+        : UiColors.iconSurface;
     final borderColor = highlighted
-        ? const Color(0xFFEAD9B8)
-        : const Color(0xFFE4E0D8);
+        ? UiColors.warning.withValues(alpha: 0.22)
+        : UiColors.border;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(UiRadius.card),
         side: BorderSide(color: borderColor),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(UiSpace.md),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -42,7 +42,7 @@ class SettingCard extends StatelessWidget {
               height: 48,
               decoration: BoxDecoration(
                 color: iconBackground,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(UiRadius.control),
               ),
               child: Icon(icon, color: iconColor),
             ),
@@ -58,7 +58,7 @@ class SettingCard extends StatelessWidget {
                           title,
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(
-                                color: const Color(0xFF263746),
+                                color: UiColors.textPrimary,
                                 fontWeight: FontWeight.w800,
                               ),
                         ),
@@ -70,7 +70,7 @@ class SettingCard extends StatelessWidget {
                   Text(
                     content,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xFF4D5D6B),
+                      color: UiColors.textSecondary,
                       height: 1.4,
                       fontWeight: FontWeight.w600,
                     ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app/app_composition_root.dart';
+import '../app/ui_tokens.dart';
 import '../models/enums.dart';
 import '../models/item.dart';
 import '../repositories/item_read_repository.dart';
@@ -54,10 +55,10 @@ class _ItemsScreenState extends State<ItemsScreen> {
   Widget build(BuildContext context) {
     final items = _items;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      padding: UiInsets.pageCompact,
       children: [
         const ItemsHeader(),
-        const SizedBox(height: 18),
+        const SizedBox(height: UiSpace.xs),
         if (_loadError != null)
           _ItemsLoadFailure(onRetry: _loadItems)
         else if (items == null)
@@ -92,7 +93,11 @@ class _EmptyItemsState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const _ItemsMessageCard(message: '目前還沒有生活項目。');
+    return const _ItemsMessageCard(
+      icon: Icons.inventory_2_outlined,
+      message: '目前還沒有生活項目。',
+      supporting: '從「新增」建立第一個想長期管理的生活項目。',
+    );
   }
 }
 
@@ -105,37 +110,53 @@ class _ItemsLoadFailure extends StatelessWidget {
   Widget build(BuildContext context) {
     return _ItemsMessageCard(
       message: '暫時無法讀取生活項目。',
+      icon: Icons.cloud_off_outlined,
+      supporting: '資料沒有被刪除，請稍後重新讀取。',
       action: OutlinedButton(onPressed: onRetry, child: const Text('重新讀取')),
     );
   }
 }
 
 class _ItemsMessageCard extends StatelessWidget {
-  const _ItemsMessageCard({required this.message, this.action});
+  const _ItemsMessageCard({
+    required this.message,
+    required this.icon,
+    required this.supporting,
+    this.action,
+  });
 
   final String message;
+  final IconData icon;
+  final String supporting;
   final Widget? action;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(22),
+      padding: const EdgeInsets.all(UiSpace.lg),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFCF6),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE4E0D8)),
+        color: UiColors.surface,
+        borderRadius: BorderRadius.circular(UiRadius.card),
+        border: Border.all(color: UiColors.border),
+        boxShadow: UiShadow.card,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            message,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: const Color(0xFF687887),
-              fontWeight: FontWeight.w600,
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: UiColors.iconSurface,
+              borderRadius: BorderRadius.circular(UiRadius.control),
             ),
+            child: Icon(icon, color: UiColors.primary),
           ),
-          if (action != null) ...[const SizedBox(height: 14), action!],
+          const SizedBox(height: UiSpace.md),
+          Text(message, style: UiType.cardTitle),
+          const SizedBox(height: UiSpace.xs),
+          Text(supporting, style: UiType.body),
+          if (action != null) ...[const SizedBox(height: UiSpace.md), action!],
         ],
       ),
     );

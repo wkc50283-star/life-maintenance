@@ -14,17 +14,22 @@ abstract final class AppTheme {
       ),
       scaffoldBackgroundColor: UiColors.canvas,
       useMaterial3: true,
+      visualDensity: VisualDensity.standard,
       appBarTheme: const AppBarTheme(
         centerTitle: false,
         elevation: 0,
         scrolledUnderElevation: 0,
         backgroundColor: UiColors.canvas,
         foregroundColor: UiColors.textPrimary,
+        toolbarHeight: 56,
+        surfaceTintColor: Colors.transparent,
         titleTextStyle: TextStyle(
           color: UiColors.textPrimary,
           fontSize: 20,
           fontWeight: FontWeight.w700,
         ),
+        iconTheme: IconThemeData(color: UiColors.primary, size: 22),
+        actionsIconTheme: IconThemeData(color: UiColors.primary, size: 22),
       ),
       cardTheme: CardThemeData(
         elevation: 0,
@@ -34,6 +39,11 @@ abstract final class AppTheme {
           borderRadius: BorderRadius.circular(UiRadius.card),
           side: const BorderSide(color: UiColors.border),
         ),
+      ),
+      dividerTheme: const DividerThemeData(
+        color: UiColors.divider,
+        thickness: 1,
+        space: 1,
       ),
       navigationBarTheme: NavigationBarThemeData(
         height: 68,
@@ -76,6 +86,13 @@ abstract final class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(UiRadius.control),
           ),
+          textStyle: UiType.button,
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: UiColors.primary,
+          minimumSize: const Size(48, 48),
           textStyle: UiType.button,
         ),
       ),

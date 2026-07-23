@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app/app_composition_root.dart';
+import '../app/ui_tokens.dart';
 import '../models/enums.dart';
 import '../models/work_case.dart';
 import '../models/work_case_enums.dart';
@@ -64,7 +65,7 @@ class _TaskReminderListScreenState extends State<TaskReminderListScreen> {
         (final reminders?, _) => RefreshIndicator(
           onRefresh: _load,
           child: ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+            padding: UiInsets.page,
             itemCount: reminders.length,
             separatorBuilder: (_, _) => const SizedBox(height: 10),
             itemBuilder: (context, index) {
@@ -132,7 +133,7 @@ class _TaskReminderDetailScreenState extends State<TaskReminderDetailScreen> {
       child: Scaffold(
         appBar: AppBar(title: const Text('提醒詳情')),
         body: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+          padding: UiInsets.pageCompact,
           children: [
             _ReminderHero(detail: _detail),
             const SizedBox(height: 18),
@@ -323,7 +324,7 @@ class _StartTaskWorkCaseScreenState extends State<StartTaskWorkCaseScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+          padding: UiInsets.page,
           children: [
             Text(
               '把事情接成一筆案件',

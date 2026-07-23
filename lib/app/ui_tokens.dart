@@ -5,6 +5,7 @@ abstract final class UiColors {
   static const canvas = Color(0xFFFAF8F4);
   static const surface = Color(0xFFFFFFFF);
   static const surfaceWarm = Color(0xFFF6F3EE);
+  static const surfaceBlue = Color(0xFFF3F7FC);
   static const primary = Color(0xFF173B63);
   static const accent = Color(0xFF2F80ED);
   static const secondary = accent;
@@ -15,6 +16,7 @@ abstract final class UiColors {
   static const borderStrong = Color(0xFFCDD7E1);
   static const iconSurface = Color(0xFFEAF2FC);
   static const iconMuted = Color(0xFF708397);
+  static const divider = Color(0xFFEDF1F5);
   static const selectedSurface = Color(0xFFE5F0FF);
   static const success = Color(0xFF2F7D62);
   static const successSurface = Color(0xFFE7F4EE);
@@ -87,6 +89,22 @@ abstract final class UiRadius {
   static const card = 16.0;
   static const hero = 16.0;
   static const pill = 16.0;
+}
+
+abstract final class UiInsets {
+  static const page = EdgeInsets.fromLTRB(
+    UiSpace.md,
+    UiSpace.sm,
+    UiSpace.md,
+    UiSpace.xl,
+  );
+  static const pageCompact = EdgeInsets.fromLTRB(
+    UiSpace.md,
+    UiSpace.xs,
+    UiSpace.md,
+    UiSpace.lg,
+  );
+  static const card = EdgeInsets.all(UiSpace.md);
 }
 
 abstract final class UiShadow {

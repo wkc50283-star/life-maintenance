@@ -116,7 +116,11 @@ void main() {
     addTearDown(tester.view.resetPadding);
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
 
-    for (final size in const [Size(320, 568), Size(390, 844)]) {
+    for (final size in const [
+      Size(320, 568),
+      Size(390, 844),
+      Size(428, 926),
+    ]) {
       tester.view.physicalSize = size;
       tester.view.padding = const FakeViewPadding(
         left: 10,

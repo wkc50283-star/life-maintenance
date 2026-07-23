@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app/app_composition_root.dart';
+import '../app/ui_tokens.dart';
 import '../models/attachment.dart';
 import '../models/enums.dart';
 import '../models/history_projection.dart';
@@ -205,10 +206,10 @@ class _ItemDetailBody extends StatelessWidget {
         .toList(growable: false);
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+      padding: UiInsets.pageCompact,
       children: [
         _ItemHero(item: item, openCaseCount: openCases.length),
-        const SizedBox(height: 20),
+        const SizedBox(height: UiSpace.lg),
         _DetailSection(
           title: '主資訊',
           icon: Icons.info_outline_rounded,
@@ -389,18 +390,18 @@ class _ItemHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(UiSpace.lg),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF66829D), Color(0xFF9BAFC1)],
+          colors: [UiColors.primary, Color(0xFF275D98)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(UiRadius.hero),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x2466829D),
-            blurRadius: 22,
+            color: Color(0x21173B63),
+            blurRadius: 20,
             offset: Offset(0, 10),
           ),
         ],
@@ -409,32 +410,29 @@ class _ItemHero extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 52,
-            height: 52,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(UiRadius.control),
             ),
             child: Icon(_iconForCategory(item.category), color: Colors.white),
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: UiSpace.md),
           Text(
             item.name,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w900,
-            ),
+            style: UiType.pageTitle.copyWith(color: Colors.white),
           ),
           const SizedBox(height: 8),
           Text(
             '${_categoryLabel(item.category)} · ${_itemStatusLabel(item.status)}',
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: UiSpace.md),
           Text(
             openCaseCount == 0 ? '目前沒有進行中的案件' : '有 $openCaseCount 件事情正在處理',
             style: TextStyle(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app/app_composition_root.dart';
+import '../app/ui_tokens.dart';
 import '../models/attachment.dart';
 import '../models/enums.dart';
 import '../models/item.dart';
@@ -72,7 +73,7 @@ class _WorkCaseListScreenState extends State<WorkCaseListScreen> {
         (final entries?, _) => RefreshIndicator(
           onRefresh: _load,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+            padding: UiInsets.page,
             children: [
               if (entries.any((entry) => entry.workCase.isOpen)) ...[
                 const _SectionTitle('進行中'),
@@ -290,7 +291,7 @@ class _WorkCaseUpdateFormScreenState extends State<WorkCaseUpdateFormScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+          padding: UiInsets.page,
           children: [
             const _FormIntro(
               title: '留下這次處理過程',
@@ -489,7 +490,7 @@ class _WorkCaseClosureFormScreenState extends State<WorkCaseClosureFormScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+          padding: UiInsets.page,
           children: [
             const _FormIntro(
               title: '留下完整結果',
@@ -711,7 +712,7 @@ class _WorkCaseCancelFormScreenState extends State<WorkCaseCancelFormScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+          padding: UiInsets.page,
           children: [
             const _FormIntro(
               title: '說明為什麼停止處理',
@@ -785,7 +786,7 @@ class _WorkCaseBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final workCase = snapshot.workCase;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+      padding: UiInsets.pageCompact,
       children: [
         _CaseHero(workCase: workCase, itemName: itemName),
         const SizedBox(height: 16),
@@ -913,34 +914,30 @@ class _CaseHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(22),
+      padding: const EdgeInsets.all(UiSpace.lg),
       decoration: BoxDecoration(
-        color: const Color(0xFFE8F0F6),
-        borderRadius: BorderRadius.circular(24),
+        color: UiColors.surfaceBlue,
+        borderRadius: BorderRadius.circular(UiRadius.card),
+        border: Border.all(color: UiColors.border),
+        boxShadow: UiShadow.card,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.handyman_outlined, color: Color(0xFF5D7893)),
+              const Icon(Icons.handyman_outlined, color: UiColors.primary),
               const Spacer(),
               _StatusPill(label: _statusLabel(workCase.status)),
             ],
           ),
-          const SizedBox(height: 14),
-          Text(
-            workCase.title,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: const Color(0xFF263746),
-              fontWeight: FontWeight.w900,
-            ),
-          ),
+          const SizedBox(height: UiSpace.sm),
+          Text(workCase.title, style: UiType.pageTitle),
           const SizedBox(height: 6),
           Text(
             itemName,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: const Color(0xFF516778),
+              color: UiColors.textSecondary,
               fontWeight: FontWeight.w700,
             ),
           ),

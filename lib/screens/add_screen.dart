@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../app/ui_tokens.dart';
 import '../widgets/add_entry_card.dart';
 import '../widgets/add_item_preview_sheet.dart';
 import '../widgets/expiry_reminder_preview_sheet.dart';
@@ -20,9 +21,10 @@ class AddScreen extends StatelessWidget {
     }
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      padding: UiInsets.pageCompact,
       children: [
         const UiCompactPageHeader(
+          icon: Icons.add_rounded,
           title: '你要新增什麼？',
           description: '新增生活項目、提醒或完成紀錄，方便之後查看與管理。',
         ),
@@ -70,9 +72,10 @@ class _FormalAddScreen extends StatelessWidget {
     }
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      padding: UiInsets.pageCompact,
       children: [
         const UiCompactPageHeader(
+          icon: Icons.add_rounded,
           title: '新增與整理',
           description: '先建立生活項目，再加入需要長期管理的保養、提醒、階段重點與排程。',
         ),

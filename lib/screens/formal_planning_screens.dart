@@ -1471,9 +1471,13 @@ class _ManagementScaffold extends StatelessWidget {
       ],
     ),
     body: ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+      padding: UiInsets.page,
       children: [
-        _FormIntro(text: intro),
+        UiCompactPageHeader(
+          title: title,
+          description: intro,
+          icon: Icons.tune_rounded,
+        ),
         child,
       ],
     ),
@@ -1498,7 +1502,12 @@ class _FormScaffold extends StatelessWidget {
     final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      appBar: AppBar(title: Text(title)),
+      appBar: AppBar(
+        title: MediaQuery.withClampedTextScaling(
+          maxScaleFactor: 1.4,
+          child: Text(title),
+        ),
+      ),
       body: SafeArea(
         bottom: false,
         child: ListView(

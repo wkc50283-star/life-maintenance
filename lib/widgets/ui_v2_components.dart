@@ -7,23 +7,70 @@ class UiCompactPageHeader extends StatelessWidget {
     super.key,
     required this.title,
     required this.description,
+    this.icon,
+    this.action,
   });
 
   final String title;
   final String description;
+  final IconData? icon;
+  final Widget? action;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: UiSpace.xs, bottom: UiSpace.lg),
-    child: Column(
+  Widget build(BuildContext context) {
+    final largeText = MediaQuery.textScalerOf(context).scale(14) >= 21;
+    final iconWidget = icon == null
+        ? null
+        : Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: UiColors.iconSurface,
+              borderRadius: BorderRadius.circular(UiRadius.control),
+            ),
+            child: Icon(icon, color: UiColors.primary, size: 22),
+          );
+    final copy = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(title, style: UiType.pageTitle),
-        const SizedBox(height: UiSpace.xs),
+        const SizedBox(height: UiSpace.xxs),
         Text(description, style: UiType.pageIntro),
       ],
-    ),
-  );
+    );
+    return Padding(
+      padding: const EdgeInsets.only(top: UiSpace.xs, bottom: UiSpace.lg),
+      child: largeText
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (iconWidget != null) ...[
+                  iconWidget,
+                  const SizedBox(height: UiSpace.sm),
+                ],
+                copy,
+                if (action != null) ...[
+                  const SizedBox(height: UiSpace.sm),
+                  action!,
+                ],
+              ],
+            )
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (iconWidget != null) ...[
+                  iconWidget,
+                  const SizedBox(width: UiSpace.sm),
+                ],
+                Expanded(child: copy),
+                if (action != null) ...[
+                  const SizedBox(width: UiSpace.xs),
+                  action!,
+                ],
+              ],
+            ),
+    );
+  }
 }
 
 class UiSurfaceCard extends StatelessWidget {
@@ -295,22 +342,63 @@ class UiBottomNavigation extends StatelessWidget {
     ),
     child: SafeArea(
       top: false,
-      child: NavigationBar(
-        key: navigationKey,
-        height: 68,
-        selectedIndex: currentIndex,
-        onDestinationSelected: onSelected,
-        destinations: [
-          for (final item in items)
-            NavigationDestination(
-              icon: Icon(item.icon),
-              selectedIcon: Icon(item.selectedIcon),
-              label: item.label,
-            ),
-        ],
+      child: MediaQuery.withClampedTextScaling(
+        maxScaleFactor: 1.3,
+        child: NavigationBar(
+          key: navigationKey,
+          height: 64,
+          selectedIndex: currentIndex,
+          onDestinationSelected: onSelected,
+          destinations: [
+            for (var index = 0; index < items.length; index++)
+              NavigationDestination(
+                icon: _NavigationIcon(
+                  icon: items[index].icon,
+                  emphasized: index == 2,
+                ),
+                selectedIcon: _NavigationIcon(
+                  icon: items[index].selectedIcon,
+                  emphasized: index == 2,
+                  selected: true,
+                ),
+                label: items[index].label,
+              ),
+          ],
+        ),
       ),
     ),
   );
+}
+
+class _NavigationIcon extends StatelessWidget {
+  const _NavigationIcon({
+    required this.icon,
+    required this.emphasized,
+    this.selected = false,
+  });
+
+  final IconData icon;
+  final bool emphasized;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!emphasized) return Icon(icon);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: selected ? UiColors.primary : UiColors.iconSurface,
+        borderRadius: BorderRadius.circular(UiRadius.control),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(6),
+        child: Icon(
+          icon,
+          size: 22,
+          color: selected ? Colors.white : UiColors.primary,
+        ),
+      ),
+    );
+  }
 }
 
 class UiMotionEntrance extends StatelessWidget {

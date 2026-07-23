@@ -20,19 +20,19 @@ class TodayHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(UiSpace.xl),
+      padding: const EdgeInsets.all(UiSpace.lg),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(UiRadius.hero),
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [UiColors.primary, UiColors.secondary],
+          colors: [Color(0xFF173B63), Color(0xFF275D98)],
         ),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x1A263746),
-            blurRadius: 24,
-            offset: Offset(0, 14),
+            color: Color(0x21173B63),
+            blurRadius: 20,
+            offset: Offset(0, 10),
           ),
         ],
       ),
@@ -53,14 +53,31 @@ class TodayHero extends StatelessWidget {
                 ),
                 child: const Icon(Icons.home_outlined, color: Colors.white),
               ),
+              const SizedBox(width: UiSpace.sm),
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: MediaQuery.withClampedTextScaling(
+                    maxScaleFactor: 1.3,
+                    child: Text(
+                      _todayLabel(),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: UiSpace.xl),
+          const SizedBox(height: UiSpace.md),
           const Text(
             '生活總覽',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 28,
+              fontSize: 22,
               fontWeight: FontWeight.w800,
               height: 1.12,
             ),
@@ -74,7 +91,7 @@ class TodayHero extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: UiSpace.lg),
+          const SizedBox(height: UiSpace.md),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -94,7 +111,7 @@ class TodayHero extends StatelessWidget {
             ],
           ),
           if (onQuickAdd != null) ...[
-            const SizedBox(height: UiSpace.lg),
+            const SizedBox(height: UiSpace.md),
             UiPressFeedback(
               child: FilledButton.icon(
                 key: const ValueKey('overview-quick-add'),
@@ -113,6 +130,12 @@ class TodayHero extends StatelessWidget {
       ),
     );
   }
+}
+
+String _todayLabel() {
+  final now = DateTime.now();
+  const weekdays = ['一', '二', '三', '四', '五', '六', '日'];
+  return '${now.month} 月 ${now.day} 日・週${weekdays[now.weekday - 1]}';
 }
 
 class _StatusPill extends StatelessWidget {
