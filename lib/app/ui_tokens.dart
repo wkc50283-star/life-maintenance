@@ -41,6 +41,7 @@ abstract final class UiType {
     height: 1.42,
   );
   static const button = TextStyle(
+    fontFamily: 'Roboto',
     fontSize: 13,
     height: 1.2,
     fontWeight: FontWeight.w700,

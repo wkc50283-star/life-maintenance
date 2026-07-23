@@ -8,9 +8,8 @@ class HistoryHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const UiCompactPageHeader(
-      icon: Icons.history_rounded,
       title: '史略',
-      description: '完成過的處理、費用、結果與後續注意，都會完整保留。',
+      description: '處理過程、結果與後續注意都完整保留。',
     );
   }
 }

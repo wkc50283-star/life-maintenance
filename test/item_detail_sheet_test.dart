@@ -53,6 +53,9 @@ void main() {
     expect(find.byType(ItemDetailScreen), findsOneWidget);
     expect(find.byType(BottomSheet), findsNothing);
     expect(find.text('生活項目詳情'), findsOneWidget);
+    expect(find.text('主資訊'), findsOneWidget);
+    expect(find.text('客廳'), findsOneWidget);
+    expect(find.text('夏季使用頻繁'), findsOneWidget);
     expect(find.text('清洗濾網'), findsNWidgets(2));
     expect(find.text('保固到期提醒'), findsNWidgets(2));
 
@@ -98,14 +101,6 @@ void main() {
     expect(find.text('冷氣保固書.pdf'), findsOneWidget);
     expect(find.text('application/pdf · 2.0 KB'), findsOneWidget);
     expect(find.textContaining('managed-item-document'), findsNothing);
-
-    await tester.scrollUntilVisible(
-      find.text('主資訊'),
-      300,
-      scrollable: find.byType(Scrollable),
-    );
-    expect(find.text('客廳'), findsOneWidget);
-    expect(find.text('夏季使用頻繁'), findsOneWidget);
 
     expect(
       await root.driftRepositories.maintenancePlans.listForItem('item-1'),

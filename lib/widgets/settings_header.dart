@@ -8,9 +8,8 @@ class SettingsHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const UiCompactPageHeader(
-      icon: Icons.settings_outlined,
       title: '設定',
-      description: '查看資料說明、安全界線與 App 使用資訊。',
+      description: '資料說明、安全界線與 App 使用資訊。',
     );
   }
 }

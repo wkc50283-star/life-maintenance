@@ -200,6 +200,7 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
   DateTime? _purchaseDate;
   DateTime? _warrantyDate;
   bool _saving = false;
+  int _step = 0;
 
   @override
   void initState() {
@@ -247,8 +248,15 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
     return _FormScaffold(
       title: widget.value == null ? '新增生活項目' : '編輯生活項目',
       saving: _saving,
+      primaryLabel: _step == 0 ? '下一步' : '儲存',
+      primaryIcon: _step == 0
+          ? Icons.arrow_forward_rounded
+          : Icons.save_outlined,
+      onBackStep: _step == 1 ? () => setState(() => _step = 0) : null,
       onSave: archived || _categories == null || _categories!.isEmpty
           ? null
+          : _step == 0
+          ? _nextStep
           : _save,
       child: _categories == null
           ? const Center(child: CircularProgressIndicator())
@@ -256,92 +264,107 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
               key: _formKey,
               child: Column(
                 children: [
-                  const _FormIntro(text: '先填最重要的名稱與分類，其他資料可以之後再補。'),
-                  const _FormSectionHeading(
-                    step: '1',
-                    title: '名稱與分類',
-                    description: '先完成辨識這個生活項目所需的基本資料。',
-                  ),
-                  TextFormField(
-                    key: const ValueKey('item-name'),
-                    controller: _name,
-                    decoration: const InputDecoration(labelText: '項目名稱'),
-                    validator: _requiredText,
-                  ),
-                  const SizedBox(height: 12),
-                  if (_categories!.isEmpty)
-                    _MissingCategoryAction(onCreate: _createFirstCategory)
-                  else
-                    DropdownButtonFormField<String>(
-                      key: const ValueKey('item-category'),
-                      initialValue: _categoryId,
-                      isExpanded: true,
-                      menuMaxHeight: 320,
-                      decoration: const InputDecoration(labelText: '分類'),
-                      items: [
-                        for (final category in _categories!)
-                          DropdownMenuItem(
-                            value: category.id,
-                            child: Text(
-                              category.displayName,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                      ],
-                      onChanged: archived
-                          ? null
-                          : (value) => setState(() => _categoryId = value),
-                      validator: (value) => value == null ? '請選擇分類' : null,
-                    ),
-                  const SizedBox(height: 12),
-                  _StatusField(
-                    value: _status,
-                    onChanged: (value) => setState(() => _status = value),
-                  ),
+                  _ItemFormProgress(currentStep: _step),
                   const SizedBox(height: UiSpace.md),
-                  const _FormSectionHeading(
-                    step: '2',
-                    title: '補充資訊',
-                    description: '這些內容可以先留白，之後再慢慢補齊。',
-                  ),
-                  TextFormField(
-                    controller: _location,
-                    decoration: const InputDecoration(labelText: '放置位置（選填）'),
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _years,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: '預計管理年限（選填）'),
-                    validator: (value) {
-                      if ((value ?? '').trim().isEmpty) return null;
-                      final years = int.tryParse(value!);
-                      return years == null || years <= 0 ? '請輸入大於 0 的年數' : null;
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  _DateField(
-                    label: '購買或開始日期',
-                    value: _purchaseDate,
-                    onChanged: (value) => setState(() => _purchaseDate = value),
-                  ),
-                  const SizedBox(height: 12),
-                  _DateField(
-                    label: '保固或合約到期日',
-                    value: _warrantyDate,
-                    onChanged: (value) => setState(() => _warrantyDate = value),
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _note,
-                    maxLines: 3,
-                    decoration: const InputDecoration(labelText: '備註（選填）'),
-                  ),
+                  if (_step == 0) ...[
+                    const _FormSectionHeading(
+                      step: '1',
+                      title: '基本資料',
+                      description: '先填名稱與分類，就能把這件事好好接住。',
+                    ),
+                    TextFormField(
+                      key: const ValueKey('item-name'),
+                      controller: _name,
+                      decoration: const InputDecoration(
+                        labelText: '項目名稱',
+                        hintText: '例如：客廳冷氣',
+                      ),
+                      validator: _requiredText,
+                    ),
+                    const SizedBox(height: 12),
+                    if (_categories!.isEmpty)
+                      _MissingCategoryAction(onCreate: _createFirstCategory)
+                    else
+                      DropdownButtonFormField<String>(
+                        key: const ValueKey('item-category'),
+                        initialValue: _categoryId,
+                        isExpanded: true,
+                        menuMaxHeight: 320,
+                        decoration: const InputDecoration(labelText: '分類'),
+                        items: [
+                          for (final category in _categories!)
+                            DropdownMenuItem(
+                              value: category.id,
+                              child: Text(
+                                category.displayName,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                        ],
+                        onChanged: archived
+                            ? null
+                            : (value) => setState(() => _categoryId = value),
+                        validator: (value) => value == null ? '請選擇分類' : null,
+                      ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _location,
+                      decoration: const InputDecoration(labelText: '放置位置'),
+                    ),
+                    const SizedBox(height: 12),
+                    _StatusField(
+                      value: _status,
+                      onChanged: (value) => setState(() => _status = value),
+                    ),
+                  ] else ...[
+                    const _FormSectionHeading(
+                      step: '2',
+                      title: '進階資訊（選填）',
+                      description: '不確定的內容可以先留白，之後再補。',
+                    ),
+                    TextFormField(
+                      controller: _years,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: '預計管理年限'),
+                      validator: (value) {
+                        if ((value ?? '').trim().isEmpty) return null;
+                        final years = int.tryParse(value!);
+                        return years == null || years <= 0
+                            ? '請輸入大於 0 的年數'
+                            : null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    _DateField(
+                      label: '購買或開始日期',
+                      value: _purchaseDate,
+                      onChanged: (value) =>
+                          setState(() => _purchaseDate = value),
+                    ),
+                    const SizedBox(height: 12),
+                    _DateField(
+                      label: '保固或合約到期日',
+                      value: _warrantyDate,
+                      onChanged: (value) =>
+                          setState(() => _warrantyDate = value),
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _note,
+                      maxLines: 3,
+                      decoration: const InputDecoration(labelText: '備註'),
+                    ),
+                  ],
                   if (archived) const _ReadOnlyNotice('已封存的生活項目不能再修改。'),
                 ],
               ),
             ),
     );
+  }
+
+  void _nextStep() {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _step = 1);
   }
 
   Future<void> _createFirstCategory() async {
@@ -1500,12 +1523,18 @@ class _FormScaffold extends StatelessWidget {
     required this.child,
     required this.saving,
     this.onSave,
+    this.primaryLabel = '儲存',
+    this.primaryIcon = Icons.save_outlined,
+    this.onBackStep,
   });
 
   final String title;
   final Widget child;
   final bool saving;
   final VoidCallback? onSave;
+  final String primaryLabel;
+  final IconData primaryIcon;
+  final VoidCallback? onBackStep;
 
   @override
   Widget build(BuildContext context) {
@@ -1513,6 +1542,13 @@ class _FormScaffold extends StatelessWidget {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
+        leading: onBackStep == null
+            ? null
+            : IconButton(
+                tooltip: '上一步',
+                onPressed: onBackStep,
+                icon: const Icon(Icons.arrow_back_rounded),
+              ),
         title: MediaQuery.withClampedTextScaling(
           maxScaleFactor: 1.4,
           child: Text(title),
@@ -1551,9 +1587,11 @@ class _FormScaffold extends StatelessWidget {
             UiSpace.md,
           ),
           child: UiPrimaryButton(
-            key: const ValueKey('save-form'),
-            label: onSave == null ? '目前不可修改' : '儲存',
-            icon: Icons.save_outlined,
+            key: ValueKey(
+              primaryLabel == '下一步' ? 'item-form-next' : 'save-form',
+            ),
+            label: onSave == null ? '目前不可修改' : primaryLabel,
+            icon: primaryIcon,
             onPressed: onSave,
             loading: saving,
           ),
@@ -1602,6 +1640,96 @@ class _FormSectionHeading extends StatelessWidget {
               const SizedBox(height: 2),
               Text(description, style: UiType.caption),
             ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _ItemFormProgress extends StatelessWidget {
+  const _ItemFormProgress({required this.currentStep});
+
+  final int currentStep;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label: '第 ${currentStep + 1} 步，共 2 步',
+    child: Row(
+      children: [
+        _ItemFormProgressStep(
+          number: 1,
+          label: '基本資料',
+          active: currentStep == 0,
+          complete: currentStep > 0,
+        ),
+        Expanded(
+          child: Container(
+            height: 1,
+            margin: const EdgeInsets.only(bottom: 22),
+            color: currentStep > 0 ? UiColors.primary : UiColors.border,
+          ),
+        ),
+        _ItemFormProgressStep(
+          number: 2,
+          label: '進階資訊',
+          active: currentStep == 1,
+          complete: false,
+        ),
+      ],
+    ),
+  );
+}
+
+class _ItemFormProgressStep extends StatelessWidget {
+  const _ItemFormProgressStep({
+    required this.number,
+    required this.label,
+    required this.active,
+    required this.complete,
+  });
+
+  final int number;
+  final String label;
+  final bool active;
+  final bool complete;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: 92,
+    child: Column(
+      children: [
+        AnimatedContainer(
+          duration: UiMotion.durationOf(context),
+          width: 26,
+          height: 26,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: active || complete ? UiColors.primary : UiColors.surface,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: active || complete
+                  ? UiColors.primary
+                  : UiColors.borderStrong,
+            ),
+          ),
+          child: complete
+              ? const Icon(Icons.check_rounded, size: 15, color: Colors.white)
+              : Text(
+                  '$number',
+                  style: UiType.caption.copyWith(
+                    color: active ? Colors.white : UiColors.textSupporting,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+        ),
+        const SizedBox(height: UiSpace.xxs),
+        Text(
+          label,
+          maxLines: 1,
+          style: UiType.caption.copyWith(
+            color: active ? UiColors.primary : UiColors.textSupporting,
+            fontWeight: active ? FontWeight.w800 : FontWeight.w600,
           ),
         ),
       ],

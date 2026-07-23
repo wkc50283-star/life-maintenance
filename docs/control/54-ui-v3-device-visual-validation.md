@@ -18,7 +18,7 @@
 - 本機偵測到一台真實無線 iPhone：`K.C的iPhone`。
 - 裝置型號為 iPhone 12 Pro Max（`iPhone13,4`），實體顯示為 1284×2778、3x，對應 428×926pt。
 - 董事長已書面批准此 iPhone 12 Pro Max 的 428×926pt 作為正式替代基線；390×844 與 320×568 保留為自動化相容尺寸。
-- repo 內未找到已批准參考圖；僅有 App icon 與 launch image。
+- 2026-07-24 董事長已提供核准參考圖，正式保存為 `docs/assets/ui/ui-v3-approved-reference.jpg`，並由 `docs/control/UI_CONSTITUTION.md` 定義最低視覺驗收標準。
 - 已安裝 `libimobiledevice` 截圖工具，但無線 CoreDevice 裝置未出現在 `idevice_id -n -l`，目前不能以 `idevicescreenshot` 擷取真機畫面。
 - Xcode CoreDevice 顯示裝置已配對、Developer Mode 開啟、DDI services 可用，具備安裝與啟動 App 的條件。
 

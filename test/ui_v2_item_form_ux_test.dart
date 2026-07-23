@@ -79,13 +79,15 @@ void main() {
       await tester.pumpAndSettle();
       await _openNewItemForm(tester);
 
+      await _advanceItemForm(tester, name: '客廳冷氣');
+
       tester.view.viewInsets = const FakeViewPadding(bottom: 280);
       await tester.pumpAndSettle();
 
       final saveRect = tester.getRect(find.byKey(const ValueKey('save-form')));
       expect(saveRect.bottom, lessThanOrEqualTo(568 - 280));
       await tester.scrollUntilVisible(
-        find.text('備註（選填）'),
+        find.text('備註'),
         120,
         scrollable: find
             .descendant(
@@ -94,7 +96,7 @@ void main() {
             )
             .first,
       );
-      expect(find.text('備註（選填）'), findsOneWidget);
+      expect(find.text('備註'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
@@ -116,7 +118,7 @@ void main() {
     await _openNewItemForm(tester);
 
     expect(tester.takeException(), isNull);
-    expect(find.byKey(const ValueKey('save-form')), findsOneWidget);
+    expect(find.byKey(const ValueKey('item-form-next')), findsOneWidget);
   });
 
   testWidgets('Item category selection changes the formal saved relation', (
@@ -153,6 +155,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('車輛').last);
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('item-form-next')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('save-form')));
     await tester.pumpAndSettle();
 
@@ -186,7 +190,9 @@ void main() {
       final formRect = tester.getRect(
         find.byKey(const ValueKey('item-form-scroll')),
       );
-      final saveRect = tester.getRect(find.byKey(const ValueKey('save-form')));
+      final saveRect = tester.getRect(
+        find.byKey(const ValueKey('item-form-next')),
+      );
       expect(formRect.left, greaterThanOrEqualTo(12), reason: '$size');
       expect(
         formRect.right,
@@ -205,6 +211,16 @@ void main() {
       await root.database.close();
     }
   });
+}
+
+Future<void> _advanceItemForm(
+  WidgetTester tester, {
+  required String name,
+}) async {
+  await tester.enterText(find.byKey(const ValueKey('item-name')), name);
+  await tester.tap(find.byKey(const ValueKey('item-form-next')));
+  await tester.pumpAndSettle();
+  expect(find.byKey(const ValueKey('save-form')), findsOneWidget);
 }
 
 Future<void> _openNewItemForm(WidgetTester tester) async {

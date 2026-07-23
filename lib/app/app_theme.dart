@@ -13,6 +13,7 @@ abstract final class AppTheme {
         secondary: UiColors.accent,
       ),
       scaffoldBackgroundColor: UiColors.canvas,
+      fontFamily: 'Roboto',
       useMaterial3: true,
       visualDensity: VisualDensity.standard,
       appBarTheme: const AppBarTheme(
@@ -24,6 +25,7 @@ abstract final class AppTheme {
         toolbarHeight: 52,
         surfaceTintColor: Colors.transparent,
         titleTextStyle: TextStyle(
+          fontFamily: 'Roboto',
           color: UiColors.textPrimary,
           fontSize: 18,
           fontWeight: FontWeight.w700,

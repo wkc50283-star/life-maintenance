@@ -210,7 +210,12 @@ class _ItemDetailBody extends StatelessWidget {
       padding: UiInsets.pageCompact,
       children: [
         _ItemHero(item: item, openCaseCount: openCases.length),
-        const SizedBox(height: UiSpace.md),
+        const SizedBox(height: UiSpace.sm),
+        _DetailSection(
+          title: '主資訊',
+          icon: Icons.info_outline_rounded,
+          child: _MainInformation(item: item),
+        ),
         _DetailSection(
           title: '保養項目',
           icon: Icons.home_repair_service_outlined,
@@ -362,11 +367,6 @@ class _ItemDetailBody extends StatelessWidget {
                   ],
                 ),
         ),
-        _DetailSection(
-          title: '主資訊',
-          icon: Icons.info_outline_rounded,
-          child: _MainInformation(item: item),
-        ),
       ],
     );
   }
@@ -393,28 +393,25 @@ class _ItemHero extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(UiSpace.md),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [UiColors.primary, Color(0xFF275D98)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: UiColors.surface,
         borderRadius: BorderRadius.circular(UiRadius.hero),
+        border: Border.all(color: UiColors.border),
         boxShadow: UiShadow.card,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 52,
+            height: 52,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(UiRadius.control),
+              color: UiColors.iconSurface,
+              shape: BoxShape.circle,
             ),
             child: Icon(
               _iconForCategory(item.category),
-              color: Colors.white,
-              size: 20,
+              color: UiColors.primary,
+              size: 24,
             ),
           ),
           const SizedBox(width: UiSpace.sm),
@@ -422,18 +419,11 @@ class _ItemHero extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  item.name,
-                  style: UiType.pageTitle.copyWith(color: Colors.white),
-                ),
+                Text(item.name, style: UiType.pageTitle),
                 const SizedBox(height: 4),
                 Text(
                   '${_categoryLabel(item.category)} · ${_itemStatusLabel(item.status)}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: UiType.caption.copyWith(color: UiColors.textSecondary),
                 ),
               ],
             ),

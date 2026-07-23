@@ -8,9 +8,8 @@ class ItemsHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const UiCompactPageHeader(
-      icon: Icons.inventory_2_outlined,
       title: '生活項目',
-      description: '家電、車輛、房屋、文件與重要生活內容，都整理在這裡。',
+      description: '長期需要管理與記住的生活內容。',
     );
   }
 }
