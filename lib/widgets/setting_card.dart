@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../app/ui_tokens.dart';
+
 class SettingCard extends StatelessWidget {
   final String title;
   final String content;
@@ -16,70 +18,43 @@ class SettingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final iconColor = highlighted
-        ? const Color(0xFF7A6338)
-        : const Color(0xFF5D7893);
+    final iconColor = highlighted ? UiColors.warning : UiColors.primary;
     final iconBackground = highlighted
-        ? const Color(0xFFFFF7E6)
-        : const Color(0xFFE8F0F6);
-    final borderColor = highlighted
-        ? const Color(0xFFEAD9B8)
-        : const Color(0xFFE4E0D8);
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: borderColor),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: iconBackground,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Icon(icon, color: iconColor),
+        ? UiColors.warningSurface
+        : UiColors.iconSurface;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: iconBackground,
+              borderRadius: BorderRadius.circular(UiRadius.control),
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          title,
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(
-                                color: const Color(0xFF263746),
-                                fontWeight: FontWeight.w800,
-                              ),
-                        ),
-                      ),
-                      if (highlighted) const _SafetyBadge(),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    content,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xFF4D5D6B),
-                      height: 1.4,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
+            child: Icon(icon, color: iconColor, size: 20),
+          ),
+          const SizedBox(width: UiSpace.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(child: Text(title, style: UiType.cardTitle)),
+                    if (highlighted) const _SafetyBadge(),
+                  ],
+                ),
+                const SizedBox(height: 5),
+                Text(content, style: UiType.body),
+              ],
             ),
-          ],
-        ),
+          ),
+          const SizedBox(width: UiSpace.xs),
+          const Icon(Icons.chevron_right_rounded, color: UiColors.iconMuted),
+        ],
       ),
     );
   }
@@ -93,14 +68,14 @@ class _SafetyBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7E6),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFEAD9B8)),
+        color: UiColors.warningSurface,
+        borderRadius: BorderRadius.circular(UiRadius.pill),
+        border: Border.all(color: UiColors.warning.withValues(alpha: 0.22)),
       ),
       child: Text(
         '重要',
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: const Color(0xFF7A6338),
+          color: UiColors.warning,
           fontWeight: FontWeight.w800,
         ),
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app/app_composition_root.dart';
+import '../app/ui_tokens.dart';
 import '../models/enums.dart';
 import '../models/history_projection.dart';
 import '../models/item.dart';
@@ -14,6 +15,7 @@ import '../widgets/history_header.dart';
 import '../widgets/history_month_section.dart';
 import '../widgets/history_record_card.dart';
 import '../widgets/maintenance_record_detail_sheet.dart';
+import '../widgets/ui_v2_components.dart';
 import 'work_case_screens.dart';
 
 class HistoryScreen extends StatefulWidget {
@@ -86,34 +88,37 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final sections = _historySectionsFrom(projections, items);
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      padding: UiInsets.pageCompact,
       children: [
-        const HistoryHeader(),
-        const SizedBox(height: 20),
+        const UiMotionEntrance(child: HistoryHeader()),
+        const SizedBox(height: UiSpace.xs),
         if (sections.isEmpty)
           const EmptyHistoryState()
         else
           for (final section in sections)
-            HistoryMonthSection(
-              month: section.month,
-              children: [
-                for (final record in section.records)
-                  HistoryRecordCard(
-                    date: record.date,
-                    title: record.title,
-                    itemName: record.itemName,
-                    recordType: record.recordType,
-                    description: record.description,
-                    detailLines: record.detailLines,
-                    result: record.result,
-                    costLabel: record.costLabel,
-                    photoLabel: record.photoLabel,
-                    icon: record.icon,
-                    onTap: record.workCaseId != null || record.detail != null
-                        ? () => _openEntry(record)
-                        : null,
-                  ),
-              ],
+            UiMotionEntrance(
+              duration: UiMotion.emphasized,
+              child: HistoryMonthSection(
+                month: section.month,
+                children: [
+                  for (final record in section.records)
+                    HistoryRecordCard(
+                      date: record.date,
+                      title: record.title,
+                      itemName: record.itemName,
+                      recordType: record.recordType,
+                      description: record.description,
+                      detailLines: record.detailLines,
+                      result: record.result,
+                      costLabel: record.costLabel,
+                      photoLabel: record.photoLabel,
+                      icon: record.icon,
+                      onTap: record.workCaseId != null || record.detail != null
+                          ? () => _openEntry(record)
+                          : null,
+                    ),
+                ],
+              ),
             ),
       ],
     );
@@ -151,20 +156,12 @@ class _HistoryLoadFailure extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.history_toggle_off_outlined, size: 40),
-            const SizedBox(height: 12),
-            Text(
-              '暫時無法讀取史略。',
-              style: Theme.of(context).textTheme.titleMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            OutlinedButton(onPressed: onRetry, child: const Text('重新讀取')),
-          ],
+        padding: const EdgeInsets.all(UiSpace.md),
+        child: UiEmptyState(
+          icon: Icons.history_toggle_off_outlined,
+          title: '暫時無法讀取史略。',
+          description: '資料仍完整保留，可以稍後再次讀取。',
+          action: OutlinedButton(onPressed: onRetry, child: const Text('重新讀取')),
         ),
       ),
     );
