@@ -12,6 +12,64 @@ import 'package:life_maintenance/models/work_case_update.dart';
 import 'package:life_maintenance/screens/work_case_screens.dart';
 
 void main() {
+  testWidgets(
+    'case detail and forms are safe on a small phone at 200 percent text',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(320, 568);
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      tester.platformDispatcher.accessibilityFeaturesTestValue =
+          const FakeAccessibilityFeatures(disableAnimations: true);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      addTearDown(
+        tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+      );
+
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final root = AppCompositionRoot(database: database);
+      await _seed(root);
+
+      await tester.pumpWidget(_app(root));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+
+      await tester.scrollUntilVisible(
+        find.text('新增案件進度'),
+        400,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.widgetWithText(FilledButton, '新增案件進度'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      await tester.scrollUntilVisible(
+        find.text('保存這筆進度'),
+        400,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(tester.takeException(), isNull);
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('進入正式結案'),
+        400,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.widgetWithText(OutlinedButton, '進入正式結案'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      await tester.scrollUntilVisible(
+        find.text('確認正式結案'),
+        400,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('case UI appends rich progress and closes through one Closure', (
     tester,
   ) async {

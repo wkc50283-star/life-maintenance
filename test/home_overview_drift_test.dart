@@ -29,9 +29,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('今日提醒 0'), findsOneWidget);
-    expect(find.text('進行中案件 0'), findsOneWidget);
-    expect(find.text('階段性重點 0'), findsOneWidget);
+    _expectOverviewCount('overview-status-reminders', 0);
+    _expectOverviewCount('overview-status-cases', 0);
+    _expectOverviewCount('overview-status-milestones', 0);
     expect(find.text('今天沒有需要留意的提醒。'), findsOneWidget);
     expect(find.text('目前沒有進行中的案件。'), findsOneWidget);
     expect(find.text('目前還沒有完成紀錄。'), findsOneWidget);
@@ -130,9 +130,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('今日提醒 1'), findsOneWidget);
-    expect(find.text('進行中案件 1'), findsOneWidget);
-    expect(find.text('階段性重點 1'), findsOneWidget);
+    _expectOverviewCount('overview-status-reminders', 1);
+    _expectOverviewCount('overview-status-cases', 1);
+    _expectOverviewCount('overview-status-milestones', 1);
     expect(find.text('確認冷氣運轉'), findsOneWidget);
     expect(find.text('已安排'), findsOneWidget);
     expect(find.text('下個月再確認'), findsNothing);
@@ -150,6 +150,16 @@ void main() {
     expect(await root.maintenanceRecordRepository.listAll(), hasLength(1));
     await database.close();
   });
+}
+
+void _expectOverviewCount(String key, int count) {
+  expect(
+    find.descendant(
+      of: find.byKey(ValueKey(key)),
+      matching: find.text('$count'),
+    ),
+    findsOneWidget,
+  );
 }
 
 Future<void> _seedItem(AppCompositionRoot root, DateTime createdAt) async {

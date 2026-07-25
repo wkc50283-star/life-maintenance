@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../app/ui_tokens.dart';
 import '../widgets/demo_data_notice.dart';
 import '../widgets/safety_guide_sheet.dart';
 import '../widgets/setting_card.dart';
 import '../widgets/settings_header.dart';
+import '../widgets/ui_v2_components.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -20,35 +22,33 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      padding: UiInsets.pageCompact,
       children: [
-        const SettingsHeader(),
-        const SizedBox(height: 12),
-        const DemoDataNotice(),
-        const SizedBox(height: 18),
+        const UiMotionEntrance(child: SettingsHeader()),
+        const SizedBox(height: UiSpace.xxs),
+        const UiMotionEntrance(child: DemoDataNotice()),
+        const SizedBox(height: UiSpace.md),
+        const UiSectionHeader(
+          title: '資料與安全',
+          icon: Icons.shield_outlined,
+          description: '了解資料保存方式與處理生活事項時的安全邊界。',
+        ),
+        const SizedBox(height: UiSpace.sm),
         for (final setting in _settings)
-          Semantics(
-            button: setting.highlighted,
-            focusable: setting.highlighted,
-            label: setting.highlighted ? '開啟${setting.title}說明' : setting.title,
-            onTap: setting.highlighted
-                ? () {
-                    showSafetyGuideSheet(context);
-                  }
-                : null,
-            child: ExcludeSemantics(
-              child: InkWell(
-                onTap: setting.highlighted
-                    ? () {
-                        showSafetyGuideSheet(context);
-                      }
-                    : null,
-                child: SettingCard(
-                  title: setting.title,
-                  content: setting.content,
-                  icon: setting.icon,
-                  highlighted: setting.highlighted,
-                ),
+          UiMotionEntrance(
+            duration: UiMotion.emphasized,
+            child: UiActionCard(
+              semanticLabel: setting.highlighted
+                  ? '開啟${setting.title}說明'
+                  : setting.title,
+              onTap: setting.highlighted
+                  ? () => showSafetyGuideSheet(context)
+                  : null,
+              child: SettingCard(
+                title: setting.title,
+                content: setting.content,
+                icon: setting.icon,
+                highlighted: setting.highlighted,
               ),
             ),
           ),

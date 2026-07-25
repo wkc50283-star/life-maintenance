@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../app/app_composition_root.dart';
+import '../app/ui_tokens.dart';
 import '../models/enums.dart';
 import '../models/work_case.dart';
 import '../models/work_case_enums.dart';
 import '../repositories/repository_constraint_exception.dart';
 import '../repositories/task_reminder_runtime.dart';
+import '../widgets/ui_v2_components.dart';
 
 class TaskReminderListScreen extends StatefulWidget {
   const TaskReminderListScreen({super.key});
@@ -63,17 +65,24 @@ class _TaskReminderListScreenState extends State<TaskReminderListScreen> {
         (final reminders?, _) when reminders.isEmpty => const _EmptyState(),
         (final reminders?, _) => RefreshIndicator(
           onRefresh: _load,
-          child: ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-            itemCount: reminders.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 10),
-            itemBuilder: (context, index) {
-              final reminder = reminders[index];
-              return _ReminderCard(
-                detail: reminder,
-                onTap: () => _openDetail(reminder),
-              );
-            },
+          child: ListView(
+            padding: UiInsets.page,
+            children: [
+              const UiMotionEntrance(
+                child: UiCompactPageHeader(
+                  title: '提醒事項',
+                  description: '這裡只整理需要留意的事；開始處理後，案件會另外保留過程。',
+                  icon: Icons.notifications_none_rounded,
+                ),
+              ),
+              for (final reminder in reminders) ...[
+                _ReminderCard(
+                  detail: reminder,
+                  onTap: () => _openDetail(reminder),
+                ),
+                const SizedBox(height: UiSpace.sm),
+              ],
+            ],
           ),
         ),
       },
@@ -132,9 +141,9 @@ class _TaskReminderDetailScreenState extends State<TaskReminderDetailScreen> {
       child: Scaffold(
         appBar: AppBar(title: const Text('提醒詳情')),
         body: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+          padding: UiInsets.pageCompact,
           children: [
-            _ReminderHero(detail: _detail),
+            UiMotionEntrance(child: _ReminderHero(detail: _detail)),
             const SizedBox(height: 18),
             _InformationCard(
               title: '提醒內容',
@@ -163,49 +172,52 @@ class _TaskReminderDetailScreenState extends State<TaskReminderDetailScreen> {
             ),
             if (!terminal) ...[
               const SizedBox(height: 20),
-              Text(
-                '安排這次提醒',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-              ),
+              const UiSectionHeader(title: '安排這次提醒', icon: Icons.tune_rounded),
               const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _saving ? null : _reschedule,
-                      icon: const Icon(Icons.event_repeat_outlined),
-                      label: const Text('重新安排'),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _saving ? null : (paused ? _resume : _pause),
-                      icon: Icon(
-                        paused ? Icons.play_arrow_rounded : Icons.pause_rounded,
-                      ),
-                      label: Text(paused ? '恢復提醒' : '暫停提醒'),
-                    ),
-                  ),
-                ],
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final stack =
+                      constraints.maxWidth < 360 ||
+                      MediaQuery.textScalerOf(context).scale(14) >= 21;
+                  final reschedule = UiSecondaryButton(
+                    label: '重新安排',
+                    icon: Icons.event_repeat_outlined,
+                    onPressed: _saving ? null : _reschedule,
+                  );
+                  final toggle = UiSecondaryButton(
+                    label: paused ? '恢復提醒' : '暫停提醒',
+                    icon: paused
+                        ? Icons.play_arrow_rounded
+                        : Icons.pause_rounded,
+                    onPressed: _saving ? null : (paused ? _resume : _pause),
+                  );
+                  if (stack) {
+                    return Column(
+                      children: [
+                        reschedule,
+                        const SizedBox(height: UiSpace.sm),
+                        toggle,
+                      ],
+                    );
+                  }
+                  return Row(
+                    children: [
+                      Expanded(child: reschedule),
+                      const SizedBox(width: UiSpace.sm),
+                      Expanded(child: toggle),
+                    ],
+                  );
+                },
               ),
               if (_detail.canStartWorkCase) ...[
-                const SizedBox(height: 12),
-                FilledButton.icon(
+                const SizedBox(height: UiSpace.md),
+                UiPrimaryButton(
+                  label: '開始處理',
+                  icon: Icons.handyman_outlined,
                   onPressed: _saving ? null : _startWorkCase,
-                  icon: const Icon(Icons.handyman_outlined),
-                  label: const Text('開始處理'),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  '開始後會建立一筆進行中案件；這則提醒仍會保留，不會直接結案。',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFF687887),
-                    height: 1.4,
-                  ),
-                ),
+                const SizedBox(height: UiSpace.xs),
+                Text('開始後會建立一筆進行中案件；這則提醒仍會保留，不會直接結案。', style: UiType.caption),
               ],
             ],
           ],
@@ -323,59 +335,65 @@ class _StartTaskWorkCaseScreenState extends State<StartTaskWorkCaseScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+          padding: UiInsets.page,
           children: [
-            Text(
-              '把事情接成一筆案件',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '案件會承接後續過程；原提醒不會被完成或消失。',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: const Color(0xFF687887),
-                height: 1.5,
+            const UiMotionEntrance(
+              child: UiCompactPageHeader(
+                title: '把事情接成一筆案件',
+                description: '案件會承接後續過程；原提醒不會被完成或消失。',
+                icon: Icons.handyman_outlined,
               ),
             ),
-            const SizedBox(height: 22),
-            TextFormField(
-              controller: _titleController,
-              decoration: const InputDecoration(labelText: '案件名稱'),
-              validator: (value) => _text(value) == null ? '請輸入案件名稱' : null,
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<WorkCaseType>(
-              initialValue: _caseType,
-              decoration: const InputDecoration(labelText: '事情類型'),
-              items: [
-                for (final value in WorkCaseType.values)
-                  DropdownMenuItem(
-                    value: value,
-                    child: Text(_caseTypeLabel(value)),
-                  ),
-              ],
-              onChanged: _saving
-                  ? null
-                  : (value) {
-                      if (value != null) setState(() => _caseType = value);
-                    },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _descriptionController,
-              minLines: 3,
-              maxLines: 6,
-              decoration: const InputDecoration(
-                labelText: '目前狀況（可稍後補充）',
-                alignLabelWithHint: true,
+            UiMotionEntrance(
+              duration: UiMotion.emphasized,
+              child: UiSurfaceCard(
+                padding: const EdgeInsets.all(UiSpace.md),
+                child: Column(
+                  children: [
+                    TextFormField(
+                      controller: _titleController,
+                      decoration: const InputDecoration(labelText: '案件名稱'),
+                      validator: (value) =>
+                          _text(value) == null ? '請輸入案件名稱' : null,
+                    ),
+                    const SizedBox(height: UiSpace.md),
+                    DropdownButtonFormField<WorkCaseType>(
+                      initialValue: _caseType,
+                      decoration: const InputDecoration(labelText: '事情類型'),
+                      items: [
+                        for (final value in WorkCaseType.values)
+                          DropdownMenuItem(
+                            value: value,
+                            child: Text(_caseTypeLabel(value)),
+                          ),
+                      ],
+                      onChanged: _saving
+                          ? null
+                          : (value) {
+                              if (value != null) {
+                                setState(() => _caseType = value);
+                              }
+                            },
+                    ),
+                    const SizedBox(height: UiSpace.md),
+                    TextFormField(
+                      controller: _descriptionController,
+                      minLines: 3,
+                      maxLines: 6,
+                      decoration: const InputDecoration(
+                        labelText: '目前狀況（可稍後補充）',
+                        alignLabelWithHint: true,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 24),
-            FilledButton(
+            const SizedBox(height: UiSpace.lg),
+            UiPrimaryButton(
+              label: _saving ? '建立中…' : '建立進行中案件',
+              icon: Icons.add_task_rounded,
               onPressed: _saving ? null : _save,
-              child: Text(_saving ? '建立中…' : '建立進行中案件'),
             ),
           ],
         ),
@@ -424,13 +442,15 @@ class _ReminderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return UiActionCard(
+      onTap: onTap,
+      semanticLabel: '開啟提醒：${detail.task.title}',
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
         onTap: onTap,
         leading: const CircleAvatar(
-          backgroundColor: Color(0xFFE8F0F6),
-          child: Icon(Icons.notifications_none, color: Color(0xFF5D7893)),
+          backgroundColor: UiColors.iconSurface,
+          child: Icon(Icons.notifications_none, color: UiColors.primary),
         ),
         title: Text(
           detail.task.title,
@@ -439,7 +459,12 @@ class _ReminderCard extends StatelessWidget {
         subtitle: Text(
           '${detail.itemName} · ${_formatDate(detail.task.dueDate)}',
         ),
-        trailing: Text(_statusLabel(detail.task.status)),
+        trailing: UiStatusTag(
+          label: _statusLabel(detail.task.status),
+          tone: detail.task.status == TaskStatus.overdue
+              ? UiStatusTone.warning
+              : UiStatusTone.info,
+        ),
       ),
     );
   }
@@ -453,31 +478,27 @@ class _ReminderHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(22),
+      padding: const EdgeInsets.all(UiSpace.lg),
       decoration: BoxDecoration(
-        color: const Color(0xFFE8F0F6),
-        borderRadius: BorderRadius.circular(24),
+        color: UiColors.surfaceBlue,
+        borderRadius: BorderRadius.circular(UiRadius.card),
+        border: Border.all(color: UiColors.border),
+        boxShadow: UiShadow.card,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Icon(
             Icons.notifications_active_outlined,
-            color: Color(0xFF5D7893),
+            color: UiColors.primary,
           ),
           const SizedBox(height: 14),
-          Text(
-            detail.task.title,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: const Color(0xFF263746),
-              fontWeight: FontWeight.w800,
-            ),
-          ),
+          Text(detail.task.title, style: UiType.pageTitle),
           const SizedBox(height: 8),
           Text(
             '這是一則提醒；開始處理後，案件會另外承接過程與結果。',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: const Color(0xFF516778),
+              color: UiColors.textSecondary,
               height: 1.5,
             ),
           ),
@@ -495,24 +516,20 @@ class _InformationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return UiSurfaceCard(
+      padding: const EdgeInsets.all(UiSpace.md),
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: EdgeInsets.zero,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-            ),
+            Text(title, style: UiType.sectionTitle),
             const SizedBox(height: 12),
             for (final row in rows) ...[
               Text(
                 row.$1,
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: const Color(0xFF5D7893),
+                  color: UiColors.primary,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -536,8 +553,13 @@ class _EmptyState extends StatelessWidget {
   const _EmptyState();
 
   @override
-  Widget build(BuildContext context) => const Center(
-    child: Padding(padding: EdgeInsets.all(32), child: Text('目前沒有需要安排的提醒。')),
+  Widget build(BuildContext context) => const Padding(
+    padding: EdgeInsets.all(UiSpace.md),
+    child: UiEmptyState(
+      icon: Icons.notifications_none_rounded,
+      title: '目前沒有提醒',
+      description: '需要留意的日期或事項出現時，會整理在這裡。',
+    ),
   );
 }
 

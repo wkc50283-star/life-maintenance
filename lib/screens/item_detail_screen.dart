@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app/app_composition_root.dart';
+import '../app/ui_tokens.dart';
 import '../models/attachment.dart';
 import '../models/enums.dart';
 import '../models/history_projection.dart';
@@ -13,6 +14,7 @@ import '../models/schedule.dart';
 import '../models/work_case.dart';
 import '../models/work_case_enums.dart';
 import '../models/work_case_update.dart';
+import '../widgets/ui_v2_components.dart';
 import 'formal_planning_screens.dart';
 import 'work_case_screens.dart';
 
@@ -205,10 +207,10 @@ class _ItemDetailBody extends StatelessWidget {
         .toList(growable: false);
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+      padding: UiInsets.pageCompact,
       children: [
         _ItemHero(item: item, openCaseCount: openCases.length),
-        const SizedBox(height: 20),
+        const SizedBox(height: UiSpace.sm),
         _DetailSection(
           title: '主資訊',
           icon: Icons.info_outline_rounded,
@@ -389,58 +391,49 @@ class _ItemHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(UiSpace.md),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF66829D), Color(0xFF9BAFC1)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x2466829D),
-            blurRadius: 22,
-            offset: Offset(0, 10),
-          ),
-        ],
+        color: UiColors.surface,
+        borderRadius: BorderRadius.circular(UiRadius.hero),
+        border: Border.all(color: UiColors.border),
+        boxShadow: UiShadow.card,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
             width: 52,
             height: 52,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(18),
+              color: UiColors.iconSurface,
+              shape: BoxShape.circle,
             ),
-            child: Icon(_iconForCategory(item.category), color: Colors.white),
-          ),
-          const SizedBox(height: 22),
-          Text(
-            item.name,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w900,
+            child: Icon(
+              _iconForCategory(item.category),
+              color: UiColors.primary,
+              size: 24,
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            '${_categoryLabel(item.category)} · ${_itemStatusLabel(item.status)}',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
+          const SizedBox(width: UiSpace.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(item.name, style: UiType.pageTitle),
+                const SizedBox(height: 4),
+                Text(
+                  '${_categoryLabel(item.category)} · ${_itemStatusLabel(item.status)}',
+                  style: UiType.caption.copyWith(color: UiColors.textSecondary),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 18),
-          Text(
-            openCaseCount == 0 ? '目前沒有進行中的案件' : '有 $openCaseCount 件事情正在處理',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.92),
-              fontWeight: FontWeight.w700,
-            ),
+          const SizedBox(width: UiSpace.xs),
+          UiStatusTag(
+            label: openCaseCount == 0 ? '無進行案件' : '案件 $openCaseCount',
+            tone: openCaseCount == 0
+                ? UiStatusTone.neutral
+                : UiStatusTone.warning,
           ),
         ],
       ),
@@ -496,33 +489,7 @@ class _InformationRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 88,
-            child: Text(
-              label,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: const Color(0xFF687887),
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: const Color(0xFF263746),
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+    return UiInformationRow(label: label, value: value);
   }
 }
 
@@ -542,35 +509,19 @@ class _DetailSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFFCF6),
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: const Color(0xFFE4E0D8)),
-        ),
+      padding: const EdgeInsets.only(bottom: UiSpace.sm),
+      child: UiSurfaceCard(
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Icon(icon, color: const Color(0xFF5D7893)),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: const Color(0xFF263746),
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-                if (onManage != null)
-                  TextButton(onPressed: onManage, child: const Text('管理')),
-              ],
+            UiSectionHeader(
+              title: title,
+              icon: icon,
+              actionLabel: onManage == null ? null : '管理',
+              onAction: onManage,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: UiSpace.sm),
             child,
           ],
         ),
@@ -599,51 +550,37 @@ class _FactCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Material(
-        color: const Color(0xFFF7F3EA),
-        borderRadius: BorderRadius.circular(16),
+        color: UiColors.surfaceBlue,
+        borderRadius: BorderRadius.circular(UiRadius.control),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: const Color(0xFF263746),
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
+                    Expanded(child: Text(title, style: UiType.cardTitle)),
                     const SizedBox(width: 10),
-                    Text(
-                      status,
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: const Color(0xFF5D7893),
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
+                    UiStatusTag(label: status, tone: UiStatusTone.info),
                   ],
                 ),
                 const SizedBox(height: 5),
                 Text(
                   subtitle,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFF5D7893),
+                    color: UiColors.primary,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Text(
                   detail,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF687887),
+                    color: UiColors.textSecondary,
                     height: 1.4,
                   ),
                 ),
@@ -663,11 +600,20 @@ class _EmptyMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      message,
-      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-        color: const Color(0xFF687887),
-        fontWeight: FontWeight.w600,
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: UiColors.surfaceBlue,
+        borderRadius: BorderRadius.circular(UiRadius.control),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            const Icon(Icons.inbox_outlined, color: UiColors.iconMuted),
+            const SizedBox(width: UiSpace.sm),
+            Expanded(child: Text(message, style: UiType.body)),
+          ],
+        ),
       ),
     );
   }

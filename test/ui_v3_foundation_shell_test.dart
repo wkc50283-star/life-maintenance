@@ -15,7 +15,7 @@ void main() {
     expect(UiColors.success, isNot(equals(UiColors.warning)));
     expect(UiColors.warning, isNot(equals(UiColors.danger)));
     expect(UiType.caption.fontSize, 12);
-    expect(UiType.pageTitle.fontSize, 22);
+    expect(UiType.pageTitle.fontSize, 20);
     expect(
       [UiSpace.xs, UiSpace.sm, UiSpace.md, UiSpace.lg, UiSpace.xl],
       const [8, 12, 16, 24, 32],
@@ -116,7 +116,7 @@ void main() {
     addTearDown(tester.view.resetPadding);
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
 
-    for (final size in const [Size(320, 568), Size(390, 844)]) {
+    for (final size in const [Size(320, 568), Size(390, 844), Size(428, 926)]) {
       tester.view.physicalSize = size;
       tester.view.padding = const FakeViewPadding(
         left: 10,

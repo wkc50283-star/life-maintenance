@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../app/ui_tokens.dart';
+import 'ui_v2_components.dart';
+
 class ProductItemCard extends StatelessWidget {
   final String title;
   final String categoryLabel;
@@ -22,143 +25,78 @@ class ProductItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+    return UiActionCard(
+      onTap: onTap,
+      semanticLabel: '開啟生活項目：$title',
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: UiSpace.sm,
+          vertical: 10,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: UiColors.iconSurface,
+                borderRadius: BorderRadius.circular(UiRadius.control),
+              ),
+              child: Icon(icon, color: UiColors.primary, size: 22),
+            ),
+            const SizedBox(width: UiSpace.sm),
+            Expanded(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE8F0F6),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Icon(
-                      icon,
-                      color: const Color(0xFF5D7893),
+                  Text(title, style: UiType.cardTitle),
+                  const SizedBox(height: 3),
+                  Text(
+                    '$categoryLabel · $location',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: UiType.caption,
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    dateLine,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: UiType.caption.copyWith(
+                      color: UiColors.textSecondary,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(
-                                color: const Color(0xFF263746),
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                              ),
-                        ),
-                        const SizedBox(height: 7),
-                        _InfoPill(label: categoryLabel),
-                      ],
-                    ),
-                  ),
-                  _StatusTag(label: statusLabel),
                 ],
               ),
-              const SizedBox(height: 16),
-              _ItemInfoRow(
-                icon: Icons.place_outlined,
-                text: '位置：$location',
-              ),
-              const SizedBox(height: 10),
-              _ItemInfoRow(
-                icon: Icons.event_available_outlined,
-                text: dateLine,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _InfoPill extends StatelessWidget {
-  final String label;
-
-  const _InfoPill({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF0F5F8),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-          color: const Color(0xFF5D7893),
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
-  }
-}
-
-class _StatusTag extends StatelessWidget {
-  final String label;
-
-  const _StatusTag({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF7E6),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFEAD9B8)),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-          color: const Color(0xFF7A6338),
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
-  }
-}
-
-class _ItemInfoRow extends StatelessWidget {
-  final IconData icon;
-  final String text;
-
-  const _ItemInfoRow({required this.icon, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 18, color: const Color(0xFF8FA4B8)),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            text,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: const Color(0xFF4D5D6B),
-              height: 1.35,
-              fontWeight: FontWeight.w600,
             ),
-          ),
+            const SizedBox(width: UiSpace.xs),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                UiStatusTag(
+                  label: statusLabel,
+                  tone: _toneForStatus(statusLabel),
+                ),
+                const SizedBox(height: UiSpace.xs),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: UiColors.iconMuted,
+                  size: 20,
+                ),
+              ],
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
+
+UiStatusTone _toneForStatus(String label) => switch (label) {
+  '正常追蹤' => UiStatusTone.success,
+  '暫停' => UiStatusTone.warning,
+  _ => UiStatusTone.neutral,
+};

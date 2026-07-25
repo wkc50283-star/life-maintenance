@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app/app_composition_root.dart';
+import '../app/ui_tokens.dart';
 import '../models/attachment.dart';
 import '../models/enums.dart';
 import '../models/item.dart';
@@ -10,6 +11,7 @@ import '../models/work_case_closure.dart';
 import '../models/work_case_enums.dart';
 import '../models/work_case_update.dart';
 import '../repositories/repository_constraint_exception.dart';
+import '../widgets/ui_v2_components.dart';
 
 class WorkCaseListScreen extends StatefulWidget {
   const WorkCaseListScreen({super.key});
@@ -72,10 +74,21 @@ class _WorkCaseListScreenState extends State<WorkCaseListScreen> {
         (final entries?, _) => RefreshIndicator(
           onRefresh: _load,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+            padding: UiInsets.page,
             children: [
+              const UiMotionEntrance(
+                child: UiCompactPageHeader(
+                  title: '案件',
+                  description: '查看正在處理的事情，以及已完整留下結果的案件。',
+                  icon: Icons.handyman_outlined,
+                ),
+              ),
               if (entries.any((entry) => entry.workCase.isOpen)) ...[
-                const _SectionTitle('進行中'),
+                const UiSectionHeader(
+                  title: '進行中',
+                  icon: Icons.pending_actions_outlined,
+                ),
+                const SizedBox(height: UiSpace.sm),
                 for (final entry in entries.where(
                   (entry) => entry.workCase.isOpen,
                 ))
@@ -83,7 +96,11 @@ class _WorkCaseListScreenState extends State<WorkCaseListScreen> {
               ],
               if (entries.any((entry) => entry.workCase.isClosed)) ...[
                 const SizedBox(height: 18),
-                const _SectionTitle('已結案件'),
+                const UiSectionHeader(
+                  title: '已結案件',
+                  icon: Icons.inventory_2_outlined,
+                ),
+                const SizedBox(height: UiSpace.sm),
                 for (final entry in entries.where(
                   (entry) => entry.workCase.isClosed,
                 ))
@@ -290,61 +307,75 @@ class _WorkCaseUpdateFormScreenState extends State<WorkCaseUpdateFormScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+          padding: UiInsets.page,
           children: [
             const _FormIntro(
               title: '留下這次處理過程',
               description: '每一筆進度都會保留，不會覆蓋前面的紀錄。',
             ),
-            _DateField(label: '發生日期', value: _occurredAt, onTap: _pickDate),
-            TextFormField(
-              controller: _description,
-              minLines: 2,
-              maxLines: 5,
-              decoration: const InputDecoration(
-                labelText: '這次做了什麼',
-                alignLabelWithHint: true,
-              ),
-              validator: (value) => _text(value) == null ? '請填寫處理內容' : null,
-            ),
-            const SizedBox(height: 14),
-            DropdownButtonFormField<WorkCaseStatus>(
-              initialValue: _status,
-              decoration: const InputDecoration(labelText: '案件現在的狀態'),
-              items: const [
-                DropdownMenuItem(
-                  value: WorkCaseStatus.inProgress,
-                  child: Text('處理中'),
+            _FormSection(
+              title: '這次進度',
+              icon: Icons.edit_note_rounded,
+              children: [
+                _DateField(label: '發生日期', value: _occurredAt, onTap: _pickDate),
+                TextFormField(
+                  controller: _description,
+                  minLines: 2,
+                  maxLines: 5,
+                  decoration: const InputDecoration(
+                    labelText: '這次做了什麼',
+                    alignLabelWithHint: true,
+                  ),
+                  validator: (value) => _text(value) == null ? '請填寫處理內容' : null,
                 ),
-                DropdownMenuItem(
-                  value: WorkCaseStatus.waiting,
-                  child: Text('等待中'),
+                const SizedBox(height: UiSpace.md),
+                DropdownButtonFormField<WorkCaseStatus>(
+                  initialValue: _status,
+                  decoration: const InputDecoration(labelText: '案件現在的狀態'),
+                  items: const [
+                    DropdownMenuItem(
+                      value: WorkCaseStatus.inProgress,
+                      child: Text('處理中'),
+                    ),
+                    DropdownMenuItem(
+                      value: WorkCaseStatus.waiting,
+                      child: Text('等待中'),
+                    ),
+                  ],
+                  onChanged: _saving
+                      ? null
+                      : (value) {
+                          if (value != null) setState(() => _status = value);
+                        },
                 ),
               ],
-              onChanged: _saving
-                  ? null
-                  : (value) {
-                      if (value != null) setState(() => _status = value);
-                    },
             ),
-            const SizedBox(height: 14),
-            _field(_vendor, '聯絡人或廠商'),
-            _field(_result, '這次處理結果'),
-            TextFormField(
-              controller: _cost,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: '這次費用'),
-              validator: _validateNonNegativeCost,
+            const SizedBox(height: UiSpace.md),
+            _FormSection(
+              title: '處理細節',
+              icon: Icons.receipt_long_outlined,
+              description: '廠商、費用和下一步都可以之後再補。',
+              children: [
+                _field(_vendor, '聯絡人或廠商'),
+                _field(_result, '這次處理結果'),
+                TextFormField(
+                  controller: _cost,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: '這次費用'),
+                  validator: _validateNonNegativeCost,
+                ),
+                const SizedBox(height: UiSpace.md),
+                _field(_parts, '零件或品項（可用逗號分開）'),
+                _field(_waitingReason, '等待原因'),
+                _field(_nextAction, '下一步'),
+                _field(_note, '補充備註', lines: 3),
+              ],
             ),
-            const SizedBox(height: 14),
-            _field(_parts, '零件或品項（可用逗號分開）'),
-            _field(_waitingReason, '等待原因'),
-            _field(_nextAction, '下一步'),
-            _field(_note, '補充備註', lines: 3),
-            const SizedBox(height: 10),
-            FilledButton(
+            const SizedBox(height: UiSpace.lg),
+            UiPrimaryButton(
+              label: _saving ? '保存中…' : '保存這筆進度',
+              icon: Icons.save_outlined,
               onPressed: _saving ? null : _save,
-              child: Text(_saving ? '保存中…' : '保存這筆進度'),
             ),
           ],
         ),
@@ -489,108 +520,111 @@ class _WorkCaseClosureFormScreenState extends State<WorkCaseClosureFormScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+          padding: UiInsets.page,
           children: [
             const _FormIntro(
               title: '留下完整結果',
               description: '結案後案件與進度會保持唯讀，並由正式資料投影進入史略。',
             ),
-            _DateField(
-              label: '完成日期',
-              value: _completedAt,
-              onTap: _pickCompletionDate,
-            ),
-            TextFormField(
-              controller: _result,
-              decoration: const InputDecoration(labelText: '完成結果'),
-              validator: (value) => _text(value) == null ? '請填寫完成結果' : null,
-            ),
-            const SizedBox(height: 14),
-            TextFormField(
-              controller: _summary,
-              minLines: 3,
-              maxLines: 6,
-              decoration: const InputDecoration(
-                labelText: '完修或結案摘要',
-                alignLabelWithHint: true,
-              ),
-              validator: (value) => _text(value) == null ? '請填寫結案摘要' : null,
-            ),
-            const SizedBox(height: 14),
-            TextFormField(
-              controller: _cost,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: '總費用'),
-              validator: _validateRequiredNonNegativeCost,
-            ),
-            const SizedBox(height: 14),
-            TextFormField(
-              controller: _followUp,
-              minLines: 2,
-              maxLines: 5,
-              decoration: const InputDecoration(
-                labelText: '後續注意事項（選填）',
-                alignLabelWithHint: true,
-              ),
-            ),
-            const SizedBox(height: 22),
-            Text(
-              '後續安排（選填）',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '可以保留既有正式排程，或另外建立一則單次提醒。結案與後續提醒會一起保存。',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: const Color(0xFF687887),
-                height: 1.45,
-              ),
-            ),
-            const SizedBox(height: 14),
-            DropdownButtonFormField<String?>(
-              initialValue: _nextScheduleId,
-              decoration: const InputDecoration(labelText: '保留後續排程'),
-              items: [
-                const DropdownMenuItem<String?>(
-                  value: null,
-                  child: Text('這次不指定'),
+            _FormSection(
+              title: '結案結果',
+              icon: Icons.task_alt_rounded,
+              children: [
+                _DateField(
+                  label: '完成日期',
+                  value: _completedAt,
+                  onTap: _pickCompletionDate,
                 ),
-                for (final schedule in _schedules ?? const <Schedule>[])
-                  DropdownMenuItem<String?>(
-                    value: schedule.id,
-                    child: Text(_scheduleChoiceLabel(schedule)),
+                TextFormField(
+                  controller: _result,
+                  decoration: const InputDecoration(labelText: '完成結果'),
+                  validator: (value) => _text(value) == null ? '請填寫完成結果' : null,
+                ),
+                const SizedBox(height: UiSpace.md),
+                TextFormField(
+                  controller: _summary,
+                  minLines: 3,
+                  maxLines: 6,
+                  decoration: const InputDecoration(
+                    labelText: '完修或結案摘要',
+                    alignLabelWithHint: true,
+                  ),
+                  validator: (value) => _text(value) == null ? '請填寫結案摘要' : null,
+                ),
+                const SizedBox(height: UiSpace.md),
+                TextFormField(
+                  controller: _cost,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: '總費用'),
+                  validator: _validateRequiredNonNegativeCost,
+                ),
+                const SizedBox(height: UiSpace.md),
+                TextFormField(
+                  controller: _followUp,
+                  minLines: 2,
+                  maxLines: 5,
+                  decoration: const InputDecoration(
+                    labelText: '後續注意事項（選填）',
+                    alignLabelWithHint: true,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: UiSpace.md),
+            _FormSection(
+              title: '後續安排（選填）',
+              icon: Icons.event_repeat_outlined,
+              description: '可以保留既有排程，或另建一則單次提醒。結案與後續安排會一起保存。',
+              children: [
+                DropdownButtonFormField<String?>(
+                  initialValue: _nextScheduleId,
+                  isExpanded: true,
+                  decoration: const InputDecoration(labelText: '保留後續排程'),
+                  items: [
+                    const DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('這次不指定'),
+                    ),
+                    for (final schedule in _schedules ?? const <Schedule>[])
+                      DropdownMenuItem<String?>(
+                        value: schedule.id,
+                        child: Text(_scheduleChoiceLabel(schedule)),
+                      ),
+                  ],
+                  onChanged: _saving
+                      ? null
+                      : (value) => setState(() => _nextScheduleId = value),
+                ),
+                if (_schedules?.isEmpty ?? false) ...[
+                  const SizedBox(height: UiSpace.xs),
+                  const Text('這個生活項目目前沒有可保留的排程。'),
+                ],
+                const SizedBox(height: UiSpace.xs),
+                Material(
+                  color: Colors.transparent,
+                  child: SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('建立下一次提醒'),
+                    subtitle: const Text('建立單次提醒，不改動原本這次提醒。'),
+                    value: _createReminder,
+                    onChanged: _saving
+                        ? null
+                        : (value) => setState(() => _createReminder = value),
+                  ),
+                ),
+                if (_createReminder)
+                  _DateField(
+                    label: '提醒日期',
+                    value: _reminderDueDate,
+                    onTap: _pickReminderDate,
                   ),
               ],
-              onChanged: _saving
-                  ? null
-                  : (value) => setState(() => _nextScheduleId = value),
             ),
-            if (_schedules?.isEmpty ?? false) ...[
-              const SizedBox(height: 8),
-              const Text('這個生活項目目前沒有可保留的正式排程。'),
-            ],
-            const SizedBox(height: 10),
-            SwitchListTile.adaptive(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('建立下一次提醒'),
-              subtitle: const Text('建立一則單次提醒，不會改動原本的 Task。'),
-              value: _createReminder,
-              onChanged: _saving
-                  ? null
-                  : (value) => setState(() => _createReminder = value),
-            ),
-            if (_createReminder)
-              _DateField(
-                label: '提醒日期',
-                value: _reminderDueDate,
-                onTap: _pickReminderDate,
-              ),
-            const SizedBox(height: 24),
-            FilledButton(
+            const SizedBox(height: UiSpace.lg),
+            UiPrimaryButton(
+              label: _saving ? '結案中…' : '確認正式結案',
+              icon: Icons.inventory_2_outlined,
               onPressed: _saving ? null : _save,
-              child: Text(_saving ? '結案中…' : '確認正式結案'),
             ),
           ],
         ),
@@ -711,26 +745,34 @@ class _WorkCaseCancelFormScreenState extends State<WorkCaseCancelFormScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+          padding: UiInsets.page,
           children: [
             const _FormIntro(
               title: '說明為什麼停止處理',
               description: '取消也是正式終止，原因與既有進度都會被保留。',
             ),
-            TextFormField(
-              controller: _reason,
-              minLines: 3,
-              maxLines: 6,
-              decoration: const InputDecoration(
-                labelText: '取消原因',
-                alignLabelWithHint: true,
-              ),
-              validator: (value) => _text(value) == null ? '請填寫取消原因' : null,
+            _FormSection(
+              title: '停止處理',
+              icon: Icons.cancel_outlined,
+              description: '已留下的案件過程不會消失。',
+              children: [
+                TextFormField(
+                  controller: _reason,
+                  minLines: 3,
+                  maxLines: 6,
+                  decoration: const InputDecoration(
+                    labelText: '取消原因',
+                    alignLabelWithHint: true,
+                  ),
+                  validator: (value) => _text(value) == null ? '請填寫取消原因' : null,
+                ),
+              ],
             ),
-            const SizedBox(height: 24),
-            FilledButton.tonal(
+            const SizedBox(height: UiSpace.lg),
+            FilledButton.icon(
               onPressed: _saving ? null : _save,
-              child: Text(_saving ? '保存中…' : '確認取消案件'),
+              icon: const Icon(Icons.cancel_outlined),
+              label: Text(_saving ? '保存中…' : '確認取消案件'),
             ),
           ],
         ),
@@ -785,9 +827,11 @@ class _WorkCaseBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final workCase = snapshot.workCase;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+      padding: UiInsets.pageCompact,
       children: [
-        _CaseHero(workCase: workCase, itemName: itemName),
+        UiMotionEntrance(
+          child: _CaseHero(workCase: workCase, itemName: itemName),
+        ),
         const SizedBox(height: 16),
         _InformationCard(
           title: '主資訊',
@@ -801,11 +845,10 @@ class _WorkCaseBody extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 18),
-        Row(
-          children: [
-            const Expanded(child: _SectionTitle('案件時間軸')),
-            Text('累計費用 ${_money(snapshot.totalUpdateCost)}'),
-          ],
+        UiSectionHeader(
+          title: '案件時間軸',
+          icon: Icons.timeline_rounded,
+          description: '累計費用 ${_money(snapshot.totalUpdateCost)}',
         ),
         const SizedBox(height: 10),
         if (snapshot.updates.isEmpty)
@@ -831,7 +874,7 @@ class _WorkCaseBody extends StatelessWidget {
           ),
         ],
         const SizedBox(height: 18),
-        const _SectionTitle('附件'),
+        const UiSectionHeader(title: '附件', icon: Icons.attach_file_rounded),
         const SizedBox(height: 8),
         if (snapshot.allAttachments.isEmpty)
           const _EmptyState(
@@ -872,22 +915,9 @@ class _CaseListCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-        leading: const CircleAvatar(
-          backgroundColor: Color(0xFFE8F0F6),
-          child: Icon(Icons.handyman_outlined, color: Color(0xFF5D7893)),
-        ),
-        title: Text(
-          entry.workCase.title,
-          style: const TextStyle(fontWeight: FontWeight.w800),
-        ),
-        subtitle: Text(
-          '${entry.item.name} · ${_caseTypeLabel(entry.workCase.caseType)}',
-        ),
-        trailing: Text(_statusLabel(entry.workCase.status)),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: UiSpace.sm),
+      child: UiActionCard(
         onTap: () async {
           final changed = await Navigator.of(context).push<bool>(
             MaterialPageRoute(
@@ -899,6 +929,45 @@ class _CaseListCard extends StatelessWidget {
           );
           if (changed == true) await onChanged();
         },
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: UiColors.iconSurface,
+                borderRadius: BorderRadius.circular(UiRadius.control),
+              ),
+              child: const Icon(
+                Icons.handyman_outlined,
+                color: UiColors.primary,
+              ),
+            ),
+            const SizedBox(width: UiSpace.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(entry.workCase.title, style: UiType.cardTitle),
+                  const SizedBox(height: UiSpace.xxs),
+                  Text(
+                    '${entry.item.name} · ${_caseTypeLabel(entry.workCase.caseType)}',
+                    style: UiType.body,
+                  ),
+                  const SizedBox(height: UiSpace.xs),
+                  UiStatusTag(
+                    label: _statusLabel(entry.workCase.status),
+                    tone: entry.workCase.isOpen
+                        ? UiStatusTone.info
+                        : UiStatusTone.success,
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: UiColors.iconMuted),
+          ],
+        ),
       ),
     );
   }
@@ -913,34 +982,30 @@ class _CaseHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(22),
+      padding: const EdgeInsets.all(UiSpace.lg),
       decoration: BoxDecoration(
-        color: const Color(0xFFE8F0F6),
-        borderRadius: BorderRadius.circular(24),
+        color: UiColors.surfaceBlue,
+        borderRadius: BorderRadius.circular(UiRadius.card),
+        border: Border.all(color: UiColors.border),
+        boxShadow: UiShadow.card,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.handyman_outlined, color: Color(0xFF5D7893)),
+              const Icon(Icons.handyman_outlined, color: UiColors.primary),
               const Spacer(),
               _StatusPill(label: _statusLabel(workCase.status)),
             ],
           ),
-          const SizedBox(height: 14),
-          Text(
-            workCase.title,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: const Color(0xFF263746),
-              fontWeight: FontWeight.w900,
-            ),
-          ),
+          const SizedBox(height: UiSpace.sm),
+          Text(workCase.title, style: UiType.pageTitle),
           const SizedBox(height: 6),
           Text(
             itemName,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: const Color(0xFF516778),
+              color: UiColors.textSecondary,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -985,29 +1050,29 @@ class _TimelineEntry extends StatelessWidget {
                   width: 12,
                   height: 12,
                   decoration: const BoxDecoration(
-                    color: Color(0xFF5D7893),
+                    color: UiColors.accent,
                     shape: BoxShape.circle,
                   ),
                 ),
                 if (!isLast)
                   Expanded(
-                    child: Container(width: 2, color: const Color(0xFFD5E0E9)),
+                    child: Container(width: 2, color: UiColors.borderStrong),
                   ),
               ],
             ),
           ),
           Expanded(
-            child: Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: UiSpace.sm),
+              child: UiSurfaceCard(
+                padding: const EdgeInsets.all(UiSpace.md),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       _formatDateTime(update.occurredAt),
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: const Color(0xFF5D7893),
+                        color: UiColors.primary,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -1052,46 +1117,52 @@ class _ClosureCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: const Color(0xFFF0F4EC),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              canceled ? '案件已取消' : '正式結案',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              canceled
-                  ? cancellationReason ?? closure.finalResult
-                  : closure.finalResult,
-            ),
-            const SizedBox(height: 7),
-            Text(closure.completionSummary),
-            const SizedBox(height: 7),
-            Text('總費用 ${_money(closure.totalCost)}'),
-            if (_text(closure.followUpNotes) case final value?) ...[
+    return UiSurfaceCard(
+      padding: const EdgeInsets.all(UiSpace.md),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: canceled ? UiColors.warningSurface : UiColors.successSurface,
+          borderRadius: BorderRadius.circular(UiRadius.control),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(UiSpace.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                canceled ? '案件已取消' : '正式結案',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                canceled
+                    ? cancellationReason ?? closure.finalResult
+                    : closure.finalResult,
+              ),
               const SizedBox(height: 7),
-              Text('後續注意：$value'),
-            ],
-            if (closure.createsSchedule) ...[
+              Text(closure.completionSummary),
               const SizedBox(height: 7),
-              const Text('已連結後續排程'),
+              Text('總費用 ${_money(closure.totalCost)}'),
+              if (_text(closure.followUpNotes) case final value?) ...[
+                const SizedBox(height: 7),
+                Text('後續注意：$value'),
+              ],
+              if (closure.createsSchedule) ...[
+                const SizedBox(height: 7),
+                const Text('已連結後續排程'),
+              ],
+              if (closure.createsReminder) ...[
+                const SizedBox(height: 7),
+                const Text('已建立下一次提醒'),
+              ],
+              if (attachments.isNotEmpty) ...[
+                const SizedBox(height: 7),
+                Text('附件 ${attachments.length} 份'),
+              ],
             ],
-            if (closure.createsReminder) ...[
-              const SizedBox(height: 7),
-              const Text('已建立下一次提醒'),
-            ],
-            if (attachments.isNotEmpty) ...[
-              const SizedBox(height: 7),
-              Text('附件 ${attachments.length} 份'),
-            ],
-          ],
+          ),
         ),
       ),
     );
@@ -1105,14 +1176,44 @@ class _AttachmentTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: Icon(_attachmentIcon(attachment.kind)),
-        title: Text(
-          attachment.originalFileName ?? _attachmentKindLabel(attachment.kind),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: UiSpace.xs),
+      child: UiSurfaceCard(
+        padding: const EdgeInsets.all(UiSpace.md),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: UiColors.iconSurface,
+                borderRadius: BorderRadius.circular(UiRadius.control),
+              ),
+              child: Icon(
+                _attachmentIcon(attachment.kind),
+                color: UiColors.primary,
+              ),
+            ),
+            const SizedBox(width: UiSpace.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    attachment.originalFileName ??
+                        _attachmentKindLabel(attachment.kind),
+                    style: UiType.cardTitle,
+                  ),
+                  const SizedBox(height: UiSpace.xxs),
+                  Text(
+                    _attachmentStateLabel(attachment.state),
+                    style: UiType.caption,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-        subtitle: Text(_attachmentStateLabel(attachment.state)),
       ),
     );
   }
@@ -1126,33 +1227,26 @@ class _InformationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    return UiSurfaceCard(
+      padding: const EdgeInsets.all(UiSpace.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: UiType.sectionTitle),
+          const SizedBox(height: 12),
+          for (final row in rows) ...[
             Text(
-              title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 12),
-            for (final row in rows) ...[
-              Text(
-                row.$1,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: const Color(0xFF5D7893),
-                  fontWeight: FontWeight.w800,
-                ),
+              row.$1,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: UiColors.textSupporting,
+                fontWeight: FontWeight.w800,
               ),
-              const SizedBox(height: 3),
-              Text(row.$2),
-              const SizedBox(height: 10),
-            ],
+            ),
+            const SizedBox(height: 3),
+            Text(row.$2),
+            const SizedBox(height: 10),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -1196,25 +1290,43 @@ class _FormIntro extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 22),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: Theme.of(
-            context,
-          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
-        ),
-        const SizedBox(height: 7),
-        Text(
-          description,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: const Color(0xFF687887),
-            height: 1.5,
-          ),
-        ),
-      ],
+    padding: const EdgeInsets.only(bottom: UiSpace.lg),
+    child: UiMotionEntrance(
+      child: UiCompactPageHeader(
+        title: title,
+        description: description,
+        icon: Icons.edit_document,
+      ),
+    ),
+  );
+}
+
+class _FormSection extends StatelessWidget {
+  const _FormSection({
+    required this.title,
+    required this.icon,
+    required this.children,
+    this.description,
+  });
+
+  final String title;
+  final IconData icon;
+  final String? description;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => UiMotionEntrance(
+    duration: UiMotion.emphasized,
+    child: UiSurfaceCard(
+      padding: const EdgeInsets.all(UiSpace.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          UiSectionHeader(title: title, icon: icon, description: description),
+          const SizedBox(height: UiSpace.md),
+          ...children,
+        ],
+      ),
     ),
   );
 }
@@ -1244,20 +1356,6 @@ class _DateField extends StatelessWidget {
   );
 }
 
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.title);
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) => Text(
-    title,
-    style: Theme.of(
-      context,
-    ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
-  );
-}
-
 class _EmptyState extends StatelessWidget {
   const _EmptyState({required this.icon, required this.message});
 
@@ -1265,21 +1363,10 @@ class _EmptyState extends StatelessWidget {
   final String message;
 
   @override
-  Widget build(BuildContext context) => Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(18),
-    decoration: BoxDecoration(
-      color: const Color(0xFFFFFCF6),
-      borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: const Color(0xFFE4E0D8)),
-    ),
-    child: Row(
-      children: [
-        Icon(icon, color: const Color(0xFF5D7893)),
-        const SizedBox(width: 12),
-        Expanded(child: Text(message)),
-      ],
-    ),
+  Widget build(BuildContext context) => UiEmptyState(
+    icon: icon,
+    title: message,
+    description: '有新的處理內容時，可以在這裡繼續留下完整過程。',
   );
 }
 

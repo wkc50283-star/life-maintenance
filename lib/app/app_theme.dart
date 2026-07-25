@@ -13,18 +13,25 @@ abstract final class AppTheme {
         secondary: UiColors.accent,
       ),
       scaffoldBackgroundColor: UiColors.canvas,
+      fontFamily: 'Roboto',
       useMaterial3: true,
+      visualDensity: VisualDensity.standard,
       appBarTheme: const AppBarTheme(
         centerTitle: false,
         elevation: 0,
         scrolledUnderElevation: 0,
         backgroundColor: UiColors.canvas,
         foregroundColor: UiColors.textPrimary,
+        toolbarHeight: 52,
+        surfaceTintColor: Colors.transparent,
         titleTextStyle: TextStyle(
+          fontFamily: 'Roboto',
           color: UiColors.textPrimary,
-          fontSize: 20,
+          fontSize: 18,
           fontWeight: FontWeight.w700,
         ),
+        iconTheme: IconThemeData(color: UiColors.primary, size: 22),
+        actionsIconTheme: IconThemeData(color: UiColors.primary, size: 22),
       ),
       cardTheme: CardThemeData(
         elevation: 0,
@@ -34,6 +41,11 @@ abstract final class AppTheme {
           borderRadius: BorderRadius.circular(UiRadius.card),
           side: const BorderSide(color: UiColors.border),
         ),
+      ),
+      dividerTheme: const DividerThemeData(
+        color: UiColors.divider,
+        thickness: 1,
+        space: 1,
       ),
       navigationBarTheme: NavigationBarThemeData(
         height: 68,
@@ -61,7 +73,7 @@ abstract final class AppTheme {
         style: FilledButton.styleFrom(
           backgroundColor: UiColors.primary,
           foregroundColor: Colors.white,
-          minimumSize: const Size(48, 52),
+          minimumSize: const Size(48, 46),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(UiRadius.control),
           ),
@@ -71,11 +83,18 @@ abstract final class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: UiColors.primary,
-          minimumSize: const Size(48, 52),
+          minimumSize: const Size(48, 46),
           side: const BorderSide(color: UiColors.borderStrong),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(UiRadius.control),
           ),
+          textStyle: UiType.button,
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: UiColors.primary,
+          minimumSize: const Size(48, 48),
           textStyle: UiType.button,
         ),
       ),
@@ -84,7 +103,7 @@ abstract final class AppTheme {
         fillColor: UiColors.surface,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: UiSpace.md,
-          vertical: UiSpace.md,
+          vertical: 12,
         ),
         labelStyle: UiType.body,
         hintStyle: UiType.body.copyWith(color: UiColors.iconMuted),

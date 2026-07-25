@@ -8,6 +8,57 @@ import 'package:life_maintenance/screens/today_screen.dart';
 
 void main() {
   testWidgets(
+    'reminder detail and case start are safe at 320 width and 200 percent text',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(320, 568);
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      tester.platformDispatcher.accessibilityFeaturesTestValue =
+          const FakeAccessibilityFeatures(disableAnimations: true);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      addTearDown(
+        tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+      );
+
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final root = AppCompositionRoot(database: database);
+      final now = DateTime.now();
+      await _seed(root, DateTime(now.year, now.month, now.day, 8));
+
+      await tester.pumpWidget(
+        AppCompositionScope(
+          root: root,
+          child: const MaterialApp(home: Scaffold(body: TodayScreen())),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -500));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('租約續約').first);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+
+      await tester.scrollUntilVisible(
+        find.text('開始處理'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.widgetWithText(FilledButton, '開始處理'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      await tester.scrollUntilVisible(
+        find.text('建立進行中案件'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'Task detail shows its source and starts a WorkCase without completing Task',
     (tester) async {
       tester.view.devicePixelRatio = 1;
