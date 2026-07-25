@@ -19,7 +19,7 @@ void main() {
     expect(find.text('新增'), findsOneWidget);
     expect(find.text('史略'), findsOneWidget);
     expect(find.text('設定'), findsOneWidget);
-    expect(find.textContaining('今天是'), findsOneWidget);
+    expect(find.text('還沒有生活項目'), findsOneWidget);
     expect(find.text('軍規邏輯，民用保養'), findsNothing);
     expect(find.text('v0.14.0'), findsNothing);
     expect(find.text('v0.9.0'), findsNothing);

@@ -20,21 +20,30 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     final database = AppDatabase(NativeDatabase.memory());
     final root = AppCompositionRoot(database: database);
+    var quickAddCount = 0;
 
     await tester.pumpWidget(
       AppCompositionScope(
         root: root,
-        child: const MaterialApp(home: Scaffold(body: TodayScreen())),
+        child: MaterialApp(
+          home: Scaffold(body: TodayScreen(onQuickAdd: () => quickAddCount++)),
+        ),
       ),
     );
     await tester.pumpAndSettle();
 
-    _expectOverviewCount('overview-status-reminders', 0);
-    _expectOverviewCount('overview-status-cases', 0);
-    _expectOverviewCount('overview-status-milestones', 0);
-    expect(find.text('今天沒有需要留意的提醒。'), findsOneWidget);
-    expect(find.text('目前沒有進行中的案件。'), findsOneWidget);
-    expect(find.text('目前還沒有完成紀錄。'), findsOneWidget);
+    expect(find.text('還沒有生活項目'), findsOneWidget);
+    expect(find.text('拍一張、說一句或輸入名稱開始'), findsOneWidget);
+    expect(find.text('今天需處理'), findsNothing);
+    expect(find.text('進行中案件'), findsNothing);
+    expect(find.text('階段性重點'), findsNothing);
+    expect(find.text('最近完成'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('overview-status-reminders')),
+      findsNothing,
+    );
+    await tester.tap(find.text('新增生活項目').last);
+    expect(quickAddCount, 1);
     expect(find.text('客廳冷氣'), findsNothing);
     expect(find.text('冷氣異音檢查'), findsNothing);
     await database.close();
@@ -130,17 +139,19 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    _expectOverviewCount('overview-status-reminders', 1);
-    _expectOverviewCount('overview-status-cases', 1);
-    _expectOverviewCount('overview-status-milestones', 1);
+    expect(
+      find.byKey(const ValueKey('overview-status-reminders')),
+      findsNothing,
+    );
+    expect(find.text('今天需處理'), findsOneWidget);
+    expect(find.text('進行中案件'), findsOneWidget);
+    expect(find.text('最近完成'), findsOneWidget);
     expect(find.text('確認冷氣運轉'), findsOneWidget);
     expect(find.text('已安排'), findsOneWidget);
     expect(find.text('下個月再確認'), findsNothing);
     expect(find.text('冷氣異音檢查'), findsOneWidget);
     expect(find.text('下一步：等待到府檢查'), findsOneWidget);
-    expect(find.text('第六年全面檢查'), findsOneWidget);
-    expect(find.text('條件未到'), findsOneWidget);
-    expect(find.textContaining('預定日期'), findsOneWidget);
+    expect(find.text('第六年全面檢查'), findsNothing);
     expect(find.text('已逾期'), findsNothing);
     expect(find.text('已達標'), findsNothing);
     expect(find.text('完成冷氣濾網清潔'), findsOneWidget);
@@ -148,18 +159,14 @@ void main() {
     expect(await root.workCaseRuntime.listCasesForItem('item-1'), hasLength(1));
     expect(await root.milestoneRepository.listForItem('item-1'), hasLength(1));
     expect(await root.maintenanceRecordRepository.listAll(), hasLength(1));
+
+    final reminderTop = tester.getTopLeft(find.text('今天需處理')).dy;
+    final caseTop = tester.getTopLeft(find.text('進行中案件')).dy;
+    final completionTop = tester.getTopLeft(find.text('最近完成')).dy;
+    expect(reminderTop, lessThan(caseTop));
+    expect(caseTop, lessThan(completionTop));
     await database.close();
   });
-}
-
-void _expectOverviewCount(String key, int count) {
-  expect(
-    find.descendant(
-      of: find.byKey(ValueKey(key)),
-      matching: find.text('$count'),
-    ),
-    findsOneWidget,
-  );
 }
 
 Future<void> _seedItem(AppCompositionRoot root, DateTime createdAt) async {

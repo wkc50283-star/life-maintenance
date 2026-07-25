@@ -6,7 +6,6 @@ import '../diagnostics/runtime_diagnostics.dart';
 import '../models/enums.dart';
 import '../models/history_projection.dart';
 import '../models/item.dart';
-import '../models/milestone.dart';
 import '../models/milestone_enums.dart';
 import '../models/task.dart' as maintenance_task;
 import '../models/work_case.dart';
@@ -18,7 +17,6 @@ import '../repositories/schedule_repository.dart';
 import '../repositories/task_repository.dart';
 import '../repositories/work_case_runtime.dart';
 import '../services/maintenance_task_service.dart';
-import '../widgets/today_hero.dart';
 import '../widgets/ui_v2_components.dart';
 import 'task_reminder_screens.dart';
 import 'work_case_screens.dart';
@@ -50,7 +48,6 @@ class _TodayScreenState extends State<TodayScreen> {
   List<Item>? _localItems;
   List<maintenance_task.Task>? _localTasks;
   List<_OpenCaseOverview> _openCases = const [];
-  List<Milestone> _activeMilestones = const [];
   List<_RecentCompletion> _recentCompletions = const [];
   Object? _loadError;
 
@@ -119,7 +116,6 @@ class _TodayScreenState extends State<TodayScreen> {
         ? tasks
         : await _taskRepository.loadTasks();
     final openCases = <_OpenCaseOverview>[];
-    final milestones = <Milestone>[];
     final completions = <_RecentCompletion>[];
 
     for (final item in items) {
@@ -141,15 +137,6 @@ class _TodayScreenState extends State<TodayScreen> {
         }
       }
 
-      final milestoneRepository = _runtime.milestoneRepository;
-      if (milestoneRepository != null) {
-        milestones.addAll(
-          (await milestoneRepository.listForItem(
-            item.id,
-          )).where((milestone) => !milestone.isClosed),
-        );
-      }
-
       final historyRepository = _historyRepository;
       if (historyRepository != null) {
         final projection = await historyRepository.projectForItem(item.id);
@@ -167,7 +154,6 @@ class _TodayScreenState extends State<TodayScreen> {
       (left, right) =>
           right.workCase.updatedAt.compareTo(left.workCase.updatedAt),
     );
-    milestones.sort(_compareMilestones);
     completions.sort(
       (left, right) => right.entry.occurredAt.compareTo(left.entry.occurredAt),
     );
@@ -180,7 +166,6 @@ class _TodayScreenState extends State<TodayScreen> {
       _localItems = items;
       _localTasks = currentTasks;
       _openCases = openCases;
-      _activeMilestones = milestones;
       _recentCompletions = completions.take(3).toList(growable: false);
       _loadError = null;
     });
@@ -200,169 +185,138 @@ class _TodayScreenState extends State<TodayScreen> {
         .where((task) => _needsAttention(task, today))
         .toList(growable: false);
 
+    final hasItems = localItems.isNotEmpty;
+
     return ListView(
       key: const ValueKey('overview-scroll'),
       padding: UiInsets.pageCompact,
       children: [
         UiMotionEntrance(
           duration: UiMotion.standard,
-          child: TodayHero(
-            reminderCount: reminders.length,
-            openCaseCount: _openCases.length,
-            milestoneCount: _activeMilestones.length,
+          child: _OverviewHeader(
             onQuickAdd: widget.onQuickAdd,
+            onViewReminders: _runtime.taskReminderRuntime == null
+                ? null
+                : _openReminderList,
           ),
         ),
-        const SizedBox(height: UiSpace.md),
-        UiMotionEntrance(
-          key: const ValueKey('overview-section-reminders'),
-          duration: UiMotion.standard,
-          child: _OverviewSection(
-            title: '今日提醒',
-            icon: Icons.notifications_none_rounded,
-            description: '今天到期或仍需要留意的提醒。',
-            actionLabel: _runtime.taskReminderRuntime == null ? null : '查看全部',
-            onAction: _runtime.taskReminderRuntime == null
-                ? null
-                : () async {
-                    await Navigator.of(context).push<void>(
-                      MaterialPageRoute(
-                        builder: (_) => const TaskReminderListScreen(),
-                      ),
-                    );
-                    await _loadOverview();
-                  },
-            children: reminders.isEmpty
-                ? const [
-                    _OverviewEmptyState(
+        if (!hasItems) ...[
+          UiMotionEntrance(
+            key: const ValueKey('overview-empty-items'),
+            duration: UiMotion.standard,
+            child: UiEmptyState(
+              icon: Icons.inventory_2_outlined,
+              title: '還沒有生活項目',
+              description: '拍一張、說一句或輸入名稱開始',
+              action: widget.onQuickAdd == null
+                  ? null
+                  : UiPrimaryButton(
+                      onPressed: widget.onQuickAdd,
+                      label: '新增生活項目',
+                      icon: Icons.add_rounded,
+                    ),
+            ),
+          ),
+        ] else ...[
+          if (reminders.isNotEmpty)
+            UiMotionEntrance(
+              key: const ValueKey('overview-section-reminders'),
+              duration: UiMotion.standard,
+              child: _OverviewSection(
+                title: '今天需處理',
+                icon: Icons.notifications_none_rounded,
+                description: '今天到期或仍需要留意的提醒。',
+                actionLabel: _runtime.taskReminderRuntime == null
+                    ? null
+                    : '查看全部',
+                onAction: _runtime.taskReminderRuntime == null
+                    ? null
+                    : _openReminderList,
+                children: [
+                  for (final task in reminders)
+                    _OverviewFactCard(
                       icon: Icons.notifications_none_rounded,
-                      message: '今天沒有需要留意的提醒。',
+                      title: task.title,
+                      subtitle: _itemName(task.itemId, localItems),
+                      detail: '原定 ${_formatDate(task.dueDate)}',
+                      status: _labelForStatus(task.status),
+                      statusTone: task.status == TaskStatus.overdue
+                          ? UiStatusTone.warning
+                          : UiStatusTone.info,
+                      semanticLabel: '開啟提醒：${task.title}',
+                      onTap: () => _openTaskDetail(task.id),
                     ),
-                  ]
-                : [
-                    for (final task in reminders)
-                      _OverviewFactCard(
-                        icon: Icons.notifications_none_rounded,
-                        title: task.title,
-                        subtitle: _itemName(task.itemId, localItems),
-                        detail: '原定 ${_formatDate(task.dueDate)}',
-                        status: _labelForStatus(task.status),
-                        statusTone: task.status == TaskStatus.overdue
-                            ? UiStatusTone.warning
-                            : UiStatusTone.info,
-                        semanticLabel: '開啟提醒：${task.title}',
-                        onTap: () => _openTaskDetail(task.id),
-                      ),
-                  ],
-          ),
-        ),
-        UiMotionEntrance(
-          key: const ValueKey('overview-section-cases'),
-          duration: UiMotion.emphasized,
-          child: _OverviewSection(
-            title: '進行中案件',
-            icon: Icons.handyman_outlined,
-            description: '已經開始處理、仍在進行或等待中的事情。',
-            actionLabel: _workCaseRuntime == null ? null : '全部案件',
-            onAction: _workCaseRuntime == null
-                ? null
-                : () async {
-                    await Navigator.of(context).push<void>(
-                      MaterialPageRoute(
-                        builder: (_) => const WorkCaseListScreen(),
-                      ),
-                    );
-                    await _loadOverview();
-                  },
-            children: _openCases.isEmpty
-                ? const [
-                    _OverviewEmptyState(
+                ],
+              ),
+            ),
+          if (_openCases.isNotEmpty)
+            UiMotionEntrance(
+              key: const ValueKey('overview-section-cases'),
+              duration: UiMotion.emphasized,
+              child: _OverviewSection(
+                title: '進行中案件',
+                icon: Icons.handyman_outlined,
+                description: '已經開始處理、仍在進行或等待中的事情。',
+                actionLabel: _workCaseRuntime == null ? null : '全部案件',
+                onAction: _workCaseRuntime == null
+                    ? null
+                    : () async {
+                        await Navigator.of(context).push<void>(
+                          MaterialPageRoute(
+                            builder: (_) => const WorkCaseListScreen(),
+                          ),
+                        );
+                        await _loadOverview();
+                      },
+                children: [
+                  for (final entry in _openCases.take(3))
+                    _OverviewFactCard(
                       icon: Icons.handyman_outlined,
-                      message: '目前沒有進行中的案件。',
+                      title: entry.workCase.title,
+                      subtitle: entry.itemName,
+                      detail: _caseDetail(entry),
+                      status: _labelForCaseStatus(entry.workCase.status),
+                      statusTone:
+                          entry.workCase.status == WorkCaseStatus.waiting
+                          ? UiStatusTone.warning
+                          : UiStatusTone.info,
+                      onTap: () async {
+                        final changed = await Navigator.of(context).push<bool>(
+                          MaterialPageRoute(
+                            builder: (_) => WorkCaseDetailScreen(
+                              workCaseId: entry.workCase.id,
+                              itemName: entry.itemName,
+                            ),
+                          ),
+                        );
+                        if (changed == true) await _loadOverview();
+                      },
                     ),
-                  ]
-                : [
-                    for (final entry in _openCases.take(3))
-                      _OverviewFactCard(
-                        icon: Icons.handyman_outlined,
-                        title: entry.workCase.title,
-                        subtitle: entry.itemName,
-                        detail: _caseDetail(entry),
-                        status: _labelForCaseStatus(entry.workCase.status),
-                        statusTone:
-                            entry.workCase.status == WorkCaseStatus.waiting
-                            ? UiStatusTone.warning
-                            : UiStatusTone.info,
-                        onTap: () async {
-                          final changed = await Navigator.of(context)
-                              .push<bool>(
-                                MaterialPageRoute(
-                                  builder: (_) => WorkCaseDetailScreen(
-                                    workCaseId: entry.workCase.id,
-                                    itemName: entry.itemName,
-                                  ),
-                                ),
-                              );
-                          if (changed == true) await _loadOverview();
-                        },
-                      ),
-                  ],
-          ),
-        ),
-        UiMotionEntrance(
-          duration: UiMotion.emphasized,
-          child: _OverviewSection(
-            title: '階段性重點',
-            icon: Icons.flag_outlined,
-            description: '生活項目正在接近或已達到的重要階段。',
-            children: _activeMilestones.isEmpty
-                ? const [
-                    _OverviewEmptyState(
-                      icon: Icons.flag_outlined,
-                      message: '目前沒有需要留意的階段性重點。',
+                ],
+              ),
+            ),
+          if (_recentCompletions.isNotEmpty)
+            UiMotionEntrance(
+              key: const ValueKey('overview-section-completions'),
+              duration: UiMotion.emphasized,
+              child: _OverviewSection(
+                title: '最近完成',
+                icon: Icons.history_rounded,
+                description: '近期已處理完成並留在正式史略中的紀錄。',
+                children: [
+                  for (final completion in _recentCompletions)
+                    _OverviewFactCard(
+                      icon: Icons.check_circle_outline,
+                      title: _historyEntryTitle(completion.entry),
+                      subtitle: completion.itemName,
+                      detail: _formatDate(completion.entry.occurredAt),
+                      status: '已完成',
+                      statusTone: UiStatusTone.success,
                     ),
-                  ]
-                : [
-                    for (final milestone in _activeMilestones.take(3))
-                      _OverviewFactCard(
-                        icon: Icons.flag_outlined,
-                        title: milestone.title,
-                        subtitle: _itemName(milestone.itemId, localItems),
-                        detail: _milestoneTriggerLabel(milestone),
-                        status: _labelForMilestoneStatus(milestone.status),
-                        statusTone: milestone.status == MilestoneStatus.reached
-                            ? UiStatusTone.warning
-                            : UiStatusTone.info,
-                      ),
-                  ],
-          ),
-        ),
-        UiMotionEntrance(
-          duration: UiMotion.emphasized,
-          child: _OverviewSection(
-            title: '最近完成',
-            icon: Icons.history_rounded,
-            description: '近期已處理完成並留在正式史略中的紀錄。',
-            children: _recentCompletions.isEmpty
-                ? const [
-                    _OverviewEmptyState(
-                      icon: Icons.history_rounded,
-                      message: '目前還沒有完成紀錄。',
-                    ),
-                  ]
-                : [
-                    for (final completion in _recentCompletions)
-                      _OverviewFactCard(
-                        icon: Icons.check_circle_outline,
-                        title: _historyEntryTitle(completion.entry),
-                        subtitle: completion.itemName,
-                        detail: _formatDate(completion.entry.occurredAt),
-                        status: '已完成',
-                        statusTone: UiStatusTone.success,
-                      ),
-                  ],
-          ),
-        ),
+                ],
+              ),
+            ),
+        ],
       ],
     );
   }
@@ -374,6 +328,13 @@ class _TodayScreenState extends State<TodayScreen> {
       MaterialPageRoute(
         builder: (_) => TaskReminderDetailScreen(initialDetail: detail),
       ),
+    );
+    await _loadOverview();
+  }
+
+  Future<void> _openReminderList() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => const TaskReminderListScreen()),
     );
     await _loadOverview();
   }
@@ -443,28 +404,6 @@ bool _isCompletedHistoryEntry(HistoryEntry entry) {
   };
 }
 
-int _compareMilestones(Milestone left, Milestone right) {
-  final byStatus = _milestonePriority(
-    left.status,
-  ).compareTo(_milestonePriority(right.status));
-  if (byStatus != 0) return byStatus;
-  final leftDate = left.triggerDate ?? left.updatedAt;
-  final rightDate = right.triggerDate ?? right.updatedAt;
-  return leftDate.compareTo(rightDate);
-}
-
-int _milestonePriority(MilestoneStatus status) {
-  return switch (status) {
-    MilestoneStatus.inProgress => 0,
-    MilestoneStatus.reached => 1,
-    MilestoneStatus.acknowledged => 2,
-    MilestoneStatus.pending => 3,
-    MilestoneStatus.completed ||
-    MilestoneStatus.canceled ||
-    MilestoneStatus.archived => 4,
-  };
-}
-
 String _caseDetail(_OpenCaseOverview overview) {
   final update = overview.latestUpdate;
   final nextAction = _nonEmpty(update?.nextAction);
@@ -484,34 +423,6 @@ String _labelForCaseStatus(WorkCaseStatus status) {
     WorkCaseStatus.completed => '已完成',
     WorkCaseStatus.canceled => '已取消',
   };
-}
-
-String _labelForMilestoneStatus(MilestoneStatus status) {
-  return switch (status) {
-    MilestoneStatus.pending => '條件未到',
-    MilestoneStatus.reached => '條件已到',
-    MilestoneStatus.acknowledged => '已確認',
-    MilestoneStatus.inProgress => '處理中',
-    MilestoneStatus.completed => '已完成',
-    MilestoneStatus.canceled => '已取消',
-    MilestoneStatus.archived => '已封存',
-  };
-}
-
-String _milestoneTriggerLabel(Milestone milestone) {
-  if (milestone.triggerDate case final date?) {
-    return '預定日期 ${_formatDate(date)}';
-  }
-  if (milestone.thresholdValue case final value?) {
-    final formatted = value == value.roundToDouble()
-        ? value.toInt().toString()
-        : value.toString();
-    return '條件 $formatted ${milestone.thresholdUnit ?? ''}'.trim();
-  }
-  if (_nonEmpty(milestone.lifeStageCode) case final stage?) {
-    return '人生階段：$stage';
-  }
-  return _nonEmpty(milestone.description) ?? '手動建立的階段性重點';
 }
 
 String _historyEntryTitle(HistoryEntry entry) {
@@ -554,6 +465,40 @@ class _RecentCompletion {
   final String itemName;
 }
 
+class _OverviewHeader extends StatelessWidget {
+  const _OverviewHeader({this.onQuickAdd, this.onViewReminders});
+
+  final VoidCallback? onQuickAdd;
+  final VoidCallback? onViewReminders;
+
+  @override
+  Widget build(BuildContext context) => UiCompactPageHeader(
+    title: '生活總覽',
+    description: '看看現在需要處理與最近完成的生活事項。',
+    action: onQuickAdd == null && onViewReminders == null
+        ? null
+        : Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (onViewReminders != null)
+                IconButton(
+                  key: const ValueKey('overview-all-reminders'),
+                  tooltip: '查看全部提醒',
+                  onPressed: onViewReminders,
+                  icon: const Icon(Icons.notifications_none_rounded),
+                ),
+              if (onQuickAdd != null)
+                IconButton(
+                  key: const ValueKey('overview-quick-add'),
+                  tooltip: '新增生活項目',
+                  onPressed: onQuickAdd,
+                  icon: const Icon(Icons.add_circle_rounded),
+                ),
+            ],
+          ),
+  );
+}
+
 class _OverviewSection extends StatelessWidget {
   const _OverviewSection({
     required this.title,
@@ -589,53 +534,6 @@ class _OverviewSection extends StatelessWidget {
       ],
     ),
   );
-}
-
-class _OverviewEmptyState extends StatelessWidget {
-  const _OverviewEmptyState({required this.icon, required this.message});
-
-  final IconData icon;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(UiSpace.lg),
-      decoration: BoxDecoration(
-        color: UiColors.surfaceWarm,
-        borderRadius: BorderRadius.circular(UiRadius.card),
-        border: Border.all(color: UiColors.border),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: UiColors.iconSurface,
-              borderRadius: BorderRadius.circular(UiRadius.control),
-            ),
-            child: Icon(icon, color: UiColors.primary),
-          ),
-          const SizedBox(width: UiSpace.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  message,
-                  style: UiType.body.copyWith(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: UiSpace.xxs),
-                const Text('你可以先新增生活項目，或從現有項目繼續安排。', style: UiType.caption),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _OverviewFactCard extends StatelessWidget {
