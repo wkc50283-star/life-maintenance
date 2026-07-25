@@ -136,6 +136,17 @@ void main() {
     expect(find.text('生活總覽'), findsWidgets);
     expect(find.text('還沒有生活項目'), findsOneWidget);
     expect(find.text('拍一張、說一句或輸入名稱開始'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('overview-capture-text')),
+      160,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('overview-scroll')),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    expect(find.text('拍一張'), findsOneWidget);
+    expect(find.text('說一句'), findsOneWidget);
+    expect(find.text('輸入'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

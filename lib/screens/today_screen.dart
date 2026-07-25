@@ -223,7 +223,7 @@ class _TodayScreenState extends State<TodayScreen> {
               key: const ValueKey('overview-section-reminders'),
               duration: UiMotion.standard,
               child: _OverviewSection(
-                title: '今天需處理',
+                title: '今天需要處理',
                 icon: Icons.notifications_none_rounded,
                 description: '今天到期或仍需要留意的提醒。',
                 actionLabel: _runtime.taskReminderRuntime == null
@@ -317,6 +317,8 @@ class _TodayScreenState extends State<TodayScreen> {
               ),
             ),
         ],
+        const SizedBox(height: UiSpace.sm),
+        _QuickCaptureActions(onQuickAdd: widget.onQuickAdd),
       ],
     );
   }
@@ -496,6 +498,70 @@ class _OverviewHeader extends StatelessWidget {
                 ),
             ],
           ),
+  );
+}
+
+class _QuickCaptureActions extends StatelessWidget {
+  const _QuickCaptureActions({required this.onQuickAdd});
+
+  final VoidCallback? onQuickAdd;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Expanded(
+        child: _QuickCaptureButton(
+          buttonKey: const ValueKey('overview-capture-photo'),
+          icon: Icons.photo_camera_outlined,
+          label: '拍一張',
+          onPressed: onQuickAdd,
+        ),
+      ),
+      const SizedBox(width: UiSpace.xs),
+      Expanded(
+        child: _QuickCaptureButton(
+          buttonKey: const ValueKey('overview-capture-voice'),
+          icon: Icons.mic_none_rounded,
+          label: '說一句',
+          onPressed: onQuickAdd,
+        ),
+      ),
+      const SizedBox(width: UiSpace.xs),
+      Expanded(
+        child: _QuickCaptureButton(
+          buttonKey: const ValueKey('overview-capture-text'),
+          icon: Icons.keyboard_outlined,
+          label: '輸入',
+          onPressed: onQuickAdd,
+        ),
+      ),
+    ],
+  );
+}
+
+class _QuickCaptureButton extends StatelessWidget {
+  const _QuickCaptureButton({
+    required this.buttonKey,
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+
+  final Key buttonKey;
+  final IconData icon;
+  final String label;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label: '$label，前往新增生活項目',
+    button: true,
+    child: OutlinedButton.icon(
+      key: buttonKey,
+      onPressed: onPressed,
+      icon: Icon(icon, size: 18),
+      label: Text(label),
+    ),
   );
 }
 

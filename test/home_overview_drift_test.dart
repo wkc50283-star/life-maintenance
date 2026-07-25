@@ -34,7 +34,7 @@ void main() {
 
     expect(find.text('還沒有生活項目'), findsOneWidget);
     expect(find.text('拍一張、說一句或輸入名稱開始'), findsOneWidget);
-    expect(find.text('今天需處理'), findsNothing);
+    expect(find.text('今天需要處理'), findsNothing);
     expect(find.text('進行中案件'), findsNothing);
     expect(find.text('階段性重點'), findsNothing);
     expect(find.text('最近完成'), findsNothing);
@@ -44,6 +44,12 @@ void main() {
     );
     await tester.tap(find.text('新增生活項目').last);
     expect(quickAddCount, 1);
+    await tester.tap(find.byKey(const ValueKey('overview-capture-photo')));
+    await tester.tap(find.byKey(const ValueKey('overview-capture-voice')));
+    await tester.tap(find.byKey(const ValueKey('overview-capture-text')));
+    expect(quickAddCount, 4);
+    expect(find.text('今天想記錄什麼？'), findsNothing);
+    expect(find.text('AI 建議'), findsNothing);
     expect(find.text('客廳冷氣'), findsNothing);
     expect(find.text('冷氣異音檢查'), findsNothing);
     await database.close();
@@ -143,7 +149,7 @@ void main() {
       find.byKey(const ValueKey('overview-status-reminders')),
       findsNothing,
     );
-    expect(find.text('今天需處理'), findsOneWidget);
+    expect(find.text('今天需要處理'), findsOneWidget);
     expect(find.text('進行中案件'), findsOneWidget);
     expect(find.text('最近完成'), findsOneWidget);
     expect(find.text('確認冷氣運轉'), findsOneWidget);
@@ -160,7 +166,7 @@ void main() {
     expect(await root.milestoneRepository.listForItem('item-1'), hasLength(1));
     expect(await root.maintenanceRecordRepository.listAll(), hasLength(1));
 
-    final reminderTop = tester.getTopLeft(find.text('今天需處理')).dy;
+    final reminderTop = tester.getTopLeft(find.text('今天需要處理')).dy;
     final caseTop = tester.getTopLeft(find.text('進行中案件')).dy;
     final completionTop = tester.getTopLeft(find.text('最近完成')).dy;
     expect(reminderTop, lessThan(caseTop));

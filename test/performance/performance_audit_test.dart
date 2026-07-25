@@ -100,7 +100,7 @@ void main() {
       stopwatch.stop();
       final memoryGrowth = ProcessInfo.currentRss - memoryBefore;
 
-      expect(find.text('今天需處理'), findsOneWidget);
+      expect(find.text('今天需要處理'), findsOneWidget);
       expect(find.text('今日提醒 0-0'), findsOneWidget);
       expect(stopwatch.elapsed, lessThan(_screenBudget));
       expect(memoryGrowth, lessThan(_memoryBudgetBytes));
