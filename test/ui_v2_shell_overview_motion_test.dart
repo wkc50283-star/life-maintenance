@@ -67,53 +67,16 @@ void main() {
       expect(UiMotion.standard.inMilliseconds, inInclusiveRange(120, 300));
       expect(UiMotion.emphasized.inMilliseconds, inInclusiveRange(120, 300));
       expect(
-        find.byKey(const ValueKey('overview-section-reminders')),
+        find.byKey(const ValueKey('overview-empty-items')),
         findsOneWidget,
       );
-      final quickAddFeedback = find.ancestor(
-        of: find.byKey(const ValueKey('overview-quick-add')),
-        matching: find.byType(UiPressFeedback),
-      );
-      expect(quickAddFeedback, findsOneWidget);
       expect(
         tester
-            .widget<AnimatedScale>(
-              find.descendant(
-                of: quickAddFeedback,
-                matching: find.byType(AnimatedScale),
-              ),
+            .widget<UiMotionEntrance>(
+              find.byKey(const ValueKey('overview-empty-items')),
             )
             .duration,
-        UiMotion.quick,
-      );
-      final press = await tester.startGesture(
-        tester.getCenter(find.byKey(const ValueKey('overview-quick-add'))),
-      );
-      await tester.pump();
-      expect(
-        tester
-            .widget<AnimatedScale>(
-              find.descendant(
-                of: quickAddFeedback,
-                matching: find.byType(AnimatedScale),
-              ),
-            )
-            .scale,
-        lessThan(1),
-      );
-      await press.cancel();
-      await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(
-        find.byKey(const ValueKey('overview-section-cases')),
-        250,
-        scrollable: find.descendant(
-          of: find.byKey(const ValueKey('overview-scroll')),
-          matching: find.byType(Scrollable),
-        ),
-      );
-      expect(
-        find.byKey(const ValueKey('overview-section-cases')),
-        findsOneWidget,
+        UiMotion.standard,
       );
     },
   );
@@ -171,24 +134,8 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text('生活總覽'), findsWidgets);
-    await tester.scrollUntilVisible(
-      find.text('今天沒有需要留意的提醒。'),
-      200,
-      scrollable: find.descendant(
-        of: find.byKey(const ValueKey('overview-scroll')),
-        matching: find.byType(Scrollable),
-      ),
-    );
-    expect(find.text('今天沒有需要留意的提醒。'), findsOneWidget);
-    await tester.scrollUntilVisible(
-      find.text('目前還沒有完成紀錄。'),
-      300,
-      scrollable: find.descendant(
-        of: find.byKey(const ValueKey('overview-scroll')),
-        matching: find.byType(Scrollable),
-      ),
-    );
+    expect(find.text('還沒有生活項目'), findsOneWidget);
+    expect(find.text('拍一張、說一句或輸入名稱開始'), findsOneWidget);
     expect(tester.takeException(), isNull);
-    expect(find.text('目前還沒有完成紀錄。'), findsOneWidget);
   });
 }

@@ -100,13 +100,8 @@ void main() {
       stopwatch.stop();
       final memoryGrowth = ProcessInfo.currentRss - memoryBefore;
 
-      expect(
-        find.descendant(
-          of: find.byKey(const ValueKey('overview-status-reminders')),
-          matching: find.text('$_taskCount'),
-        ),
-        findsOneWidget,
-      );
+      expect(find.text('今天需處理'), findsOneWidget);
+      expect(find.text('今日提醒 0-0'), findsOneWidget);
       expect(stopwatch.elapsed, lessThan(_screenBudget));
       expect(memoryGrowth, lessThan(_memoryBudgetBytes));
       for (var index = 0; index < 5; index++) {

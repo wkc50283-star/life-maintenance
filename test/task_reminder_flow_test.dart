@@ -155,7 +155,7 @@ void main() {
 
     await tester.pageBack();
     await tester.pumpAndSettle();
-    await tester.tap(find.text('查看全部'));
+    await tester.tap(find.byTooltip('查看全部提醒'));
     await tester.pumpAndSettle();
     expect(find.text('租約續約'), findsOneWidget);
     expect(find.text('已暫停'), findsOneWidget);
