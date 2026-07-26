@@ -32,6 +32,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.textContaining('安，國政'), findsOneWidget);
+    expect(find.textContaining('星期'), findsOneWidget);
     expect(find.text('還沒有生活項目'), findsOneWidget);
     expect(find.text('拍一張、說一句或輸入名稱開始'), findsOneWidget);
     expect(find.text('新增生活項目'), findsOneWidget);
@@ -43,28 +45,45 @@ void main() {
     expect(find.text('進行中案件'), findsNothing);
     expect(find.text('階段性重點'), findsNothing);
     expect(find.text('最近完成'), findsNothing);
+    expect(find.text('AI 建議管理'), findsOneWidget);
+    expect(find.text('AI 建議功能尚未啟用'), findsOneWidget);
+    expect(find.text('系統建議你今天清潔冷氣'), findsNothing);
     expect(
       find.byKey(const ValueKey('overview-status-reminders')),
       findsNothing,
     );
     await tester.tap(find.text('新增生活項目').last);
     expect(quickAddCount, 1);
-    await tester.tap(find.byKey(const ValueKey('overview-capture-photo')));
-    await tester.tap(find.byKey(const ValueKey('overview-capture-voice')));
-    await tester.tap(find.byKey(const ValueKey('overview-capture-text')));
+    final scrollable = find.descendant(
+      of: find.byKey(const ValueKey('overview-scroll')),
+      matching: find.byType(Scrollable),
+    );
+    for (final key in const [
+      ValueKey('overview-capture-photo'),
+      ValueKey('overview-capture-voice'),
+      ValueKey('overview-capture-text'),
+    ]) {
+      await tester.scrollUntilVisible(
+        find.byKey(key),
+        160,
+        scrollable: scrollable,
+      );
+      await tester.tap(find.byKey(key));
+    }
     expect(quickAddCount, 4);
     expect(find.text('今天想記錄什麼？'), findsNothing);
-    expect(find.text('AI 建議'), findsNothing);
     expect(find.text('客廳冷氣'), findsNothing);
     expect(find.text('冷氣異音檢查'), findsNothing);
-    final captureBottom = tester.getBottomLeft(
-      find.byKey(const ValueKey('overview-capture-text')),
+    expect(find.text('拍照'), findsOneWidget);
+    expect(find.text('拍一張照片'), findsOneWidget);
+    expect(find.text('語音說一段話'), findsOneWidget);
+    expect(find.text('打幾個字'), findsOneWidget);
+    expect(
+      tester
+          .getTopLeft(find.byKey(const ValueKey('overview-capture-section')))
+          .dy,
+      greaterThan(tester.getTopLeft(find.text('AI 建議管理')).dy),
     );
-    final emptyBottom = tester.getBottomLeft(
-      find.byKey(const ValueKey('overview-empty-items')),
-    );
-    expect(captureBottom.dy, greaterThan(emptyBottom.dy));
-    expect(captureBottom.dy, greaterThan(1600));
     await database.close();
   });
 
@@ -162,14 +181,16 @@ void main() {
       find.byKey(const ValueKey('overview-status-reminders')),
       findsNothing,
     );
-    expect(find.text('今天需要處理'), findsOneWidget);
-    expect(find.text('進行中案件'), findsOneWidget);
+    expect(find.text('今天需要處理（1）'), findsOneWidget);
+    expect(find.text('進行中案件'), findsNothing);
     expect(find.text('最近完成'), findsOneWidget);
+    expect(find.text('AI 建議管理'), findsOneWidget);
+    expect(find.text('AI 建議功能尚未啟用'), findsOneWidget);
     expect(find.text('確認冷氣運轉'), findsOneWidget);
     expect(find.text('已安排'), findsOneWidget);
     expect(find.text('下個月再確認'), findsNothing);
-    expect(find.text('冷氣異音檢查'), findsOneWidget);
-    expect(find.text('下一步：等待到府檢查'), findsOneWidget);
+    expect(find.text('冷氣異音檢查'), findsNothing);
+    expect(find.text('下一步：等待到府檢查'), findsNothing);
     expect(find.text('第六年全面檢查'), findsNothing);
     expect(find.text('已逾期'), findsNothing);
     expect(find.text('已達標'), findsNothing);
@@ -179,11 +200,15 @@ void main() {
     expect(await root.milestoneRepository.listForItem('item-1'), hasLength(1));
     expect(await root.maintenanceRecordRepository.listAll(), hasLength(1));
 
-    final reminderTop = tester.getTopLeft(find.text('今天需要處理')).dy;
-    final caseTop = tester.getTopLeft(find.text('進行中案件')).dy;
+    final reminderTop = tester.getTopLeft(find.text('今天需要處理（1）')).dy;
     final completionTop = tester.getTopLeft(find.text('最近完成')).dy;
-    expect(reminderTop, lessThan(caseTop));
-    expect(caseTop, lessThan(completionTop));
+    final aiTop = tester.getTopLeft(find.text('AI 建議管理')).dy;
+    final captureTop = tester
+        .getTopLeft(find.byKey(const ValueKey('overview-capture-section')))
+        .dy;
+    expect(reminderTop, lessThan(completionTop));
+    expect(completionTop, lessThan(aiTop));
+    expect(aiTop, lessThan(captureTop));
     await database.close();
   });
 }

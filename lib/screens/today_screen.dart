@@ -8,18 +8,14 @@ import '../models/history_projection.dart';
 import '../models/item.dart';
 import '../models/milestone_enums.dart';
 import '../models/task.dart' as maintenance_task;
-import '../models/work_case.dart';
 import '../models/work_case_enums.dart';
-import '../models/work_case_update.dart';
 import '../repositories/history_projection_repository.dart';
 import '../repositories/item_read_repository.dart';
 import '../repositories/schedule_repository.dart';
 import '../repositories/task_repository.dart';
-import '../repositories/work_case_runtime.dart';
 import '../services/maintenance_task_service.dart';
 import '../widgets/ui_v2_components.dart';
 import 'task_reminder_screens.dart';
-import 'work_case_screens.dart';
 
 class TodayScreen extends StatefulWidget {
   const TodayScreen({
@@ -41,13 +37,11 @@ class _TodayScreenState extends State<TodayScreen> {
   late TaskRepository _taskRepository;
   late MaintenanceTaskService _taskService;
   late AppRuntimeDependencies _runtime;
-  late WorkCaseRuntime? _workCaseRuntime;
   late HistoryProjectionRepository? _historyRepository;
   late bool _formalWritesEnabled;
   bool _dependenciesInitialized = false;
   List<Item>? _localItems;
   List<maintenance_task.Task>? _localTasks;
-  List<_OpenCaseOverview> _openCases = const [];
   List<_RecentCompletion> _recentCompletions = const [];
   Object? _loadError;
 
@@ -64,7 +58,6 @@ class _TodayScreenState extends State<TodayScreen> {
         widget._scheduleRepositoryOverride ?? root.scheduleRepository;
     _taskRepository = root.taskRepository;
     _taskService = root.maintenanceTaskService;
-    _workCaseRuntime = root.workCaseRuntime;
     _historyRepository = root.historyProjectionRepository;
     _formalWritesEnabled = root.formalWritesEnabled;
     _dependenciesInitialized = true;
@@ -115,28 +108,9 @@ class _TodayScreenState extends State<TodayScreen> {
     final currentTasks = generatedTasks.isEmpty || !_formalWritesEnabled
         ? tasks
         : await _taskRepository.loadTasks();
-    final openCases = <_OpenCaseOverview>[];
     final completions = <_RecentCompletion>[];
 
     for (final item in items) {
-      final caseRuntime = _workCaseRuntime;
-      if (caseRuntime != null) {
-        final cases = await caseRuntime.listCasesForItem(item.id);
-        for (final workCase in cases.where((entry) => entry.isOpen)) {
-          final updates = await caseRuntime.listUpdatesForCase(workCase.id);
-          updates.sort(
-            (left, right) => right.occurredAt.compareTo(left.occurredAt),
-          );
-          openCases.add(
-            _OpenCaseOverview(
-              workCase: workCase,
-              itemName: item.name,
-              latestUpdate: updates.isEmpty ? null : updates.first,
-            ),
-          );
-        }
-      }
-
       final historyRepository = _historyRepository;
       if (historyRepository != null) {
         final projection = await historyRepository.projectForItem(item.id);
@@ -150,10 +124,6 @@ class _TodayScreenState extends State<TodayScreen> {
       }
     }
 
-    openCases.sort(
-      (left, right) =>
-          right.workCase.updatedAt.compareTo(left.workCase.updatedAt),
-    );
     completions.sort(
       (left, right) => right.entry.occurredAt.compareTo(left.entry.occurredAt),
     );
@@ -165,7 +135,6 @@ class _TodayScreenState extends State<TodayScreen> {
     setState(() {
       _localItems = items;
       _localTasks = currentTasks;
-      _openCases = openCases;
       _recentCompletions = completions.take(3).toList(growable: false);
       _loadError = null;
     });
@@ -187,153 +156,58 @@ class _TodayScreenState extends State<TodayScreen> {
 
     final hasItems = localItems.isNotEmpty;
 
-    return LayoutBuilder(
-      builder: (context, constraints) => SingleChildScrollView(
-        key: const ValueKey('overview-scroll'),
-        padding: UiInsets.pageCompact,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            minHeight: constraints.maxHeight - UiInsets.pageCompact.vertical,
-          ),
-          child: IntrinsicHeight(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                UiMotionEntrance(
-                  duration: UiMotion.standard,
-                  child: _OverviewHeader(
-                    onQuickAdd: widget.onQuickAdd,
-                    onViewReminders: _runtime.taskReminderRuntime == null
-                        ? null
-                        : _openReminderList,
-                  ),
-                ),
-                if (!hasItems) ...[
-                  UiEmptyState(
-                    key: const ValueKey('overview-empty-items'),
-                    icon: Icons.inventory_2_outlined,
-                    title: '還沒有生活項目',
-                    description: '拍一張、說一句或輸入名稱開始',
-                    action: widget.onQuickAdd == null
-                        ? null
-                        : UiPrimaryButton(
-                            onPressed: widget.onQuickAdd,
-                            label: '新增生活項目',
-                            icon: Icons.add_rounded,
-                          ),
-                  ),
-                ] else ...[
-                  if (reminders.isNotEmpty)
-                    UiMotionEntrance(
-                      key: const ValueKey('overview-section-reminders'),
-                      duration: UiMotion.standard,
-                      child: _OverviewSection(
-                        title: '今天需要處理',
-                        icon: Icons.notifications_none_rounded,
-                        description: '今天到期或仍需要留意的提醒。',
-                        actionLabel: _runtime.taskReminderRuntime == null
-                            ? null
-                            : '查看全部',
-                        onAction: _runtime.taskReminderRuntime == null
-                            ? null
-                            : _openReminderList,
-                        children: [
-                          for (final task in reminders)
-                            _OverviewFactCard(
-                              icon: Icons.notifications_none_rounded,
-                              title: task.title,
-                              subtitle: _itemName(task.itemId, localItems),
-                              detail: '原定 ${_formatDate(task.dueDate)}',
-                              status: _labelForStatus(task.status),
-                              statusTone: task.status == TaskStatus.overdue
-                                  ? UiStatusTone.warning
-                                  : UiStatusTone.info,
-                              semanticLabel: '開啟提醒：${task.title}',
-                              onTap: () => _openTaskDetail(task.id),
-                            ),
-                        ],
-                      ),
-                    ),
-                  if (_openCases.isNotEmpty)
-                    UiMotionEntrance(
-                      key: const ValueKey('overview-section-cases'),
-                      duration: UiMotion.emphasized,
-                      child: _OverviewSection(
-                        title: '進行中案件',
-                        icon: Icons.handyman_outlined,
-                        description: '已經開始處理、仍在進行或等待中的事情。',
-                        actionLabel: _workCaseRuntime == null ? null : '全部案件',
-                        onAction: _workCaseRuntime == null
-                            ? null
-                            : () async {
-                                await Navigator.of(context).push<void>(
-                                  MaterialPageRoute(
-                                    builder: (_) => const WorkCaseListScreen(),
-                                  ),
-                                );
-                                await _loadOverview();
-                              },
-                        children: [
-                          for (final entry in _openCases.take(3))
-                            _OverviewFactCard(
-                              icon: Icons.handyman_outlined,
-                              title: entry.workCase.title,
-                              subtitle: entry.itemName,
-                              detail: _caseDetail(entry),
-                              status: _labelForCaseStatus(
-                                entry.workCase.status,
-                              ),
-                              statusTone:
-                                  entry.workCase.status ==
-                                      WorkCaseStatus.waiting
-                                  ? UiStatusTone.warning
-                                  : UiStatusTone.info,
-                              onTap: () async {
-                                final changed = await Navigator.of(context)
-                                    .push<bool>(
-                                      MaterialPageRoute(
-                                        builder: (_) => WorkCaseDetailScreen(
-                                          workCaseId: entry.workCase.id,
-                                          itemName: entry.itemName,
-                                        ),
-                                      ),
-                                    );
-                                if (changed == true) await _loadOverview();
-                              },
-                            ),
-                        ],
-                      ),
-                    ),
-                  if (_recentCompletions.isNotEmpty)
-                    UiMotionEntrance(
-                      key: const ValueKey('overview-section-completions'),
-                      duration: UiMotion.emphasized,
-                      child: _OverviewSection(
-                        title: '最近完成',
-                        icon: Icons.history_rounded,
-                        description: '近期已處理完成並留在正式史略中的紀錄。',
-                        children: [
-                          for (final completion in _recentCompletions)
-                            _OverviewFactCard(
-                              icon: Icons.check_circle_outline,
-                              title: _historyEntryTitle(completion.entry),
-                              subtitle: completion.itemName,
-                              detail: _formatDate(completion.entry.occurredAt),
-                              status: '已完成',
-                              statusTone: UiStatusTone.success,
-                            ),
-                        ],
-                      ),
-                    ),
-                ],
-                const Spacer(),
-                const SizedBox(height: UiSpace.sm),
-                _QuickCaptureActions(onQuickAdd: widget.onQuickAdd),
-              ],
-            ),
+    return ListView(
+      key: const ValueKey('overview-scroll'),
+      padding: UiInsets.pageCompact,
+      children: [
+        UiMotionEntrance(
+          duration: UiMotion.standard,
+          child: _OverviewHeader(
+            onQuickAdd: widget.onQuickAdd,
+            onViewReminders: _runtime.taskReminderRuntime == null
+                ? null
+                : _openReminderList,
           ),
         ),
-      ),
+        if (!hasItems)
+          Padding(
+            padding: const EdgeInsets.only(bottom: UiSpace.lg),
+            child: UiEmptyState(
+              key: const ValueKey('overview-empty-items'),
+              icon: Icons.inventory_2_outlined,
+              title: '還沒有生活項目',
+              description: '拍一張、說一句或輸入名稱開始',
+              action: widget.onQuickAdd == null
+                  ? null
+                  : UiPrimaryButton(
+                      onPressed: widget.onQuickAdd,
+                      label: '新增生活項目',
+                      icon: Icons.add_rounded,
+                    ),
+            ),
+          ),
+        if (reminders.isNotEmpty)
+          UiMotionEntrance(
+            key: const ValueKey('overview-section-reminders'),
+            duration: UiMotion.standard,
+            child: _TodayTasksSection(
+              tasks: reminders,
+              items: localItems,
+              onViewAll: _runtime.taskReminderRuntime == null
+                  ? null
+                  : _openReminderList,
+              onOpenTask: _openTaskDetail,
+            ),
+          ),
+        if (_recentCompletions.isNotEmpty)
+          UiMotionEntrance(
+            key: const ValueKey('overview-section-completions'),
+            duration: UiMotion.emphasized,
+            child: _RecentCompletionsSection(completions: _recentCompletions),
+          ),
+        const _AiSuggestionsSection(),
+        _QuickCaptureActions(onQuickAdd: widget.onQuickAdd),
+      ],
     );
   }
 
@@ -398,6 +272,11 @@ String _formatDate(DateTime date) {
   return '${date.year}/$month/$day';
 }
 
+String _formatHomeDate(DateTime date) {
+  const weekdays = ['一', '二', '三', '四', '五', '六', '日'];
+  return '${date.month}月${date.day}日 星期${weekdays[date.weekday - 1]}';
+}
+
 DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
 
 bool _needsAttention(maintenance_task.Task task, DateTime today) {
@@ -420,27 +299,6 @@ bool _isCompletedHistoryEntry(HistoryEntry entry) {
   };
 }
 
-String _caseDetail(_OpenCaseOverview overview) {
-  final update = overview.latestUpdate;
-  final nextAction = _nonEmpty(update?.nextAction);
-  if (nextAction != null) return '下一步：$nextAction';
-  final waitingReason = _nonEmpty(update?.waitingReason);
-  if (waitingReason != null) return '等待：$waitingReason';
-  final description = _nonEmpty(update?.description);
-  if (description != null) return description;
-  return '最後更新 ${_formatDate(overview.workCase.updatedAt)}';
-}
-
-String _labelForCaseStatus(WorkCaseStatus status) {
-  return switch (status) {
-    WorkCaseStatus.notStarted => '尚未開始',
-    WorkCaseStatus.inProgress => '處理中',
-    WorkCaseStatus.waiting => '等待中',
-    WorkCaseStatus.completed => '已完成',
-    WorkCaseStatus.canceled => '已取消',
-  };
-}
-
 String _historyEntryTitle(HistoryEntry entry) {
   return switch (entry) {
     WorkCaseHistoryEntry(:final workCase) => workCase.title,
@@ -457,23 +315,6 @@ String _itemName(String itemId, List<Item> items) {
   return '未命名生活項目';
 }
 
-String? _nonEmpty(String? value) {
-  final trimmed = value?.trim();
-  return trimmed == null || trimmed.isEmpty ? null : trimmed;
-}
-
-class _OpenCaseOverview {
-  const _OpenCaseOverview({
-    required this.workCase,
-    required this.itemName,
-    required this.latestUpdate,
-  });
-
-  final WorkCase workCase;
-  final String itemName;
-  final WorkCaseUpdate? latestUpdate;
-}
-
 class _RecentCompletion {
   const _RecentCompletion({required this.entry, required this.itemName});
 
@@ -488,31 +329,62 @@ class _OverviewHeader extends StatelessWidget {
   final VoidCallback? onViewReminders;
 
   @override
-  Widget build(BuildContext context) => UiCompactPageHeader(
-    title: '生活總覽',
-    description: '看看現在需要處理與最近完成的生活事項。',
-    action: onQuickAdd == null && onViewReminders == null
-        ? null
-        : Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (onViewReminders != null)
-                IconButton(
-                  key: const ValueKey('overview-all-reminders'),
-                  tooltip: '查看全部提醒',
-                  onPressed: onViewReminders,
-                  icon: const Icon(Icons.notifications_none_rounded),
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final greeting = now.hour < 12
+        ? '早安'
+        : now.hour < 18
+        ? '午安'
+        : '晚安';
+    return Padding(
+      padding: const EdgeInsets.only(top: UiSpace.xxs, bottom: UiSpace.lg),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text('$greeting，國政', style: UiType.pageTitle),
+                    ),
+                    const SizedBox(width: UiSpace.xs),
+                    const Icon(
+                      Icons.wb_sunny_outlined,
+                      size: 22,
+                      color: UiColors.warning,
+                    ),
+                  ],
                 ),
-              if (onQuickAdd != null)
-                IconButton(
-                  key: const ValueKey('overview-quick-add'),
-                  tooltip: '新增生活項目',
-                  onPressed: onQuickAdd,
-                  icon: const Icon(Icons.add_circle_rounded),
-                ),
-            ],
+                const SizedBox(height: UiSpace.xxs),
+                Text(_formatHomeDate(now), style: UiType.pageIntro),
+              ],
+            ),
           ),
-  );
+          if (onViewReminders != null)
+            IconButton(
+              key: const ValueKey('overview-all-reminders'),
+              tooltip: '查看全部提醒',
+              onPressed: onViewReminders,
+              icon: const Icon(Icons.notifications_none_rounded),
+            ),
+          if (onQuickAdd != null)
+            IconButton.filled(
+              key: const ValueKey('overview-quick-add'),
+              tooltip: '新增生活項目',
+              onPressed: onQuickAdd,
+              style: IconButton.styleFrom(
+                backgroundColor: UiColors.success,
+                foregroundColor: UiColors.surface,
+              ),
+              icon: const Icon(Icons.add_rounded),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 class _QuickCaptureActions extends StatelessWidget {
@@ -521,35 +393,55 @@ class _QuickCaptureActions extends StatelessWidget {
   final VoidCallback? onQuickAdd;
 
   @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      Expanded(
-        child: _QuickCaptureButton(
-          buttonKey: const ValueKey('overview-capture-photo'),
-          icon: Icons.photo_camera_outlined,
-          label: '拍一張',
-          onPressed: onQuickAdd,
-        ),
+  Widget build(BuildContext context) => Padding(
+    key: const ValueKey('overview-capture-section'),
+    padding: const EdgeInsets.only(bottom: UiSpace.sm),
+    child: UiSurfaceCard(
+      padding: const EdgeInsets.all(UiSpace.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('今天發生了什麼？', style: UiType.sectionTitle),
+          const SizedBox(height: UiSpace.xxs),
+          Text('記錄生活，AI 幫你整理', style: UiType.body),
+          const SizedBox(height: UiSpace.md),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _QuickCaptureButton(
+                  buttonKey: const ValueKey('overview-capture-photo'),
+                  icon: Icons.photo_camera_outlined,
+                  label: '拍照',
+                  description: '拍一張照片',
+                  onPressed: onQuickAdd,
+                ),
+              ),
+              const SizedBox(width: UiSpace.xs),
+              Expanded(
+                child: _QuickCaptureButton(
+                  buttonKey: const ValueKey('overview-capture-voice'),
+                  icon: Icons.mic_none_rounded,
+                  label: '說一句',
+                  description: '語音說一段話',
+                  onPressed: onQuickAdd,
+                ),
+              ),
+              const SizedBox(width: UiSpace.xs),
+              Expanded(
+                child: _QuickCaptureButton(
+                  buttonKey: const ValueKey('overview-capture-text'),
+                  icon: Icons.keyboard_outlined,
+                  label: '輸入',
+                  description: '打幾個字',
+                  onPressed: onQuickAdd,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
-      const SizedBox(width: UiSpace.xs),
-      Expanded(
-        child: _QuickCaptureButton(
-          buttonKey: const ValueKey('overview-capture-voice'),
-          icon: Icons.mic_none_rounded,
-          label: '說一句',
-          onPressed: onQuickAdd,
-        ),
-      ),
-      const SizedBox(width: UiSpace.xs),
-      Expanded(
-        child: _QuickCaptureButton(
-          buttonKey: const ValueKey('overview-capture-text'),
-          icon: Icons.keyboard_outlined,
-          label: '輸入',
-          onPressed: onQuickAdd,
-        ),
-      ),
-    ],
+    ),
   );
 }
 
@@ -558,40 +450,189 @@ class _QuickCaptureButton extends StatelessWidget {
     required this.buttonKey,
     required this.icon,
     required this.label,
+    required this.description,
     required this.onPressed,
   });
 
   final Key buttonKey;
   final IconData icon;
   final String label;
+  final String description;
   final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) => Semantics(
     label: '$label，前往新增生活項目',
     button: true,
-    child: OutlinedButton.icon(
+    child: OutlinedButton(
       key: buttonKey,
       onPressed: onPressed,
-      icon: Icon(icon, size: 18),
-      label: Text(label),
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(
+          horizontal: UiSpace.xs,
+          vertical: UiSpace.md,
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 30, color: UiColors.success),
+          const SizedBox(height: UiSpace.xs),
+          Text(label, style: UiType.cardTitle, textAlign: TextAlign.center),
+          const SizedBox(height: UiSpace.xxs),
+          Text(
+            description,
+            style: UiType.caption,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+          ),
+        ],
+      ),
     ),
   );
 }
 
-class _OverviewSection extends StatelessWidget {
-  const _OverviewSection({
+class _TodayTasksSection extends StatelessWidget {
+  const _TodayTasksSection({
+    required this.tasks,
+    required this.items,
+    required this.onViewAll,
+    required this.onOpenTask,
+  });
+
+  final List<maintenance_task.Task> tasks;
+  final List<Item> items;
+  final VoidCallback? onViewAll;
+  final ValueChanged<String> onOpenTask;
+
+  @override
+  Widget build(BuildContext context) => _HomeListSection(
+    title: '今天需要處理（${tasks.length}）',
+    actionLabel: '查看全部',
+    onAction: onViewAll,
+    children: [
+      for (var index = 0; index < tasks.length; index++) ...[
+        InkWell(
+          onTap: () => onOpenTask(tasks[index].id),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: UiSpace.sm),
+            child: Row(
+              children: [
+                const _HomeListIcon(icon: Icons.notifications_none_rounded),
+                const SizedBox(width: UiSpace.sm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(tasks[index].title, style: UiType.cardTitle),
+                      const SizedBox(height: UiSpace.xxs),
+                      Text(
+                        _itemName(tasks[index].itemId, items),
+                        style: UiType.caption,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: UiSpace.xs),
+                Text(
+                  _labelForStatus(tasks[index].status),
+                  style: UiType.caption,
+                ),
+                const SizedBox(width: UiSpace.xs),
+                const Icon(
+                  Icons.check_box_outline_blank_rounded,
+                  color: UiColors.iconMuted,
+                  semanticLabel: '完成狀態不可在首頁變更',
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (index != tasks.length - 1) const Divider(height: 1),
+      ],
+    ],
+  );
+}
+
+class _RecentCompletionsSection extends StatelessWidget {
+  const _RecentCompletionsSection({required this.completions});
+
+  final List<_RecentCompletion> completions;
+
+  @override
+  Widget build(BuildContext context) => _HomeListSection(
+    title: '最近完成',
+    actionLabel: '查看全部',
+    children: [
+      for (var index = 0; index < completions.length; index++) ...[
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: UiSpace.sm),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.check_circle_rounded,
+                color: UiColors.success,
+                size: 22,
+              ),
+              const SizedBox(width: UiSpace.xs),
+              const _HomeListIcon(icon: Icons.history_rounded),
+              const SizedBox(width: UiSpace.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _historyEntryTitle(completions[index].entry),
+                      style: UiType.cardTitle,
+                    ),
+                    const SizedBox(height: UiSpace.xxs),
+                    Text(
+                      '${completions[index].itemName} · ${_formatDate(completions[index].entry.occurredAt)}',
+                      style: UiType.caption,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (index != completions.length - 1) const Divider(height: 1),
+      ],
+    ],
+  );
+}
+
+class _AiSuggestionsSection extends StatelessWidget {
+  const _AiSuggestionsSection();
+
+  @override
+  Widget build(BuildContext context) => const _HomeListSection(
+    title: 'AI 建議管理',
+    actionLabel: '查看全部',
+    children: [
+      Padding(
+        padding: EdgeInsets.symmetric(vertical: UiSpace.md),
+        child: Row(
+          children: [
+            _HomeListIcon(icon: Icons.auto_awesome_outlined),
+            SizedBox(width: UiSpace.sm),
+            Expanded(child: Text('AI 建議功能尚未啟用', style: UiType.body)),
+          ],
+        ),
+      ),
+    ],
+  );
+}
+
+class _HomeListSection extends StatelessWidget {
+  const _HomeListSection({
     required this.title,
-    required this.icon,
-    required this.description,
     required this.children,
     this.actionLabel,
     this.onAction,
   });
 
   final String title;
-  final IconData icon;
-  final String description;
   final List<Widget> children;
   final String? actionLabel;
   final VoidCallback? onAction;
@@ -600,98 +641,45 @@ class _OverviewSection extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(bottom: UiSpace.lg),
     child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        UiSectionHeader(
-          title: title,
-          icon: icon,
-          description: description,
-          actionLabel: actionLabel,
-          onAction: onAction,
+        Row(
+          children: [
+            Expanded(child: Text(title, style: UiType.sectionTitle)),
+            if (actionLabel != null)
+              onAction == null
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: UiSpace.xs,
+                      ),
+                      child: Text(actionLabel!, style: UiType.caption),
+                    )
+                  : TextButton(onPressed: onAction, child: Text(actionLabel!)),
+          ],
         ),
-        const SizedBox(height: UiSpace.sm),
-        ...children,
+        const SizedBox(height: UiSpace.xs),
+        UiSurfaceCard(
+          padding: const EdgeInsets.symmetric(horizontal: UiSpace.md),
+          child: Column(children: children),
+        ),
       ],
     ),
   );
 }
 
-class _OverviewFactCard extends StatelessWidget {
-  const _OverviewFactCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.detail,
-    required this.status,
-    this.statusTone = UiStatusTone.info,
-    this.onTap,
-    this.semanticLabel,
-  });
+class _HomeListIcon extends StatelessWidget {
+  const _HomeListIcon({required this.icon});
 
   final IconData icon;
-  final String title;
-  final String subtitle;
-  final String detail;
-  final String status;
-  final UiStatusTone statusTone;
-  final VoidCallback? onTap;
-  final String? semanticLabel;
 
   @override
-  Widget build(BuildContext context) {
-    return UiActionCard(
-      onTap: onTap,
-      semanticLabel: semanticLabel,
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: UiColors.iconSurface,
-                borderRadius: BorderRadius.circular(UiRadius.control),
-              ),
-              child: Icon(icon, color: UiColors.primary, size: 19),
-            ),
-            const SizedBox(width: UiSpace.sm),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: UiColors.textPrimary,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: UiColors.primary,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    detail,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: UiColors.textSecondary,
-                      height: 1.4,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 10),
-            UiStatusTag(label: status, tone: statusTone),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Container(
+    width: 40,
+    height: 40,
+    decoration: BoxDecoration(
+      color: UiColors.iconSurface,
+      borderRadius: BorderRadius.circular(UiRadius.control),
+    ),
+    child: Icon(icon, color: UiColors.primary, size: 20),
+  );
 }

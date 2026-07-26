@@ -72,11 +72,9 @@ void main() {
       );
       expect(
         tester
-            .widget<UiMotionEntrance>(
-              find.byKey(const ValueKey('overview-empty-items')),
-            )
-            .duration,
-        UiMotion.standard,
+            .widgetList<UiMotionEntrance>(find.byType(UiMotionEntrance))
+            .any((animation) => animation.duration == UiMotion.standard),
+        isTrue,
       );
     },
   );
@@ -133,7 +131,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.text('生活總覽'), findsWidgets);
+    expect(find.textContaining('安，國政'), findsOneWidget);
     expect(find.text('還沒有生活項目'), findsOneWidget);
     expect(find.text('拍一張、說一句或輸入名稱開始'), findsOneWidget);
     await tester.scrollUntilVisible(
@@ -144,7 +142,7 @@ void main() {
         matching: find.byType(Scrollable),
       ),
     );
-    expect(find.text('拍一張'), findsOneWidget);
+    expect(find.text('拍照'), findsOneWidget);
     expect(find.text('說一句'), findsOneWidget);
     expect(find.text('輸入'), findsOneWidget);
     expect(tester.takeException(), isNull);
