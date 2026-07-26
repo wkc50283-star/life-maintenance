@@ -2,6 +2,7 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_maintenance/app/app_composition_root.dart';
+import 'package:life_maintenance/app/ui_tokens.dart';
 import 'package:life_maintenance/database/app_database.dart';
 import 'package:life_maintenance/models/enums.dart';
 import 'package:life_maintenance/screens/today_screen.dart';
@@ -35,24 +36,44 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.drag(find.byType(Scrollable).first, const Offset(0, -500));
-      await tester.pumpAndSettle();
+      final overviewScrollable = find.descendant(
+        of: find.byKey(const ValueKey('overview-scroll')),
+        matching: find.byType(Scrollable),
+      );
+      await tester.scrollUntilVisible(
+        find.text('租約續約'),
+        300,
+        scrollable: overviewScrollable,
+      );
       await tester.tap(find.text('租約續約').first);
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
 
+      final detailList = find.byWidgetPredicate(
+        (widget) =>
+            widget is ListView && widget.padding == UiInsets.pageCompact,
+      );
+      final detailScrollable = find
+          .descendant(of: detailList, matching: find.byType(Scrollable))
+          .first;
       await tester.scrollUntilVisible(
         find.text('開始處理'),
         300,
-        scrollable: find.byType(Scrollable).first,
+        scrollable: detailScrollable,
       );
       await tester.tap(find.widgetWithText(FilledButton, '開始處理'));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
+      final startCaseList = find.byWidgetPredicate(
+        (widget) => widget is ListView && widget.padding == UiInsets.page,
+      );
+      final startCaseScrollable = find
+          .descendant(of: startCaseList, matching: find.byType(Scrollable))
+          .first;
       await tester.scrollUntilVisible(
         find.text('建立進行中案件'),
         300,
-        scrollable: find.byType(Scrollable).first,
+        scrollable: startCaseScrollable,
       );
       expect(tester.takeException(), isNull);
     },
