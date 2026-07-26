@@ -34,6 +34,11 @@ void main() {
 
     expect(find.text('還沒有生活項目'), findsOneWidget);
     expect(find.text('拍一張、說一句或輸入名稱開始'), findsOneWidget);
+    expect(find.text('新增生活項目'), findsOneWidget);
+    expect(
+      tester.getSize(find.byKey(const ValueKey('overview-empty-items'))).height,
+      greaterThan(0),
+    );
     expect(find.text('今天需要處理'), findsNothing);
     expect(find.text('進行中案件'), findsNothing);
     expect(find.text('階段性重點'), findsNothing);
@@ -52,6 +57,14 @@ void main() {
     expect(find.text('AI 建議'), findsNothing);
     expect(find.text('客廳冷氣'), findsNothing);
     expect(find.text('冷氣異音檢查'), findsNothing);
+    final captureBottom = tester.getBottomLeft(
+      find.byKey(const ValueKey('overview-capture-text')),
+    );
+    final emptyBottom = tester.getBottomLeft(
+      find.byKey(const ValueKey('overview-empty-items')),
+    );
+    expect(captureBottom.dy, greaterThan(emptyBottom.dy));
+    expect(captureBottom.dy, greaterThan(1600));
     await database.close();
   });
 
