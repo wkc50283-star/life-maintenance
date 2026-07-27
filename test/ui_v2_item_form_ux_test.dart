@@ -236,6 +236,7 @@ Future<void> _openNewItemForm(WidgetTester tester) async {
   await tester.pumpAndSettle();
   await tester.tap(itemEntry);
   await tester.pumpAndSettle();
-  await tester.tap(find.byKey(const ValueKey('add-entry')));
-  await tester.pumpAndSettle();
+  expect(find.text('新增生活項目'), findsOneWidget);
+  expect(find.byKey(const ValueKey('item-name')), findsOneWidget);
+  expect(find.text('生活項目是所有提醒、保養與階段重點的起點。'), findsNothing);
 }
