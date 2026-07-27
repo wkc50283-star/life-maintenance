@@ -547,12 +547,16 @@ class PlanningContentScreen extends StatefulWidget {
     this.initialItemId,
     this.handoffCreatedMaintenancePlan = false,
     this.returnsMaintenanceChanges = false,
+    this.handoffCreatedReminder = false,
+    this.returnsReminderChanges = false,
   });
 
   final PlanningContentKind kind;
   final String? initialItemId;
   final bool handoffCreatedMaintenancePlan;
   final bool returnsMaintenanceChanges;
+  final bool handoffCreatedReminder;
+  final bool returnsReminderChanges;
 
   @override
   State<PlanningContentScreen> createState() => _PlanningContentScreenState();
@@ -563,6 +567,7 @@ class _PlanningContentScreenState extends State<PlanningContentScreen> {
   String? _itemId;
   List<Object>? _entries;
   bool _hasMaintenanceChanges = false;
+  bool _hasReminderChanges = false;
 
   @override
   void didChangeDependencies() {
@@ -645,12 +650,21 @@ class _PlanningContentScreenState extends State<PlanningContentScreen> {
               ],
             ),
     );
-    final returnsChanges =
-        widget.returnsMaintenanceChanges &&
-        widget.kind == PlanningContentKind.maintenancePlan;
-    if (!returnsChanges) return scaffold;
+    final returnsChanges = switch (widget.kind) {
+      PlanningContentKind.maintenancePlan =>
+        widget.returnsMaintenanceChanges && _hasMaintenanceChanges,
+      PlanningContentKind.reminder =>
+        widget.returnsReminderChanges && _hasReminderChanges,
+      _ => false,
+    };
+    final canReturnChanges =
+        (widget.kind == PlanningContentKind.maintenancePlan &&
+            widget.returnsMaintenanceChanges) ||
+        (widget.kind == PlanningContentKind.reminder &&
+            widget.returnsReminderChanges);
+    if (!canReturnChanges) return scaffold;
     return PopScope<Object?>(
-      canPop: !_hasMaintenanceChanges,
+      canPop: !returnsChanges,
       onPopInvokedWithResult: (didPop, result) {
         if (!didPop) Navigator.pop(context, true);
       },
@@ -681,15 +695,32 @@ class _PlanningContentScreenState extends State<PlanningContentScreen> {
       }
       return;
     }
+    if (widget.kind == PlanningContentKind.reminder) {
+      final result = await Navigator.of(context).push<ReminderFormResult>(
+        MaterialPageRoute(
+          builder: (_) => ReminderFormScreen(
+            itemId: itemId,
+            value: value as EditableReminder?,
+            usesTypedResult: true,
+          ),
+        ),
+      );
+      if (result == null || !mounted) return;
+      await _loadEntries();
+      if (!mounted) return;
+      _hasReminderChanges = true;
+      final createdReminderId = result.createdReminderId;
+      if (widget.handoffCreatedReminder && createdReminderId != null) {
+        await _handoffCreatedReminder(itemId, createdReminderId);
+      }
+      return;
+    }
     final route = switch (widget.kind) {
       PlanningContentKind.maintenancePlan => throw StateError(
         'Maintenance plans use the typed result flow.',
       ),
-      PlanningContentKind.reminder => MaterialPageRoute<bool>(
-        builder: (_) => ReminderFormScreen(
-          itemId: itemId,
-          value: value as EditableReminder?,
-        ),
+      PlanningContentKind.reminder => throw StateError(
+        'Reminders use the typed result flow.',
       ),
       PlanningContentKind.milestone => MaterialPageRoute<bool>(
         builder: (_) =>
@@ -712,6 +743,35 @@ class _PlanningContentScreenState extends State<PlanningContentScreen> {
       if (!mounted) return;
       if (!plans.any((plan) => plan.id == planId)) {
         _showSaveError(context, '暫時無法讀取保養項目。');
+        return;
+      }
+      final items = await AppCompositionScope.of(
+        context,
+      ).itemReadRepository.loadItems();
+      if (!mounted) return;
+      final matchingItems = items.where((item) => item.id == itemId).toList();
+      if (matchingItems.length != 1) {
+        _showSaveError(context, '暫時無法讀取生活項目。');
+        return;
+      }
+      await Navigator.of(context).pushReplacement<bool, void>(
+        MaterialPageRoute<bool>(
+          builder: (_) => ItemDetailScreen(item: matchingItems.single),
+        ),
+      );
+    } catch (_) {
+      if (mounted) _showSaveError(context, '暫時無法讀取生活項目。');
+    }
+  }
+
+  Future<void> _handoffCreatedReminder(String itemId, String reminderId) async {
+    try {
+      final reminders = await formalPlanningEditor(
+        context,
+      )!.loadReminders(itemId);
+      if (!mounted) return;
+      if (!reminders.any((reminder) => reminder.id == reminderId)) {
+        _showSaveError(context, '暫時無法讀取一般提醒。');
         return;
       }
       final items = await AppCompositionScope.of(
@@ -984,10 +1044,16 @@ class MaintenancePlanFormResult {
 }
 
 class ReminderFormScreen extends StatefulWidget {
-  const ReminderFormScreen({super.key, required this.itemId, this.value});
+  const ReminderFormScreen({
+    super.key,
+    required this.itemId,
+    this.value,
+    this.usesTypedResult = false,
+  });
 
   final String itemId;
   final EditableReminder? value;
+  final bool usesTypedResult;
 
   @override
   State<ReminderFormScreen> createState() => _ReminderFormScreenState();
@@ -1071,10 +1137,11 @@ class _ReminderFormScreenState extends State<ReminderFormScreen> {
     setState(() => _saving = true);
     final now = DateTime.now();
     final old = widget.value;
+    final reminderId = old?.id ?? _newId('reminder');
     try {
       await formalPlanningEditor(context)!.saveReminder(
         EditableReminder(
-          id: old?.id ?? _newId('reminder'),
+          id: reminderId,
           itemId: widget.itemId,
           title: _title.text,
           description: _description.text,
@@ -1085,13 +1152,30 @@ class _ReminderFormScreenState extends State<ReminderFormScreen> {
           archivedAt: old?.archivedAt,
         ),
       );
-      if (mounted) Navigator.pop(context, true);
+      if (mounted) {
+        Navigator.pop(
+          context,
+          widget.usesTypedResult
+              ? old == null
+                    ? ReminderFormResult.created(reminderId)
+                    : const ReminderFormResult.changed()
+              : true,
+        );
+      }
     } catch (error) {
       if (mounted) _showSaveError(context, error);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
   }
+}
+
+class ReminderFormResult {
+  const ReminderFormResult.created(this.createdReminderId);
+
+  const ReminderFormResult.changed() : createdReminderId = null;
+
+  final String? createdReminderId;
 }
 
 class MilestoneFormScreen extends StatefulWidget {

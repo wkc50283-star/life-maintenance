@@ -126,7 +126,10 @@ class _FormalAddScreen extends StatelessWidget {
             title: '一般提醒',
             description: '管理保固、合約、證件、繳費或健康檢查等提醒。',
             onTap: () => open(
-              const PlanningContentScreen(kind: PlanningContentKind.reminder),
+              const PlanningContentScreen(
+                kind: PlanningContentKind.reminder,
+                handoffCreatedReminder: true,
+              ),
             ),
           ),
           AddEntryCard(
