@@ -148,7 +148,10 @@ class _FormalAddScreen extends StatelessWidget {
             title: '提醒排程',
             description: '替既有內容設定週期、日期與完成後重新計算方式。',
             onTap: () => open(
-              const PlanningContentScreen(kind: PlanningContentKind.schedule),
+              const PlanningContentScreen(
+                kind: PlanningContentKind.schedule,
+                handoffCreatedSchedule: true,
+              ),
             ),
           ),
         ],

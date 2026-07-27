@@ -752,6 +752,195 @@ void main() {
     expect(find.byType(MilestoneFormScreen), findsOneWidget);
     expect(find.byType(ItemDetailScreen), findsNothing);
   });
+
+  testWidgets('Add screen creates a plan schedule and hands off to its Item', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(800, 1200);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    await _seedItem(editor, now, id: 'item-first', name: '其他設備');
+    await _seedItem(editor, now, id: 'item-ac', name: '測試冷氣');
+    await editor.savePlan(
+      MaintenancePlan(
+        id: 'plan-filter',
+        itemId: 'item-ac',
+        title: '清洗濾網',
+        planType: MaintenancePlanType.cleaning,
+        riskLevel: RiskLevel.low,
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    await tester.pumpWidget(
+      AppCompositionScope(
+        root: root,
+        child: const MaterialApp(home: Scaffold(body: AddScreen())),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('提醒排程'));
+    await tester.pumpAndSettle();
+    tester
+        .widget<DropdownButtonFormField<String>>(
+          find.byType(DropdownButtonFormField<String>),
+        )
+        .onChanged!('item-ac');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('add-entry')));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<DropdownButtonFormField<String>>(
+            find.byKey(const ValueKey('schedule-source')),
+          )
+          .initialValue,
+      'maintenancePlan:plan-filter',
+    );
+    await tester.tap(find.byKey(const ValueKey('save-form')));
+    await tester.pumpAndSettle();
+
+    final schedule = (await editor.loadSchedules('item-ac')).single;
+    expect(schedule.sourceType, 'maintenancePlan');
+    expect(schedule.sourceId, 'plan-filter');
+    expect(await editor.loadSchedules('item-first'), isEmpty);
+    final detail = tester.widget<ItemDetailScreen>(
+      find.byType(ItemDetailScreen),
+    );
+    expect(detail.item.id, 'item-ac');
+    expect(find.text('清洗濾網'), findsWidgets);
+    expect(find.textContaining('尚未建立排程'), findsNothing);
+    expect(find.textContaining('下次'), findsWidgets);
+    expect(await root.taskRepository.loadTasks(), isEmpty);
+    final history = await root.historyProjectionRepository.projectForItem(
+      'item-ac',
+    );
+    expect(history.entries, isEmpty);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.byType(AddScreen), findsOneWidget);
+    expect(find.byType(PlanningContentScreen), findsNothing);
+  });
+
+  testWidgets(
+    'Add screen creates a reminder schedule and hands off to its Item',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(800, 1200);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+      await _seedItem(editor, now, id: 'item-first', name: '其他設備');
+      await _seedItem(editor, now, id: 'item-ac', name: '測試冷氣');
+      await editor.saveReminder(
+        EditableReminder(
+          id: 'reminder-warranty',
+          itemId: 'item-ac',
+          title: '保固到期',
+          reminderType: 'expiry',
+          status: 'active',
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+      await tester.pumpWidget(
+        AppCompositionScope(
+          root: root,
+          child: const MaterialApp(home: Scaffold(body: AddScreen())),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('提醒排程'));
+      await tester.pumpAndSettle();
+      tester
+          .widget<DropdownButtonFormField<String>>(
+            find.byType(DropdownButtonFormField<String>),
+          )
+          .onChanged!('item-ac');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('add-entry')));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<DropdownButtonFormField<String>>(
+              find.byKey(const ValueKey('schedule-source')),
+            )
+            .initialValue,
+        'generalReminder:reminder-warranty',
+      );
+      await tester.tap(find.byKey(const ValueKey('save-form')));
+      await tester.pumpAndSettle();
+
+      final schedule = (await editor.loadSchedules('item-ac')).single;
+      expect(schedule.sourceType, 'generalReminder');
+      expect(schedule.sourceId, 'reminder-warranty');
+      expect(await editor.loadSchedules('item-first'), isEmpty);
+      final detail = tester.widget<ItemDetailScreen>(
+        find.byType(ItemDetailScreen),
+      );
+      expect(detail.item.id, 'item-ac');
+      expect(find.text('保固到期'), findsWidgets);
+      expect(find.textContaining('每月'), findsOneWidget);
+      expect(await root.taskRepository.loadTasks(), isEmpty);
+      final history = await root.historyProjectionRepository.projectForItem(
+        'item-ac',
+      );
+      expect(history.entries, isEmpty);
+    },
+  );
+
+  testWidgets('Item detail refreshes after schedule management changes', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(800, 1200);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    await _seedItem(editor, now, id: 'item-ac', name: '測試冷氣');
+    await editor.savePlan(
+      MaintenancePlan(
+        id: 'plan-filter',
+        itemId: 'item-ac',
+        title: '清洗濾網',
+        planType: MaintenancePlanType.cleaning,
+        riskLevel: RiskLevel.low,
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    final item = (await root.itemReadRepository.loadItems()).single;
+    await tester.pumpWidget(
+      AppCompositionScope(
+        root: root,
+        child: MaterialApp(home: ItemDetailScreen(item: item)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('尚未建立排程'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('管理').at(2),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('管理').at(2));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('add-entry')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('save-form')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('每月'), findsOneWidget);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.byType(ItemDetailScreen), findsOneWidget);
+    expect(find.textContaining('尚未建立排程'), findsNothing);
+    expect(find.textContaining('下次'), findsWidgets);
+    expect(await root.taskRepository.loadTasks(), isEmpty);
+  });
 }
 
 Future<void> _selectMilestoneDate(WidgetTester tester) async {

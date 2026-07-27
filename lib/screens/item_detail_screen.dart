@@ -270,8 +270,14 @@ class _ItemDetailBody extends StatelessWidget {
         _DetailSection(
           title: '提醒與排程',
           icon: Icons.event_repeat_outlined,
-          onManage: () =>
-              _openPlanning(context, PlanningContentKind.schedule, item.id),
+          onManage: () async {
+            final changed = await _openPlanning(
+              context,
+              PlanningContentKind.schedule,
+              item.id,
+            );
+            if (changed == true) await onCaseChanged();
+          },
           child: snapshot.schedules.isEmpty
               ? const _EmptyMessage('目前沒有排程。')
               : Column(
@@ -735,6 +741,7 @@ Future<bool?> _openPlanning(
         returnsMaintenanceChanges: kind == PlanningContentKind.maintenancePlan,
         returnsReminderChanges: kind == PlanningContentKind.reminder,
         returnsMilestoneChanges: kind == PlanningContentKind.milestone,
+        returnsScheduleChanges: kind == PlanningContentKind.schedule,
       ),
     ),
   );
