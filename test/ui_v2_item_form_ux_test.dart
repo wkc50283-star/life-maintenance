@@ -98,11 +98,12 @@ void main() {
       final createdCategory = categories.singleWhere(
         (category) => category.displayName == '家具用品',
       );
-      final categoryField = tester.widget<DropdownButtonFormField<String>>(
+      final categoryFieldState = tester.state<FormFieldState<String>>(
         find.byKey(const ValueKey('item-category')),
       );
-      expect(categoryField.initialValue, createdCategory.id);
-      expect(categoryField.initialValue, isNot('category-existing'));
+      expect(categoryFieldState.value, createdCategory.id);
+      expect(categoryFieldState.value, isNot('category-existing'));
+      expect(find.text('家具用品'), findsOneWidget);
       expect(find.text('客廳沙發'), findsOneWidget);
       expect(find.text('一樓客廳'), findsOneWidget);
 

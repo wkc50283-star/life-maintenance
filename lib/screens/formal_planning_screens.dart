@@ -307,28 +307,33 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
                     else
                       Column(
                         children: [
-                          DropdownButtonFormField<String>(
-                            key: const ValueKey('item-category'),
-                            initialValue: _categoryId,
-                            isExpanded: true,
-                            menuMaxHeight: 320,
-                            decoration: const InputDecoration(labelText: '分類'),
-                            items: [
-                              for (final category in _categories!)
-                                DropdownMenuItem(
-                                  value: category.id,
-                                  child: Text(
-                                    category.displayName,
-                                    overflow: TextOverflow.ellipsis,
+                          KeyedSubtree(
+                            key: ValueKey('item-category-$_categoryId'),
+                            child: DropdownButtonFormField<String>(
+                              key: const ValueKey('item-category'),
+                              initialValue: _categoryId,
+                              isExpanded: true,
+                              menuMaxHeight: 320,
+                              decoration: const InputDecoration(
+                                labelText: '分類',
+                              ),
+                              items: [
+                                for (final category in _categories!)
+                                  DropdownMenuItem(
+                                    value: category.id,
+                                    child: Text(
+                                      category.displayName,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   ),
-                                ),
-                            ],
-                            onChanged: archived
-                                ? null
-                                : (value) =>
-                                      setState(() => _categoryId = value),
-                            validator: (value) =>
-                                value == null ? '請選擇分類' : null,
+                              ],
+                              onChanged: archived
+                                  ? null
+                                  : (value) =>
+                                        setState(() => _categoryId = value),
+                              validator: (value) =>
+                                  value == null ? '請選擇分類' : null,
+                            ),
                           ),
                           Align(
                             alignment: Alignment.centerRight,
