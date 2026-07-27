@@ -29,7 +29,7 @@ void main() {
     }
   });
 
-  test('creates and validates a complete schema v2 SQLite backup', () async {
+  test('creates and validates a complete schema v3 SQLite backup', () async {
     final service = DriftDatabaseBackupService();
 
     final validation = await service.createBackup(
@@ -37,7 +37,7 @@ void main() {
       destination: backup,
     );
 
-    expect(validation.formatVersion, 2);
+    expect(validation.formatVersion, 3);
     expect(validation.rowCounts['items'], 1);
     expect(await _itemNames(backup), ['來源資料']);
     expect(await File('${backup.path}.restore-staging').exists(), isFalse);

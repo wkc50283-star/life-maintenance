@@ -19,7 +19,7 @@ void main() {
     final items = await database.select(database.items).get();
     final categories = await database.select(database.itemCategories).get();
 
-    expect(database.schemaVersion, 2);
+    expect(database.schemaVersion, 3);
     expect(cases, hasLength(2));
     expect(updates, hasLength(2));
     expect(items, hasLength(2));
@@ -30,6 +30,7 @@ void main() {
     expect(firstCase.itemId, 'item-1');
     expect(firstCase.sourceType, WorkCaseSourceType.maintenanceTask);
     expect(firstCase.sourceId, 'task-1');
+    expect(firstCase.sourceTaskId, isNull);
     expect(firstCase.caseType, WorkCaseType.repair);
     expect(firstCase.title, '冷氣維修');
     expect(firstCase.description, '運轉時出現異音');
@@ -48,6 +49,7 @@ void main() {
     expect(canceledCase.itemId, 'item-2');
     expect(canceledCase.sourceType, WorkCaseSourceType.manual);
     expect(canceledCase.sourceId, isNull);
+    expect(canceledCase.sourceTaskId, isNull);
     expect(canceledCase.caseType, WorkCaseType.construction);
     expect(canceledCase.title, '浴室修繕');
     expect(canceledCase.description, '原訂修補牆面');
@@ -106,20 +108,46 @@ void main() {
       WHERE type = 'index' AND name IN (
         'work_cases_item_status_idx',
         'work_cases_source_idx',
+        'work_cases_source_task_idx',
         'work_cases_updated_at_idx',
         'work_case_updates_case_occurred_idx'
       )
     ''').get();
-    expect(indexes, hasLength(4));
+    expect(indexes, hasLength(5));
 
     final violations = await database
         .customSelect('PRAGMA foreign_key_check')
         .get();
     expect(violations, isEmpty);
-    final foreignKeys =
-        await database.customSelect('PRAGMA foreign_keys').get();
+    final foreignKeys = await database
+        .customSelect('PRAGMA foreign_keys')
+        .get();
     expect(foreignKeys.single.read<int>('foreign_keys'), 1);
   });
+
+  test(
+    'adds nullable sourceTaskId to schema v2 without changing cases',
+    () async {
+      final fixture = await _createSchemaV2Fixture();
+      addTearDown(fixture.dispose);
+      final database = AppDatabase(NativeDatabase(fixture.file));
+      addTearDown(database.close);
+
+      final existing = await database.select(database.workCases).getSingle();
+      expect(database.schemaVersion, 3);
+      expect(existing.id, 'case-v2');
+      expect(existing.title, '既有案件');
+      expect(existing.sourceTaskId, isNull);
+
+      await (database.update(database.workCases)
+            ..where((table) => table.id.equals('case-v2')))
+          .write(const WorkCasesCompanion(sourceTaskId: Value('task-new')));
+      expect(
+        (await database.select(database.workCases).getSingle()).sourceTaskId,
+        'task-new',
+      );
+    },
+  );
 
   test(
     'rolls back the whole migration when legacy data violates v2 rules',
@@ -175,7 +203,7 @@ void main() {
   );
 
   test('blocks unsupported schema versions', () async {
-    final fixture = await _createEmptyFixture(3);
+    final fixture = await _createEmptyFixture(4);
     addTearDown(fixture.dispose);
     final database = AppDatabase(NativeDatabase(fixture.file));
 
@@ -185,12 +213,51 @@ void main() {
         isA<UnsupportedError>().having(
           (error) => error.message,
           'message',
-          contains('schema 3 to 2'),
+          contains('schema 4 to 3'),
         ),
       ),
     );
     await database.close();
   });
+}
+
+Future<_DatabaseFixture> _createSchemaV2Fixture() async {
+  final fixture = await _createEmptyFixture(2);
+  final executor = NativeDatabase(fixture.file);
+  await executor.ensureOpen(const _FixtureDatabaseUser(2));
+  await executor.runCustom('''
+    CREATE TABLE work_cases (
+      schema_version INTEGER NOT NULL DEFAULT 1,
+      id TEXT NOT NULL PRIMARY KEY,
+      item_id TEXT NOT NULL,
+      source_type TEXT NOT NULL,
+      source_id TEXT NULL,
+      case_type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT NULL,
+      occurred_at TEXT NULL,
+      started_at TEXT NULL,
+      status TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      closed_at TEXT NULL,
+      canceled_at TEXT NULL,
+      close_result TEXT NULL,
+      cancellation_reason TEXT NULL
+    )
+  ''');
+  await executor.runCustom('''
+    INSERT INTO work_cases (
+      id, item_id, source_type, source_id, case_type, title, status,
+      created_at, updated_at
+    ) VALUES (
+      'case-v2', 'item-v2', 'manual', NULL, 'other', '既有案件',
+      'inProgress', '2026-07-18T00:00:00.000Z',
+      '2026-07-18T00:00:00.000Z'
+    )
+  ''');
+  await executor.close();
+  return fixture;
 }
 
 DateTime _at(int minute, int second) =>

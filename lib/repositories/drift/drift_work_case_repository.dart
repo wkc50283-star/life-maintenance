@@ -192,6 +192,7 @@ class DriftWorkCaseRepository implements WorkCaseRepository {
     if (existing.itemId != updated.itemId ||
         existing.sourceType != updated.sourceType ||
         existing.sourceId != updated.sourceId ||
+        existing.sourceTaskId != updated.sourceTaskId ||
         existing.createdAt != updated.createdAt) {
       throw const RepositoryConstraintException(
         'WorkCase Item, source, and creation identity are immutable.',
@@ -212,6 +213,8 @@ class DriftWorkCaseRepository implements WorkCaseRepository {
         'Item ${workCase.itemId} does not exist.',
       );
     }
+
+    await _validateSourceTask(workCase);
 
     switch (workCase.sourceType) {
       case WorkCaseSourceType.maintenanceTask:
@@ -261,6 +264,37 @@ class DriftWorkCaseRepository implements WorkCaseRepository {
             'Unknown WorkCase sources may be preserved but not created.',
           );
         }
+    }
+  }
+
+  Future<void> _validateSourceTask(WorkCase workCase) async {
+    final sourceTaskId = workCase.sourceTaskId;
+    if (sourceTaskId == null) return;
+
+    final taskQuery = _database.select(_database.tasks)
+      ..where((table) => table.id.equals(sourceTaskId));
+    final task = await taskQuery.getSingleOrNull();
+    if (task == null || task.itemId != workCase.itemId) {
+      throw RepositoryConstraintException(
+        'Source Task $sourceTaskId does not exist for this Item.',
+      );
+    }
+
+    final matches = switch (workCase.sourceType) {
+      WorkCaseSourceType.maintenanceTask =>
+        task.sourceType == 'scheduledMaintenance' &&
+            workCase.sourceId == task.id,
+      WorkCaseSourceType.generalReminder =>
+        task.sourceType == 'scheduledReminder' &&
+            workCase.sourceId == task.generalReminderId,
+      WorkCaseSourceType.milestone =>
+        task.sourceType == 'milestone' && workCase.sourceId == task.milestoneId,
+      WorkCaseSourceType.manual || WorkCaseSourceType.unknown => false,
+    };
+    if (!matches) {
+      throw const RepositoryConstraintException(
+        'WorkCase source and source Task do not match.',
+      );
     }
   }
 

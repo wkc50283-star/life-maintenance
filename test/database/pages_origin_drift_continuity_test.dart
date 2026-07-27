@@ -14,7 +14,9 @@ void main() {
     addTearDown(() => directory.delete(recursive: true));
 
     final original = AppDatabase(NativeDatabase(file));
-    await original.into(original.itemCategories).insert(
+    await original
+        .into(original.itemCategories)
+        .insert(
           ItemCategoriesCompanion.insert(
             id: 'category-existing',
             systemCode: const Value('home'),
@@ -25,7 +27,9 @@ void main() {
             updatedAt: DateTime.utc(2026, 7, 21),
           ),
         );
-    await original.into(original.items).insert(
+    await original
+        .into(original.items)
+        .insert(
           ItemsCompanion.insert(
             id: 'item-existing',
             name: '既有生活項目',
@@ -49,7 +53,7 @@ void main() {
     expect(items.single.id, 'item-existing');
     expect(items.single.name, '既有生活項目');
     final version = await reopened.customSelect('PRAGMA user_version').get();
-    expect(version.single.read<int>('user_version'), 2);
+    expect(version.single.read<int>('user_version'), 3);
   });
 }
 

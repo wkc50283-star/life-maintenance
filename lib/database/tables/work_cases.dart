@@ -7,11 +7,11 @@ import 'items.dart';
 @DataClassName('WorkCaseRow')
 @TableIndex(name: 'work_cases_item_status_idx', columns: {#itemId, #status})
 @TableIndex(name: 'work_cases_source_idx', columns: {#sourceType, #sourceId})
+@TableIndex(name: 'work_cases_source_task_idx', columns: {#sourceTaskId})
 @TableIndex(name: 'work_cases_updated_at_idx', columns: {#updatedAt})
 class WorkCases extends Table {
-  IntColumn get schemaVersion => integer().withDefault(
-    const Constant(WorkCase.currentSchemaVersion),
-  )();
+  IntColumn get schemaVersion =>
+      integer().withDefault(const Constant(WorkCase.currentSchemaVersion))();
 
   TextColumn get id => text()();
 
@@ -26,6 +26,8 @@ class WorkCases extends Table {
       text().map(const WorkCaseSourceTypeSqlConverter())();
 
   TextColumn get sourceId => text().nullable()();
+
+  TextColumn get sourceTaskId => text().nullable()();
 
   TextColumn get caseType => text().map(const WorkCaseTypeSqlConverter())();
 

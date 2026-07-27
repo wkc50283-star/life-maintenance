@@ -1,3 +1,5 @@
+import 'package:drift/drift.dart';
+
 import '../../database/app_database.dart';
 import '../../models/work_case.dart';
 import '../../models/work_case_closure.dart';
@@ -8,6 +10,7 @@ import '../work_case_closure_repository.dart';
 import '../work_case_repository.dart';
 import '../work_case_runtime.dart';
 import 'drift_schema_v2_repositories.dart';
+import 'work_case_drift_mappers.dart';
 
 class DriftWorkCaseRuntime implements WorkCaseRuntime {
   DriftWorkCaseRuntime({
@@ -31,6 +34,14 @@ class DriftWorkCaseRuntime implements WorkCaseRuntime {
   @override
   Future<List<WorkCase>> listCasesForItem(String itemId) =>
       _workCases.listCasesForItem(itemId);
+
+  @override
+  Future<List<WorkCase>> listBySourceTaskId(String taskId) async {
+    final query = _database.select(_database.workCases)
+      ..where((table) => table.sourceTaskId.equals(taskId))
+      ..orderBy([(table) => OrderingTerm.desc(table.createdAt)]);
+    return (await query.get()).map((row) => row.toModel()).toList();
+  }
 
   @override
   Future<List<WorkCaseUpdate>> listUpdatesForCase(String workCaseId) =>
@@ -77,6 +88,7 @@ class DriftWorkCaseRuntime implements WorkCaseRuntime {
     final normalized = workCase.copyWith(
       sourceType: sourceType,
       sourceId: sourceId,
+      sourceTaskId: task.id,
     );
     await _create(normalized, initialUpdate);
     return normalized;

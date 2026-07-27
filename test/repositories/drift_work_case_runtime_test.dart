@@ -94,6 +94,20 @@ void main() {
         updatedAt: now,
       ),
     );
+    await repositories.tasks.save(
+      TaskRow(
+        id: 'task-2',
+        itemId: 'item-1',
+        sourceType: 'scheduledReminder',
+        scheduleId: 'schedule-1',
+        generalReminderId: 'reminder-1',
+        title: '租約續約',
+        dueDate: now.add(const Duration(days: 30)),
+        status: 'pending',
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
     await repositories.maintenancePlans.save(
       MaintenancePlan(
         id: 'plan-1',
@@ -238,6 +252,7 @@ void main() {
 
     expect(created.sourceType, WorkCaseSourceType.generalReminder);
     expect(created.sourceId, 'reminder-1');
+    expect(created.sourceTaskId, 'task-1');
     expect(await runtime.listUpdatesForCase(created.id), hasLength(1));
     expect((await repositories.tasks.findById('task-1'))?.status, 'pending');
   });
@@ -254,9 +269,59 @@ void main() {
 
     expect(maintenance.sourceType, WorkCaseSourceType.maintenanceTask);
     expect(maintenance.sourceId, 'task-plan');
+    expect(maintenance.sourceTaskId, 'task-plan');
     expect(milestone.sourceType, WorkCaseSourceType.milestone);
     expect(milestone.sourceId, 'milestone-1');
+    expect(milestone.sourceTaskId, 'task-milestone');
   });
+
+  test(
+    'keeps same Reminder cases linked to their exact source Tasks',
+    () async {
+      final first = await runtime.createFromTask(
+        taskId: 'task-1',
+        workCase: workCase(id: 'case-1'),
+      );
+      final second = await runtime.createFromTask(
+        taskId: 'task-2',
+        workCase: workCase(id: 'case-2'),
+      );
+
+      expect(first.sourceId, second.sourceId);
+      expect(first.sourceTaskId, 'task-1');
+      expect(second.sourceTaskId, 'task-2');
+      expect(
+        (await runtime.listBySourceTaskId('task-1')).map((value) => value.id),
+        ['case-1'],
+      );
+      expect(
+        (await runtime.listBySourceTaskId('task-2')).map((value) => value.id),
+        ['case-2'],
+      );
+    },
+  );
+
+  test(
+    'manual cases keep no source Task and model JSON stays compatible',
+    () async {
+      final linked = workCase(sourceId: 'reminder-1').copyWith(
+        sourceType: WorkCaseSourceType.generalReminder,
+        sourceTaskId: 'task-1',
+      );
+      final decoded = WorkCase.fromJson(linked.toJson());
+      final legacy = Map<String, dynamic>.from(linked.toJson())
+        ..remove('sourceTaskId');
+
+      expect(decoded.sourceTaskId, 'task-1');
+      expect(decoded.copyWith().sourceTaskId, 'task-1');
+      expect(decoded.copyWith(sourceTaskId: null).sourceTaskId, isNull);
+      expect(WorkCase.fromJson(legacy).sourceTaskId, isNull);
+
+      await runtime.createManual(workCase());
+      expect((await runtime.findCaseById('case-1'))?.sourceTaskId, isNull);
+      expect(await runtime.listBySourceTaskId('task-1'), isEmpty);
+    },
+  );
 
   test('rejects a Task and WorkCase from different Items', () async {
     await expectLater(
