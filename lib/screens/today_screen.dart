@@ -156,57 +156,84 @@ class _TodayScreenState extends State<TodayScreen> {
 
     final hasItems = localItems.isNotEmpty;
 
-    return ListView(
+    return CustomScrollView(
       key: const ValueKey('overview-scroll'),
-      padding: UiInsets.pageCompact,
-      children: [
-        UiMotionEntrance(
-          duration: UiMotion.standard,
-          child: _OverviewHeader(
-            onQuickAdd: widget.onQuickAdd,
-            onViewReminders: _runtime.taskReminderRuntime == null
-                ? null
-                : _openReminderList,
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(
+            UiSpace.md,
+            UiSpace.xs,
+            UiSpace.md,
+            0,
+          ),
+          sliver: SliverList.list(
+            children: [
+              UiMotionEntrance(
+                duration: UiMotion.standard,
+                child: _OverviewHeader(
+                  onQuickAdd: widget.onQuickAdd,
+                  onViewReminders: _runtime.taskReminderRuntime == null
+                      ? null
+                      : _openReminderList,
+                ),
+              ),
+              if (!hasItems)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: UiSpace.lg),
+                  child: UiEmptyState(
+                    key: const ValueKey('overview-empty-items'),
+                    icon: Icons.inventory_2_outlined,
+                    title: '還沒有生活項目',
+                    description: '拍一張、說一句或輸入名稱開始',
+                    action: widget.onQuickAdd == null
+                        ? null
+                        : UiPrimaryButton(
+                            onPressed: widget.onQuickAdd,
+                            label: '新增生活項目',
+                            icon: Icons.add_rounded,
+                          ),
+                  ),
+                ),
+              if (reminders.isNotEmpty)
+                UiMotionEntrance(
+                  key: const ValueKey('overview-section-reminders'),
+                  duration: UiMotion.standard,
+                  child: _TodayTasksSection(
+                    tasks: reminders,
+                    items: localItems,
+                    onViewAll: _runtime.taskReminderRuntime == null
+                        ? null
+                        : _openReminderList,
+                    onOpenTask: _openTaskDetail,
+                  ),
+                ),
+              if (_recentCompletions.isNotEmpty)
+                UiMotionEntrance(
+                  key: const ValueKey('overview-section-completions'),
+                  duration: UiMotion.emphasized,
+                  child: _RecentCompletionsSection(
+                    completions: _recentCompletions,
+                  ),
+                ),
+              const _AiSuggestionsSection(),
+            ],
           ),
         ),
-        if (!hasItems)
-          Padding(
-            padding: const EdgeInsets.only(bottom: UiSpace.lg),
-            child: UiEmptyState(
-              key: const ValueKey('overview-empty-items'),
-              icon: Icons.inventory_2_outlined,
-              title: '還沒有生活項目',
-              description: '拍一張、說一句或輸入名稱開始',
-              action: widget.onQuickAdd == null
-                  ? null
-                  : UiPrimaryButton(
-                      onPressed: widget.onQuickAdd,
-                      label: '新增生活項目',
-                      icon: Icons.add_rounded,
-                    ),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(
+            UiSpace.md,
+            0,
+            UiSpace.md,
+            UiSpace.lg,
+          ),
+          sliver: SliverFillRemaining(
+            hasScrollBody: false,
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: _QuickCaptureActions(onQuickAdd: widget.onQuickAdd),
             ),
           ),
-        if (reminders.isNotEmpty)
-          UiMotionEntrance(
-            key: const ValueKey('overview-section-reminders'),
-            duration: UiMotion.standard,
-            child: _TodayTasksSection(
-              tasks: reminders,
-              items: localItems,
-              onViewAll: _runtime.taskReminderRuntime == null
-                  ? null
-                  : _openReminderList,
-              onOpenTask: _openTaskDetail,
-            ),
-          ),
-        if (_recentCompletions.isNotEmpty)
-          UiMotionEntrance(
-            key: const ValueKey('overview-section-completions'),
-            duration: UiMotion.emphasized,
-            child: _RecentCompletionsSection(completions: _recentCompletions),
-          ),
-        const _AiSuggestionsSection(),
-        _QuickCaptureActions(onQuickAdd: widget.onQuickAdd),
+        ),
       ],
     );
   }
@@ -413,7 +440,6 @@ class _QuickCaptureActions extends StatelessWidget {
                   buttonKey: const ValueKey('overview-capture-photo'),
                   icon: Icons.photo_camera_outlined,
                   label: '拍照',
-                  description: '拍一張照片',
                   onPressed: onQuickAdd,
                 ),
               ),
@@ -423,7 +449,6 @@ class _QuickCaptureActions extends StatelessWidget {
                   buttonKey: const ValueKey('overview-capture-voice'),
                   icon: Icons.mic_none_rounded,
                   label: '說一句',
-                  description: '語音說一段話',
                   onPressed: onQuickAdd,
                 ),
               ),
@@ -433,7 +458,6 @@ class _QuickCaptureActions extends StatelessWidget {
                   buttonKey: const ValueKey('overview-capture-text'),
                   icon: Icons.keyboard_outlined,
                   label: '輸入',
-                  description: '打幾個字',
                   onPressed: onQuickAdd,
                 ),
               ),
@@ -450,14 +474,12 @@ class _QuickCaptureButton extends StatelessWidget {
     required this.buttonKey,
     required this.icon,
     required this.label,
-    required this.description,
     required this.onPressed,
   });
 
   final Key buttonKey;
   final IconData icon;
   final String label;
-  final String description;
   final VoidCallback? onPressed;
 
   @override
@@ -479,13 +501,6 @@ class _QuickCaptureButton extends StatelessWidget {
           Icon(icon, size: 30, color: UiColors.success),
           const SizedBox(height: UiSpace.xs),
           Text(label, style: UiType.cardTitle, textAlign: TextAlign.center),
-          const SizedBox(height: UiSpace.xxs),
-          Text(
-            description,
-            style: UiType.caption,
-            textAlign: TextAlign.center,
-            maxLines: 2,
-          ),
         ],
       ),
     ),

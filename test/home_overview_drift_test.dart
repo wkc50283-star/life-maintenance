@@ -15,7 +15,7 @@ import 'package:life_maintenance/screens/today_screen.dart';
 void main() {
   testWidgets('empty Drift overview contains no fixture facts', (tester) async {
     tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = const Size(430, 1800);
+    tester.view.physicalSize = const Size(430, 932);
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.view.resetPhysicalSize);
     final database = AppDatabase(NativeDatabase.memory());
@@ -75,9 +75,17 @@ void main() {
     expect(find.text('客廳冷氣'), findsNothing);
     expect(find.text('冷氣異音檢查'), findsNothing);
     expect(find.text('拍照'), findsOneWidget);
-    expect(find.text('拍一張照片'), findsOneWidget);
-    expect(find.text('語音說一段話'), findsOneWidget);
-    expect(find.text('打幾個字'), findsOneWidget);
+    expect(find.text('說一句'), findsOneWidget);
+    expect(find.text('輸入'), findsOneWidget);
+    expect(find.text('拍一張照片'), findsNothing);
+    expect(find.text('語音說一段話'), findsNothing);
+    expect(find.text('打幾個字'), findsNothing);
+    expect(
+      tester
+          .widget<SliverFillRemaining>(find.byType(SliverFillRemaining))
+          .hasScrollBody,
+      isFalse,
+    );
     expect(
       tester
           .getTopLeft(find.byKey(const ValueKey('overview-capture-section')))
