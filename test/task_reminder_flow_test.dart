@@ -5,6 +5,8 @@ import 'package:life_maintenance/app/app_composition_root.dart';
 import 'package:life_maintenance/app/ui_tokens.dart';
 import 'package:life_maintenance/database/app_database.dart';
 import 'package:life_maintenance/models/enums.dart';
+import 'package:life_maintenance/models/maintenance_plan.dart';
+import 'package:life_maintenance/models/maintenance_plan_enums.dart';
 import 'package:life_maintenance/screens/today_screen.dart';
 import 'package:life_maintenance/screens/task_reminder_screens.dart';
 
@@ -257,6 +259,52 @@ void main() {
       TaskStatus.pending.name,
     );
   });
+
+  testWidgets('MaintenancePlan Task completes and leaves the overview', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(430, 1600);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final root = AppCompositionRoot(database: database);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day, 8);
+    await _seedMaintenance(root, today);
+
+    await tester.pumpWidget(
+      AppCompositionScope(
+        root: root,
+        child: const MaterialApp(home: Scaffold(body: TodayScreen())),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('清洗濾網').first);
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(FilledButton, '完成'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, '完成'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('確認完成'));
+    await tester.pumpAndSettle();
+
+    expect(
+      (await root.driftRepositories.tasks.findById('task-plan'))?.status,
+      TaskStatus.completed.name,
+    );
+    expect(find.text('已完成'), findsWidgets);
+    expect(find.widgetWithText(FilledButton, '完成'), findsNothing);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('overview-section-reminders')),
+      findsNothing,
+    );
+  });
 }
 
 Future<void> _seed(AppCompositionRoot root, DateTime now) async {
@@ -318,6 +366,71 @@ Future<void> _seed(AppCompositionRoot root, DateTime now) async {
       scheduleId: 'schedule-1',
       generalReminderId: 'reminder-1',
       title: '租約續約',
+      dueDate: now,
+      status: TaskStatus.pending.name,
+      createdAt: now,
+      updatedAt: now,
+    ),
+  );
+}
+
+Future<void> _seedMaintenance(AppCompositionRoot root, DateTime now) async {
+  await root.driftRepositories.itemCategories.save(
+    ItemCategoryRow(
+      id: 'category-plan',
+      systemCode: 'appliance',
+      displayName: '家電',
+      sortOrder: 0,
+      status: 'active',
+      createdAt: now,
+      updatedAt: now,
+    ),
+  );
+  await root.driftRepositories.items.save(
+    ItemRow(
+      id: 'item-plan',
+      name: '測試冷氣',
+      categoryId: 'category-plan',
+      status: 'active',
+      createdAt: now,
+      updatedAt: now,
+    ),
+  );
+  await root.driftRepositories.maintenancePlans.save(
+    MaintenancePlan(
+      id: 'plan-1',
+      itemId: 'item-plan',
+      title: '清洗濾網',
+      planType: MaintenancePlanType.cleaning,
+      riskLevel: RiskLevel.low,
+      createdAt: now,
+      updatedAt: now,
+    ),
+  );
+  await root.driftRepositories.schedules.save(
+    ScheduleRow(
+      id: 'schedule-plan',
+      itemId: 'item-plan',
+      sourceType: 'maintenancePlan',
+      maintenancePlanId: 'plan-1',
+      cycleType: 'monthly',
+      interval: 1,
+      startDate: now,
+      nextDueDate: now,
+      status: 'active',
+      anchorPolicy: 'fixedCalendarPeriod',
+      createdAt: now,
+      updatedAt: now,
+    ),
+  );
+  await root.driftRepositories.tasks.save(
+    TaskRow(
+      id: 'task-plan',
+      itemId: 'item-plan',
+      sourceType: 'scheduledMaintenance',
+      scheduleId: 'schedule-plan',
+      maintenancePlanId: 'plan-1',
+      title: '清洗濾網',
       dueDate: now,
       status: TaskStatus.pending.name,
       createdAt: now,
