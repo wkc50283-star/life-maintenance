@@ -6,6 +6,8 @@ import 'package:life_maintenance/app/ui_tokens.dart';
 import 'package:life_maintenance/database/app_database.dart';
 import 'package:life_maintenance/main.dart';
 import 'package:life_maintenance/repositories/formal_planning_editor.dart';
+import 'package:life_maintenance/screens/formal_planning_screens.dart';
+import 'package:life_maintenance/screens/item_detail_screen.dart';
 import 'package:life_maintenance/widgets/add_entry_card.dart';
 
 void main() {
@@ -163,6 +165,167 @@ void main() {
     final item = (await editor.loadItems()).single;
     expect(item.name, '家庭汽車');
     expect(item.categoryId, 'category-vehicle');
+  });
+
+  testWidgets('new Item save opens its formal detail and remains in Items', (
+    tester,
+  ) async {
+    final root = AppCompositionRoot(
+      database: AppDatabase(NativeDatabase.memory()),
+    );
+    addTearDown(root.database.close);
+    final editor = FormalPlanningEditor.from(root)!;
+    final now = DateTime.utc(2026, 7, 27);
+    await editor.saveCategory(
+      EditableCategory(
+        id: 'category-home',
+        systemCode: 'home',
+        displayName: '家中設備',
+        sortOrder: 0,
+        status: 'active',
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    await editor.saveItem(
+      EditableItem(
+        id: 'item-existing',
+        name: '既有汽車',
+        categoryId: 'category-home',
+        status: 'active',
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    await tester.pumpWidget(LifeMaintenanceApp(compositionRoot: root));
+    await tester.pumpAndSettle();
+    await _openNewItemForm(tester);
+
+    await _advanceItemForm(tester, name: '新建立冷氣');
+    await tester.tap(find.byKey(const ValueKey('save-form')));
+    await tester.pumpAndSettle();
+
+    final formalItems = await root.itemReadRepository.loadItems();
+    final createdItem = formalItems.singleWhere((item) => item.name == '新建立冷氣');
+    final detail = tester.widget<ItemDetailScreen>(
+      find.byType(ItemDetailScreen),
+    );
+    expect(detail.item.id, createdItem.id);
+    expect(detail.item.name, '新建立冷氣');
+    expect(detail.item.id, isNot('item-existing'));
+    expect(find.text('新建立冷氣'), findsOneWidget);
+    final detailScroll = find
+        .descendant(
+          of: find.byType(ItemDetailScreen),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    for (final message in const [
+      '目前沒有保養項目。',
+      '目前沒有一般提醒。',
+      '目前沒有排程。',
+      '目前沒有階段性重點或大修。',
+      '目前沒有進行中的案件。',
+      '目前還沒有史略。',
+    ]) {
+      await tester.scrollUntilVisible(
+        find.text(message),
+        180,
+        scrollable: detailScroll,
+      );
+      expect(find.text(message), findsOneWidget);
+    }
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('新增與整理'), findsOneWidget);
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('primary-navigation')),
+        matching: find.text('生活項目'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('新建立冷氣'), findsOneWidget);
+  });
+
+  testWidgets('failed Item save stays in the form', (tester) async {
+    final database = AppDatabase(NativeDatabase.memory());
+    final root = AppCompositionRoot(database: database);
+    final editor = FormalPlanningEditor.from(root)!;
+    final now = DateTime.utc(2026, 7, 27);
+    await editor.saveCategory(
+      EditableCategory(
+        id: 'category-home',
+        systemCode: 'home',
+        displayName: '家中設備',
+        sortOrder: 0,
+        status: 'active',
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    await tester.pumpWidget(LifeMaintenanceApp(compositionRoot: root));
+    await tester.pumpAndSettle();
+    await _openNewItemForm(tester);
+    await _advanceItemForm(tester, name: '儲存失敗項目');
+    await database.close();
+
+    await tester.tap(find.byKey(const ValueKey('save-form')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ItemFormScreen), findsOneWidget);
+    expect(find.byType(ItemDetailScreen), findsNothing);
+  });
+
+  testWidgets('existing Item edit keeps the changed result contract', (
+    tester,
+  ) async {
+    final root = AppCompositionRoot(
+      database: AppDatabase(NativeDatabase.memory()),
+    );
+    addTearDown(root.database.close);
+    final editor = FormalPlanningEditor.from(root)!;
+    final now = DateTime.utc(2026, 7, 27);
+    await editor.saveCategory(
+      EditableCategory(
+        id: 'category-home',
+        systemCode: 'home',
+        displayName: '家中設備',
+        sortOrder: 0,
+        status: 'active',
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    await editor.saveItem(
+      EditableItem(
+        id: 'item-edit',
+        name: '編輯前項目',
+        categoryId: 'category-home',
+        status: 'active',
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    await tester.pumpWidget(LifeMaintenanceApp(compositionRoot: root));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('生活項目'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('編輯前項目'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('編輯生活項目'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byKey(const ValueKey('item-name')), '編輯後項目');
+    await tester.tap(find.byKey(const ValueKey('item-form-next')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('save-form')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ItemDetailScreen), findsNothing);
+    expect(find.text('編輯後項目'), findsOneWidget);
+    expect((await editor.loadItems()).single.name, '編輯後項目');
   });
 
   testWidgets('Item form respects phone SafeArea at formal device sizes', (
