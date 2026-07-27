@@ -117,6 +117,7 @@ class _FormalAddScreen extends StatelessWidget {
             onTap: () => open(
               const PlanningContentScreen(
                 kind: PlanningContentKind.maintenancePlan,
+                handoffCreatedMaintenancePlan: true,
               ),
             ),
           ),

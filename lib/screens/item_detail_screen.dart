@@ -219,11 +219,14 @@ class _ItemDetailBody extends StatelessWidget {
         _DetailSection(
           title: '保養項目',
           icon: Icons.home_repair_service_outlined,
-          onManage: () => _openPlanning(
-            context,
-            PlanningContentKind.maintenancePlan,
-            item.id,
-          ),
+          onManage: () async {
+            final changed = await _openPlanning(
+              context,
+              PlanningContentKind.maintenancePlan,
+              item.id,
+            );
+            if (changed == true) await onCaseChanged();
+          },
           child: snapshot.plans.isEmpty
               ? const _EmptyMessage('目前沒有保養項目。')
               : Column(
@@ -707,14 +710,18 @@ List<Attachment> _attachmentsFrom(HistoryProjection? history) {
   return attachments;
 }
 
-Future<void> _openPlanning(
+Future<bool?> _openPlanning(
   BuildContext context,
   PlanningContentKind kind,
   String itemId,
 ) {
-  return Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (_) => PlanningContentScreen(kind: kind, initialItemId: itemId),
+  return Navigator.of(context).push<bool>(
+    MaterialPageRoute<bool>(
+      builder: (_) => PlanningContentScreen(
+        kind: kind,
+        initialItemId: itemId,
+        returnsMaintenanceChanges: kind == PlanningContentKind.maintenancePlan,
+      ),
     ),
   );
 }
