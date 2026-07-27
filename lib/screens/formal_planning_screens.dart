@@ -10,6 +10,7 @@ import '../models/milestone.dart';
 import '../models/milestone_enums.dart';
 import '../repositories/formal_planning_editor.dart';
 import '../widgets/ui_v2_components.dart';
+import 'item_detail_screen.dart';
 
 enum PlanningContentKind { maintenancePlan, reminder, milestone, schedule }
 
@@ -544,10 +545,14 @@ class PlanningContentScreen extends StatefulWidget {
     super.key,
     required this.kind,
     this.initialItemId,
+    this.handoffCreatedMaintenancePlan = false,
+    this.returnsMaintenanceChanges = false,
   });
 
   final PlanningContentKind kind;
   final String? initialItemId;
+  final bool handoffCreatedMaintenancePlan;
+  final bool returnsMaintenanceChanges;
 
   @override
   State<PlanningContentScreen> createState() => _PlanningContentScreenState();
@@ -557,6 +562,7 @@ class _PlanningContentScreenState extends State<PlanningContentScreen> {
   List<EditableItem>? _items;
   String? _itemId;
   List<Object>? _entries;
+  bool _hasMaintenanceChanges = false;
 
   @override
   void didChangeDependencies() {
@@ -598,7 +604,7 @@ class _PlanningContentScreenState extends State<PlanningContentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return _ManagementScaffold(
+    final scaffold = _ManagementScaffold(
       title: _contentTitle(widget.kind),
       intro: _contentIntro(widget.kind),
       onAdd: _itemId == null ? null : () => _open(null),
@@ -639,16 +645,45 @@ class _PlanningContentScreenState extends State<PlanningContentScreen> {
               ],
             ),
     );
+    final returnsChanges =
+        widget.returnsMaintenanceChanges &&
+        widget.kind == PlanningContentKind.maintenancePlan;
+    if (!returnsChanges) return scaffold;
+    return PopScope<Object?>(
+      canPop: !_hasMaintenanceChanges,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) Navigator.pop(context, true);
+      },
+      child: scaffold,
+    );
   }
 
   Future<void> _open(Object? value) async {
     final itemId = _itemId!;
+    if (widget.kind == PlanningContentKind.maintenancePlan) {
+      final result = await Navigator.of(context)
+          .push<MaintenancePlanFormResult>(
+            MaterialPageRoute(
+              builder: (_) => MaintenancePlanFormScreen(
+                itemId: itemId,
+                value: value as MaintenancePlan?,
+                usesTypedResult: true,
+              ),
+            ),
+          );
+      if (result == null || !mounted) return;
+      await _loadEntries();
+      if (!mounted) return;
+      _hasMaintenanceChanges = true;
+      final createdPlanId = result.createdPlanId;
+      if (widget.handoffCreatedMaintenancePlan && createdPlanId != null) {
+        await _handoffCreatedPlan(itemId, createdPlanId);
+      }
+      return;
+    }
     final route = switch (widget.kind) {
-      PlanningContentKind.maintenancePlan => MaterialPageRoute<bool>(
-        builder: (_) => MaintenancePlanFormScreen(
-          itemId: itemId,
-          value: value as MaintenancePlan?,
-        ),
+      PlanningContentKind.maintenancePlan => throw StateError(
+        'Maintenance plans use the typed result flow.',
       ),
       PlanningContentKind.reminder => MaterialPageRoute<bool>(
         builder: (_) => ReminderFormScreen(
@@ -670,6 +705,33 @@ class _PlanningContentScreenState extends State<PlanningContentScreen> {
     final changed = await Navigator.of(context).push<bool>(route);
     if (changed == true) await _loadEntries();
   }
+
+  Future<void> _handoffCreatedPlan(String itemId, String planId) async {
+    try {
+      final plans = await formalPlanningEditor(context)!.loadPlans(itemId);
+      if (!mounted) return;
+      if (!plans.any((plan) => plan.id == planId)) {
+        _showSaveError(context, '暫時無法讀取保養項目。');
+        return;
+      }
+      final items = await AppCompositionScope.of(
+        context,
+      ).itemReadRepository.loadItems();
+      if (!mounted) return;
+      final matchingItems = items.where((item) => item.id == itemId).toList();
+      if (matchingItems.length != 1) {
+        _showSaveError(context, '暫時無法讀取生活項目。');
+        return;
+      }
+      await Navigator.of(context).pushReplacement<bool, void>(
+        MaterialPageRoute<bool>(
+          builder: (_) => ItemDetailScreen(item: matchingItems.single),
+        ),
+      );
+    } catch (_) {
+      if (mounted) _showSaveError(context, '暫時無法讀取生活項目。');
+    }
+  }
 }
 
 class MaintenancePlanFormScreen extends StatefulWidget {
@@ -677,10 +739,12 @@ class MaintenancePlanFormScreen extends StatefulWidget {
     super.key,
     required this.itemId,
     this.value,
+    this.usesTypedResult = false,
   });
 
   final String itemId;
   final MaintenancePlan? value;
+  final bool usesTypedResult;
 
   @override
   State<MaintenancePlanFormScreen> createState() =>
@@ -786,17 +850,23 @@ class _MaintenancePlanFormScreenState extends State<MaintenancePlanFormScreen> {
               decoration: const InputDecoration(labelText: '大約需要幾分鐘（選填）'),
               validator: _positiveOptionalInt,
             ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              value: _requiredPhotos,
-              title: const Text('處理時需要照片'),
-              onChanged: (value) => setState(() => _requiredPhotos = value),
+            Material(
+              type: MaterialType.transparency,
+              child: SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                value: _requiredPhotos,
+                title: const Text('處理時需要照片'),
+                onChanged: (value) => setState(() => _requiredPhotos = value),
+              ),
             ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              value: _requiredNote,
-              title: const Text('處理時需要備註'),
-              onChanged: (value) => setState(() => _requiredNote = value),
+            Material(
+              type: MaterialType.transparency,
+              child: SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                value: _requiredNote,
+                title: const Text('處理時需要備註'),
+                onChanged: (value) => setState(() => _requiredNote = value),
+              ),
             ),
             TextFormField(
               controller: _safety,
@@ -852,10 +922,11 @@ class _MaintenancePlanFormScreenState extends State<MaintenancePlanFormScreen> {
     setState(() => _saving = true);
     final now = DateTime.now();
     final old = widget.value;
+    final planId = old?.id ?? _newId('plan');
     try {
       await formalPlanningEditor(context)!.savePlan(
         MaintenancePlan(
-          id: old?.id ?? _newId('plan'),
+          id: planId,
           itemId: widget.itemId,
           templateCardId: old?.templateCardId,
           title: _title.text.trim(),
@@ -886,13 +957,30 @@ class _MaintenancePlanFormScreenState extends State<MaintenancePlanFormScreen> {
           ],
         ),
       );
-      if (mounted) Navigator.pop(context, true);
+      if (mounted) {
+        Navigator.pop(
+          context,
+          widget.usesTypedResult
+              ? old == null
+                    ? MaintenancePlanFormResult.created(planId)
+                    : const MaintenancePlanFormResult.changed()
+              : true,
+        );
+      }
     } catch (error) {
       if (mounted) _showSaveError(context, error);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
   }
+}
+
+class MaintenancePlanFormResult {
+  const MaintenancePlanFormResult.created(this.createdPlanId);
+
+  const MaintenancePlanFormResult.changed() : createdPlanId = null;
+
+  final String? createdPlanId;
 }
 
 class ReminderFormScreen extends StatefulWidget {

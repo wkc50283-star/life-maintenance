@@ -11,6 +11,8 @@ import 'package:life_maintenance/models/milestone.dart';
 import 'package:life_maintenance/models/milestone_enums.dart';
 import 'package:life_maintenance/repositories/formal_planning_editor.dart';
 import 'package:life_maintenance/screens/add_screen.dart';
+import 'package:life_maintenance/screens/formal_planning_screens.dart';
+import 'package:life_maintenance/screens/item_detail_screen.dart';
 
 void main() {
   late AppDatabase database;
@@ -181,4 +183,187 @@ void main() {
     expect(categories.single.customName, '家中證件');
     expect(categories.single.systemCode, isNull);
   });
+
+  testWidgets('Add screen creates a formal plan and hands off to its Item', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(800, 1200);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    await _seedItem(editor, now, id: 'item-first', name: '其他設備');
+    await _seedItem(editor, now, id: 'item-ac', name: '測試冷氣');
+    await tester.pumpWidget(
+      AppCompositionScope(
+        root: root,
+        child: const MaterialApp(home: Scaffold(body: AddScreen())),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('保養項目與步驟'));
+    await tester.pumpAndSettle();
+    expect(find.byType(PlanningContentScreen), findsOneWidget);
+    tester
+        .widget<DropdownButtonFormField<String>>(
+          find.byType(DropdownButtonFormField<String>),
+        )
+        .onChanged!('item-ac');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('add-entry')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('plan-title')), '清洗濾網');
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('add-plan-step')),
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('item-form-scroll')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.tap(find.byKey(const ValueKey('add-plan-step')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextFormField, '步驟名稱'), '關閉電源');
+    await tester.tap(find.byKey(const ValueKey('save-form')));
+    await tester.pumpAndSettle();
+
+    final plan = (await editor.loadPlans('item-ac')).single;
+    expect(plan.itemId, 'item-ac');
+    expect(plan.steps.single.title, '關閉電源');
+    expect(await editor.loadPlans('item-first'), isEmpty);
+    final detail = tester.widget<ItemDetailScreen>(
+      find.byType(ItemDetailScreen),
+    );
+    expect(detail.item.id, 'item-ac');
+    expect(find.text('清洗濾網'), findsOneWidget);
+    expect(find.textContaining('尚未建立排程'), findsOneWidget);
+    expect(await root.scheduleRepository.loadSchedules(), isEmpty);
+    expect(await root.taskRepository.loadTasks(), isEmpty);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.byType(AddScreen), findsOneWidget);
+    expect(find.byType(PlanningContentScreen), findsNothing);
+  });
+
+  testWidgets('Item detail management refreshes created and edited plans', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(800, 1200);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    await _seedItem(editor, now, id: 'item-ac', name: '測試冷氣');
+    final item = (await root.itemReadRepository.loadItems()).single;
+    await tester.pumpWidget(
+      AppCompositionScope(
+        root: root,
+        child: MaterialApp(home: ItemDetailScreen(item: item)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('管理').first,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('管理').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('add-entry')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('plan-title')), '清洗濾網');
+    await tester.tap(find.byKey(const ValueKey('save-form')));
+    await tester.pumpAndSettle();
+    expect(find.text('清洗濾網'), findsOneWidget);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.byType(ItemDetailScreen), findsOneWidget);
+    expect(find.text('清洗濾網'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('管理').first,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('管理').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('清洗濾網'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('plan-title')), '清洗冷氣濾網');
+    await tester.tap(find.byKey(const ValueKey('save-form')));
+    await tester.pumpAndSettle();
+    expect(find.text('清洗冷氣濾網'), findsOneWidget);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.byType(ItemDetailScreen), findsOneWidget);
+    expect(find.text('清洗冷氣濾網'), findsOneWidget);
+    expect((await editor.loadPlans('item-ac')).single.title, '清洗冷氣濾網');
+  });
+
+  testWidgets('cancelled and failed plan creation do not report success', (
+    tester,
+  ) async {
+    await _seedItem(editor, now, id: 'item-ac', name: '測試冷氣');
+    await tester.pumpWidget(
+      AppCompositionScope(
+        root: root,
+        child: const MaterialApp(
+          home: PlanningContentScreen(
+            kind: PlanningContentKind.maintenancePlan,
+            initialItemId: 'item-ac',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('add-entry')));
+    await tester.pumpAndSettle();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(await editor.loadPlans('item-ac'), isEmpty);
+
+    await tester.tap(find.byKey(const ValueKey('add-entry')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('plan-title')), '不應建立');
+    await database.close();
+    await tester.tap(find.byKey(const ValueKey('save-form')));
+    await tester.pumpAndSettle();
+    expect(find.byType(MaintenancePlanFormScreen), findsOneWidget);
+    expect(find.byType(ItemDetailScreen), findsNothing);
+  });
+}
+
+Future<void> _seedItem(
+  FormalPlanningEditor editor,
+  DateTime now, {
+  required String id,
+  required String name,
+}) async {
+  final categoryId = 'category-$id';
+  await editor.saveCategory(
+    EditableCategory(
+      id: categoryId,
+      systemCode: 'homeAndAppliance',
+      displayName: '家中設備',
+      sortOrder: 0,
+      status: 'active',
+      createdAt: now,
+      updatedAt: now,
+    ),
+  );
+  await editor.saveItem(
+    EditableItem(
+      id: id,
+      name: name,
+      categoryId: categoryId,
+      status: 'active',
+      createdAt: now,
+      updatedAt: now,
+    ),
+  );
 }
