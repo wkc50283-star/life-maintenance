@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../app/ui_tokens.dart';
+
 class TaskCardData {
   final String itemName;
   final String taskName;
@@ -52,12 +54,10 @@ class TaskCard extends StatelessWidget {
                     children: [
                       Text(
                         task.itemName,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              color: const Color(0xFF263746),
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                            ),
+                        style: UiType.cardTitle.copyWith(
+                          color: const Color(0xFF263746),
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                       const SizedBox(height: 5),
                       Text(

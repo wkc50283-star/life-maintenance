@@ -2,6 +2,7 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_maintenance/app/app_composition_root.dart';
+import 'package:life_maintenance/app/app_theme.dart';
 import 'package:life_maintenance/app/ui_tokens.dart';
 import 'package:life_maintenance/database/app_database.dart';
 import 'package:life_maintenance/main.dart';
@@ -15,7 +16,17 @@ void main() {
     expect(UiColors.success, isNot(equals(UiColors.warning)));
     expect(UiColors.warning, isNot(equals(UiColors.danger)));
     expect(UiType.caption.fontSize, 12);
-    expect(UiType.pageTitle.fontSize, 20);
+    expect(UiType.body.fontSize, 13);
+    expect(UiType.button.fontSize, 13);
+    expect(UiType.pageIntro.fontSize, 13);
+    expect(UiType.cardTitle.fontSize, 14);
+    expect(UiType.sectionTitle.fontSize, 15);
+    expect(UiType.pageTitle.fontSize, 18);
+    expect(AppTheme.light.appBarTheme.titleTextStyle?.fontSize, 17);
+    expect(
+      AppTheme.light.navigationBarTheme.labelTextStyle?.resolve({})?.fontSize,
+      12,
+    );
     expect(
       [UiSpace.xs, UiSpace.sm, UiSpace.md, UiSpace.lg, UiSpace.xl],
       const [8, 12, 16, 24, 32],

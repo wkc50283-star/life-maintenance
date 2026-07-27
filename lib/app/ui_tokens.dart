@@ -54,19 +54,19 @@ abstract final class UiType {
   );
   static const cardTitle = TextStyle(
     color: UiColors.textPrimary,
-    fontSize: 15,
+    fontSize: 14,
     height: 1.3,
     fontWeight: FontWeight.w700,
   );
   static const sectionTitle = TextStyle(
     color: UiColors.textPrimary,
-    fontSize: 16,
+    fontSize: 15,
     height: 1.3,
     fontWeight: FontWeight.w700,
   );
   static const pageTitle = TextStyle(
     color: UiColors.textPrimary,
-    fontSize: 20,
+    fontSize: 18,
     height: 1.25,
     fontWeight: FontWeight.w800,
   );
