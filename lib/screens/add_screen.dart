@@ -94,7 +94,7 @@ class _FormalAddScreen extends StatelessWidget {
             title: '生活項目',
             description: '新增或修改家電、車輛、房屋、文件、健康與其他生活項目。',
             emphasized: true,
-            onTap: () => open(const ItemManagementScreen()),
+            onTap: () => open(const ItemFormScreen()),
           ),
           AddEntryCard(
             icon: Icons.category_outlined,
