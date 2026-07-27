@@ -1,4 +1,5 @@
 import '../models/task.dart';
+import '../models/enums.dart';
 import '../models/work_case.dart';
 
 enum TaskReminderSourceKind {
@@ -19,6 +20,8 @@ class TaskReminderDetail {
     this.scheduleCycleType,
     this.scheduleInterval,
     this.scheduleAnchorPolicy,
+    this.scheduleStatus,
+    this.hasOpenWorkCase = false,
   });
 
   final Task task;
@@ -29,6 +32,16 @@ class TaskReminderDetail {
   final String? scheduleCycleType;
   final int? scheduleInterval;
   final String? scheduleAnchorPolicy;
+  final String? scheduleStatus;
+  final bool hasOpenWorkCase;
+
+  bool get canComplete =>
+      sourceKind == TaskReminderSourceKind.generalReminder &&
+      task.status != TaskStatus.completed &&
+      task.status != TaskStatus.canceled &&
+      scheduleStatus == 'active' &&
+      _recurringCycleTypes.contains(scheduleCycleType) &&
+      !hasOpenWorkCase;
 
   bool get canStartWorkCase =>
       sourceKind == TaskReminderSourceKind.maintenancePlan ||
@@ -52,8 +65,19 @@ abstract interface class TaskReminderRuntime {
 
   Future<void> reschedule(String taskId, DateTime dueDate, DateTime changedAt);
 
+  Future<void> complete(String taskId, DateTime completedAt);
+
   Future<WorkCase> startWorkCase({
     required String taskId,
     required WorkCase workCase,
   });
 }
+
+const _recurringCycleTypes = <String>{
+  'daily',
+  'weekly',
+  'monthly',
+  'quarterly',
+  'semiAnnual',
+  'yearly',
+};
