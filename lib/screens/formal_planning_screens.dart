@@ -80,9 +80,14 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
 }
 
 class CategoryFormScreen extends StatefulWidget {
-  const CategoryFormScreen({super.key, this.value});
+  const CategoryFormScreen({
+    super.key,
+    this.value,
+    this.usesTypedResult = false,
+  });
 
   final EditableCategory? value;
+  final bool usesTypedResult;
 
   @override
   State<CategoryFormScreen> createState() => _CategoryFormScreenState();
@@ -156,10 +161,11 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
     setState(() => _saving = true);
     final now = DateTime.now();
     final old = widget.value;
+    final categoryId = old?.id ?? _newId('category');
     try {
       await formalPlanningEditor(context)!.saveCategory(
         EditableCategory(
-          id: old?.id ?? _newId('category'),
+          id: categoryId,
           systemCode: old?.systemCode,
           customName: _name.text.trim(),
           displayName: _name.text.trim(),
@@ -170,13 +176,26 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
           archivedAt: old?.archivedAt,
         ),
       );
-      if (mounted) Navigator.pop(context, true);
+      if (mounted) {
+        Navigator.pop(
+          context,
+          widget.usesTypedResult && old == null
+              ? CategoryFormResult.created(categoryId)
+              : true,
+        );
+      }
     } catch (error) {
       if (mounted) _showSaveError(context, error);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
   }
+}
+
+class CategoryFormResult {
+  const CategoryFormResult.created(this.createdCategoryId);
+
+  final String createdCategoryId;
 }
 
 class ItemFormScreen extends StatefulWidget {
@@ -284,28 +303,43 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
                     ),
                     const SizedBox(height: 12),
                     if (_categories!.isEmpty)
-                      _MissingCategoryAction(onCreate: _createFirstCategory)
+                      _MissingCategoryAction(onCreate: _createCategory)
                     else
-                      DropdownButtonFormField<String>(
-                        key: const ValueKey('item-category'),
-                        initialValue: _categoryId,
-                        isExpanded: true,
-                        menuMaxHeight: 320,
-                        decoration: const InputDecoration(labelText: '分類'),
-                        items: [
-                          for (final category in _categories!)
-                            DropdownMenuItem(
-                              value: category.id,
-                              child: Text(
-                                category.displayName,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                      Column(
+                        children: [
+                          DropdownButtonFormField<String>(
+                            key: const ValueKey('item-category'),
+                            initialValue: _categoryId,
+                            isExpanded: true,
+                            menuMaxHeight: 320,
+                            decoration: const InputDecoration(labelText: '分類'),
+                            items: [
+                              for (final category in _categories!)
+                                DropdownMenuItem(
+                                  value: category.id,
+                                  child: Text(
+                                    category.displayName,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                            ],
+                            onChanged: archived
+                                ? null
+                                : (value) =>
+                                      setState(() => _categoryId = value),
+                            validator: (value) =>
+                                value == null ? '請選擇分類' : null,
+                          ),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton.icon(
+                              key: const ValueKey('create-item-category'),
+                              onPressed: archived ? null : _createCategory,
+                              icon: const Icon(Icons.add_rounded),
+                              label: const Text('新增分類'),
                             ),
+                          ),
                         ],
-                        onChanged: archived
-                            ? null
-                            : (value) => setState(() => _categoryId = value),
-                        validator: (value) => value == null ? '請選擇分類' : null,
                       ),
                     const SizedBox(height: 12),
                     TextFormField(
@@ -368,11 +402,33 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
     setState(() => _step = 1);
   }
 
-  Future<void> _createFirstCategory() async {
-    final changed = await Navigator.of(
+  Future<void> _createCategory() async {
+    final result = await Navigator.of(context).push<CategoryFormResult>(
+      MaterialPageRoute(
+        builder: (_) => const CategoryFormScreen(usesTypedResult: true),
+      ),
+    );
+    if (result == null || !mounted) return;
+
+    final values = (await formalPlanningEditor(
       context,
-    ).push<bool>(MaterialPageRoute(builder: (_) => const CategoryFormScreen()));
-    if (changed == true) await _loadCategories();
+    )!.loadCategories()).where((entry) => entry.status != 'archived').toList();
+    if (!mounted) return;
+    EditableCategory? createdCategory;
+    for (final category in values) {
+      if (category.id == result.createdCategoryId) {
+        createdCategory = category;
+        break;
+      }
+    }
+    if (createdCategory == null) {
+      _showSaveError(context, '找不到剛建立的分類，請再試一次。');
+      return;
+    }
+    setState(() {
+      _categories = values;
+      _categoryId = createdCategory!.id;
+    });
   }
 
   Future<void> _save() async {
