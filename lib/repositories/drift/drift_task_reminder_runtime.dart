@@ -112,20 +112,27 @@ class DriftTaskReminderRuntime implements TaskReminderRuntime {
   Future<void> complete(String taskId, DateTime completedAt) async {
     await _database.transaction(() async {
       final row = await _requireMutableTask(taskId);
-      if (row.sourceType != 'scheduledReminder' ||
-          row.generalReminderId == null ||
-          row.scheduleId == null) {
+      if (row.scheduleId == null) {
         throw const RepositoryConstraintException(
-          'Only a GeneralReminder Task can be completed directly.',
+          'Only a scheduled Reminder or Maintenance Task can be completed directly.',
         );
       }
 
       final schedule = await _repositories.schedules.findById(row.scheduleId!);
-      if (schedule == null ||
-          schedule.sourceType != 'generalReminder' ||
-          schedule.generalReminderId != row.generalReminderId) {
+      final hasMatchingSource = switch (row.sourceType) {
+        'scheduledReminder' =>
+          row.generalReminderId != null &&
+              schedule?.sourceType == 'generalReminder' &&
+              schedule?.generalReminderId == row.generalReminderId,
+        'scheduledMaintenance' =>
+          row.maintenancePlanId != null &&
+              schedule?.sourceType == 'maintenancePlan' &&
+              schedule?.maintenancePlanId == row.maintenancePlanId,
+        _ => false,
+      };
+      if (schedule == null || !hasMatchingSource) {
         throw const RepositoryConstraintException(
-          'The Task has no matching formal GeneralReminder Schedule.',
+          'The Task has no matching formal Reminder or Maintenance Schedule.',
         );
       }
       if (schedule.status != ScheduleStatus.active.name) {

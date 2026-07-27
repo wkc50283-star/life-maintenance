@@ -36,7 +36,8 @@ class TaskReminderDetail {
   final bool hasOpenWorkCase;
 
   bool get canComplete =>
-      sourceKind == TaskReminderSourceKind.generalReminder &&
+      (sourceKind == TaskReminderSourceKind.generalReminder ||
+          sourceKind == TaskReminderSourceKind.maintenancePlan) &&
       task.status != TaskStatus.completed &&
       task.status != TaskStatus.canceled &&
       scheduleStatus == 'active' &&

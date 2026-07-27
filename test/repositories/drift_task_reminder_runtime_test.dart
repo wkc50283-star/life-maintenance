@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:life_maintenance/database/app_database.dart';
 import 'package:life_maintenance/models/enums.dart';
 import 'package:life_maintenance/models/history_projection.dart';
+import 'package:life_maintenance/models/maintenance_plan.dart';
+import 'package:life_maintenance/models/maintenance_plan_enums.dart';
 import 'package:life_maintenance/models/work_case_closure.dart';
 import 'package:life_maintenance/models/work_case.dart';
 import 'package:life_maintenance/models/work_case_enums.dart';
@@ -37,6 +39,58 @@ void main() {
     createdAt: now,
     updatedAt: now,
   );
+
+  Future<void> seedMaintenanceTask({
+    String cycleType = 'monthly',
+    TaskStatus status = TaskStatus.pending,
+  }) async {
+    await repositories.maintenancePlans.save(
+      MaintenancePlan(
+        id: 'plan-1',
+        itemId: 'item-1',
+        title: '清洗濾網',
+        planType: MaintenancePlanType.cleaning,
+        riskLevel: RiskLevel.low,
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    await repositories.schedules.save(
+      ScheduleRow(
+        id: 'schedule-plan',
+        itemId: 'item-1',
+        sourceType: 'maintenancePlan',
+        maintenancePlanId: 'plan-1',
+        cycleType: cycleType,
+        interval: 1,
+        startDate: now,
+        nextDueDate: now,
+        status: ScheduleStatus.active.name,
+        anchorPolicy: cycleType == 'custom'
+            ? 'userDefined'
+            : 'fixedCalendarPeriod',
+        userDefinedNextDate: cycleType == 'custom'
+            ? now.add(const Duration(days: 30))
+            : null,
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    await repositories.tasks.save(
+      TaskRow(
+        id: 'task-plan',
+        itemId: 'item-1',
+        sourceType: 'scheduledMaintenance',
+        scheduleId: 'schedule-plan',
+        maintenancePlanId: 'plan-1',
+        title: '清洗濾網',
+        dueDate: now,
+        status: status.name,
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+  }
 
   setUp(() async {
     database = AppDatabase(NativeDatabase.memory());
@@ -355,6 +409,120 @@ void main() {
     );
     expect(await repositories.workCases.listCasesForItem('item-1'), isEmpty);
   });
+
+  test(
+    'completes a MaintenancePlan Task and projects its existing History',
+    () async {
+      await seedMaintenanceTask();
+      final history = DriftHistoryProjectionRepository(
+        database: database,
+        attachments: repositories.attachments,
+      );
+
+      final detail = await runtime.findReminder('task-plan');
+      expect(detail?.sourceKind, TaskReminderSourceKind.maintenancePlan);
+      expect(detail?.canComplete, isTrue);
+
+      await runtime.complete('task-plan', now);
+
+      final completed = await repositories.tasks.findById('task-plan');
+      final schedule = await repositories.schedules.findById('schedule-plan');
+      final historyEntries = (await history.projectForItem('item-1')).entries
+          .whereType<TaskHistoryEntry>()
+          .where((entry) => entry.task.id == 'task-plan');
+      expect(completed?.status, TaskStatus.completed.name);
+      expect(completed?.completedAt, now);
+      expect(completed?.dueDate, now);
+      expect(schedule?.nextDueDate, DateTime.utc(2026, 8, 19, 8));
+      expect(historyEntries, hasLength(1));
+      expect(historyEntries.single.task.title, '清洗濾網');
+      expect(historyEntries.single.occurredAt, now);
+      expect(
+        await repositories.maintenanceRecords.listForItem('item-1'),
+        isEmpty,
+      );
+    },
+  );
+
+  test('MaintenancePlan custom and terminal Tasks cannot complete', () async {
+    await seedMaintenanceTask(cycleType: 'custom');
+    final taskBefore = await repositories.tasks.findById('task-plan');
+    final scheduleBefore = await repositories.schedules.findById(
+      'schedule-plan',
+    );
+    expect((await runtime.findReminder('task-plan'))?.canComplete, isFalse);
+    await expectLater(
+      runtime.complete('task-plan', now),
+      throwsA(isA<RepositoryConstraintException>()),
+    );
+    expect(await repositories.tasks.findById('task-plan'), taskBefore);
+    expect(
+      await repositories.schedules.findById('schedule-plan'),
+      scheduleBefore,
+    );
+
+    final schedule = scheduleBefore!;
+    await repositories.schedules.save(schedule.copyWith(cycleType: 'monthly'));
+    final row = taskBefore!;
+    await repositories.tasks.save(
+      row.copyWith(status: TaskStatus.completed.name, completedAt: Value(now)),
+    );
+    await repositories.tasks.save(
+      row.copyWith(
+        id: 'task-plan-canceled',
+        dueDate: now.add(const Duration(days: 1)),
+        status: TaskStatus.canceled.name,
+      ),
+    );
+    for (final taskId in ['task-plan', 'task-plan-canceled']) {
+      await expectLater(
+        runtime.complete(taskId, now.add(const Duration(days: 1))),
+        throwsA(isA<RepositoryConstraintException>()),
+      );
+    }
+    expect(
+      (await repositories.schedules.findById('schedule-plan'))?.nextDueDate,
+      now,
+    );
+  });
+
+  test(
+    'MaintenancePlan completion is blocked by the exact open WorkCase',
+    () async {
+      await seedMaintenanceTask();
+      await runtime.startWorkCase(
+        taskId: 'task-plan',
+        workCase: WorkCase(
+          id: 'case-plan',
+          itemId: 'item-1',
+          sourceType: WorkCaseSourceType.manual,
+          caseType: WorkCaseType.maintenance,
+          title: '處理清洗濾網',
+          startedAt: now,
+          status: WorkCaseStatus.inProgress,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+      expect((await runtime.findReminder('task-plan'))?.canComplete, isFalse);
+      await expectLater(
+        runtime.complete('task-plan', now),
+        throwsA(isA<RepositoryConstraintException>()),
+      );
+      expect(
+        (await repositories.tasks.findById('task-plan'))?.status,
+        TaskStatus.pending.name,
+      );
+      expect(
+        (await repositories.schedules.findById('schedule-plan'))?.nextDueDate,
+        now,
+      );
+      expect(
+        (await caseRuntime.findCaseById('case-plan'))?.sourceTaskId,
+        'task-plan',
+      );
+    },
+  );
 
   test(
     'pause, reschedule and resume update only the mutable Task fields',
