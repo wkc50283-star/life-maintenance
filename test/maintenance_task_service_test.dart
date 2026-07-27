@@ -39,6 +39,51 @@ void main() {
       );
 
       expect(tasks, hasLength(1));
+      expect(tasks.single.status, TaskStatus.pending);
+      expect(tasks.single.overdue, isFalse);
+    });
+
+    test('future active schedule does not generate a task', () {
+      final tasks = MaintenanceTaskService().generateDueTasks(
+        schedules: [
+          _schedule(
+            id: 'schedule-future',
+            title: '租約續約',
+            nextDueDate: DateTime(2026, 7, 11),
+          ),
+        ],
+        existingTasks: const [],
+        today: DateTime(2026, 7, 10),
+      );
+
+      expect(tasks, isEmpty);
+    });
+
+    test('no schedules generate no tasks', () {
+      final tasks = MaintenanceTaskService().generateDueTasks(
+        schedules: const [],
+        existingTasks: const [],
+        today: DateTime(2026, 7, 10),
+      );
+
+      expect(tasks, isEmpty);
+    });
+
+    test('past active schedule generates an overdue task', () {
+      final tasks = MaintenanceTaskService().generateDueTasks(
+        schedules: [
+          _schedule(
+            id: 'schedule-overdue',
+            title: '租約續約',
+            nextDueDate: DateTime(2026, 7, 9),
+          ),
+        ],
+        existingTasks: const [],
+        today: DateTime(2026, 7, 10),
+      );
+
+      expect(tasks.single.status, TaskStatus.overdue);
+      expect(tasks.single.overdue, isTrue);
     });
 
     test('paused schedule does not generate due task', () {
@@ -136,7 +181,7 @@ void main() {
       expect(tasks, isEmpty);
     });
 
-    test('does not recreate the original occurrence after Task reschedule', () {
+    test('a different formal due date is a distinct occurrence', () {
       final service = MaintenanceTaskService();
       final originalDueDate = DateTime(2026, 7, 10);
       final tasks = service.generateDueTasks(
@@ -161,7 +206,62 @@ void main() {
         today: originalDueDate,
       );
 
-      expect(tasks, isEmpty);
+      expect(tasks, hasLength(1));
+      expect(tasks.single.dueDate, originalDueDate);
+    });
+
+    test('all existing task statuses block the exact same occurrence', () {
+      final dueDate = DateTime(2026, 7, 10);
+
+      for (final status in TaskStatus.values) {
+        final tasks = MaintenanceTaskService().generateDueTasks(
+          schedules: [
+            _schedule(
+              id: 'schedule-contract',
+              title: '租約續約',
+              nextDueDate: dueDate,
+            ),
+          ],
+          existingTasks: [
+            Task(
+              id: 'existing-${status.name}',
+              itemId: 'item-contract',
+              cardId: 'manual-expiry-reminder',
+              scheduleId: 'schedule-contract',
+              title: '租約續約',
+              dueDate: dueDate,
+              status: status,
+            ),
+          ],
+          today: dueDate,
+        );
+
+        expect(tasks, isEmpty, reason: status.name);
+      }
+    });
+
+    test('task id is stable for schedule and formal due date', () {
+      final dueDate = DateTime(2026, 7, 10, 9);
+      final service = MaintenanceTaskService();
+      final schedule = _schedule(
+        id: 'schedule-contract',
+        title: '租約續約',
+        nextDueDate: dueDate,
+      );
+
+      final first = service.generateDueTasks(
+        schedules: [schedule],
+        existingTasks: const [],
+        today: dueDate,
+      );
+      final second = service.generateDueTasks(
+        schedules: [schedule],
+        existingTasks: const [],
+        today: dueDate,
+      );
+
+      expect(first.single.id, second.single.id);
+      expect(first.single.id, 'schedule-contract-${dueDate.toIso8601String()}');
     });
 
     test(

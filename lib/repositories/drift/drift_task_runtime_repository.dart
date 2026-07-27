@@ -27,6 +27,7 @@ class DriftTaskRuntimeRepository implements TaskRepository {
 
   @override
   Future<void> saveGeneratedTasks(List<Task> tasks) async {
+    if (tasks.isEmpty) return;
     final keys = <(String, DateTime)>{};
     for (final task in tasks) {
       if (task.scheduleId.isEmpty) {
