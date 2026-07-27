@@ -137,7 +137,10 @@ class _FormalAddScreen extends StatelessWidget {
             title: '階段性重點',
             description: '安排大修、汰換評估或達到條件後才需要注意的事情。',
             onTap: () => open(
-              const PlanningContentScreen(kind: PlanningContentKind.milestone),
+              const PlanningContentScreen(
+                kind: PlanningContentKind.milestone,
+                handoffCreatedMilestone: true,
+              ),
             ),
           ),
           AddEntryCard(

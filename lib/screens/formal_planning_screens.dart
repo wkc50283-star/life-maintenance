@@ -549,6 +549,8 @@ class PlanningContentScreen extends StatefulWidget {
     this.returnsMaintenanceChanges = false,
     this.handoffCreatedReminder = false,
     this.returnsReminderChanges = false,
+    this.handoffCreatedMilestone = false,
+    this.returnsMilestoneChanges = false,
   });
 
   final PlanningContentKind kind;
@@ -557,6 +559,8 @@ class PlanningContentScreen extends StatefulWidget {
   final bool returnsMaintenanceChanges;
   final bool handoffCreatedReminder;
   final bool returnsReminderChanges;
+  final bool handoffCreatedMilestone;
+  final bool returnsMilestoneChanges;
 
   @override
   State<PlanningContentScreen> createState() => _PlanningContentScreenState();
@@ -568,6 +572,7 @@ class _PlanningContentScreenState extends State<PlanningContentScreen> {
   List<Object>? _entries;
   bool _hasMaintenanceChanges = false;
   bool _hasReminderChanges = false;
+  bool _hasMilestoneChanges = false;
 
   @override
   void didChangeDependencies() {
@@ -655,13 +660,17 @@ class _PlanningContentScreenState extends State<PlanningContentScreen> {
         widget.returnsMaintenanceChanges && _hasMaintenanceChanges,
       PlanningContentKind.reminder =>
         widget.returnsReminderChanges && _hasReminderChanges,
+      PlanningContentKind.milestone =>
+        widget.returnsMilestoneChanges && _hasMilestoneChanges,
       _ => false,
     };
     final canReturnChanges =
         (widget.kind == PlanningContentKind.maintenancePlan &&
             widget.returnsMaintenanceChanges) ||
         (widget.kind == PlanningContentKind.reminder &&
-            widget.returnsReminderChanges);
+            widget.returnsReminderChanges) ||
+        (widget.kind == PlanningContentKind.milestone &&
+            widget.returnsMilestoneChanges);
     if (!canReturnChanges) return scaffold;
     return PopScope<Object?>(
       canPop: !returnsChanges,
@@ -715,6 +724,26 @@ class _PlanningContentScreenState extends State<PlanningContentScreen> {
       }
       return;
     }
+    if (widget.kind == PlanningContentKind.milestone) {
+      final result = await Navigator.of(context).push<MilestoneFormResult>(
+        MaterialPageRoute(
+          builder: (_) => MilestoneFormScreen(
+            itemId: itemId,
+            value: value as Milestone?,
+            usesTypedResult: true,
+          ),
+        ),
+      );
+      if (result == null || !mounted) return;
+      await _loadEntries();
+      if (!mounted) return;
+      _hasMilestoneChanges = true;
+      final createdMilestoneId = result.createdMilestoneId;
+      if (widget.handoffCreatedMilestone && createdMilestoneId != null) {
+        await _handoffCreatedMilestone(itemId, createdMilestoneId);
+      }
+      return;
+    }
     final route = switch (widget.kind) {
       PlanningContentKind.maintenancePlan => throw StateError(
         'Maintenance plans use the typed result flow.',
@@ -722,9 +751,8 @@ class _PlanningContentScreenState extends State<PlanningContentScreen> {
       PlanningContentKind.reminder => throw StateError(
         'Reminders use the typed result flow.',
       ),
-      PlanningContentKind.milestone => MaterialPageRoute<bool>(
-        builder: (_) =>
-            MilestoneFormScreen(itemId: itemId, value: value as Milestone?),
+      PlanningContentKind.milestone => throw StateError(
+        'Milestones use the typed result flow.',
       ),
       PlanningContentKind.schedule => MaterialPageRoute<bool>(
         builder: (_) => ScheduleFormScreen(
@@ -772,6 +800,38 @@ class _PlanningContentScreenState extends State<PlanningContentScreen> {
       if (!mounted) return;
       if (!reminders.any((reminder) => reminder.id == reminderId)) {
         _showSaveError(context, '暫時無法讀取一般提醒。');
+        return;
+      }
+      final items = await AppCompositionScope.of(
+        context,
+      ).itemReadRepository.loadItems();
+      if (!mounted) return;
+      final matchingItems = items.where((item) => item.id == itemId).toList();
+      if (matchingItems.length != 1) {
+        _showSaveError(context, '暫時無法讀取生活項目。');
+        return;
+      }
+      await Navigator.of(context).pushReplacement<bool, void>(
+        MaterialPageRoute<bool>(
+          builder: (_) => ItemDetailScreen(item: matchingItems.single),
+        ),
+      );
+    } catch (_) {
+      if (mounted) _showSaveError(context, '暫時無法讀取生活項目。');
+    }
+  }
+
+  Future<void> _handoffCreatedMilestone(
+    String itemId,
+    String milestoneId,
+  ) async {
+    try {
+      final milestones = await formalPlanningEditor(
+        context,
+      )!.loadMilestones(itemId);
+      if (!mounted) return;
+      if (!milestones.any((milestone) => milestone.id == milestoneId)) {
+        _showSaveError(context, '暫時無法讀取階段性重點。');
         return;
       }
       final items = await AppCompositionScope.of(
@@ -1179,10 +1239,16 @@ class ReminderFormResult {
 }
 
 class MilestoneFormScreen extends StatefulWidget {
-  const MilestoneFormScreen({super.key, required this.itemId, this.value});
+  const MilestoneFormScreen({
+    super.key,
+    required this.itemId,
+    this.value,
+    this.usesTypedResult = false,
+  });
 
   final String itemId;
   final Milestone? value;
+  final bool usesTypedResult;
 
   @override
   State<MilestoneFormScreen> createState() => _MilestoneFormScreenState();
@@ -1388,6 +1454,7 @@ class _MilestoneFormScreenState extends State<MilestoneFormScreen> {
     setState(() => _saving = true);
     final now = DateTime.now();
     final old = widget.value;
+    final milestoneId = old?.id ?? _newId('milestone');
     final thresholdTrigger = {
       MilestoneTriggerType.usageYears,
       MilestoneTriggerType.mileage,
@@ -1398,7 +1465,7 @@ class _MilestoneFormScreenState extends State<MilestoneFormScreen> {
     try {
       await formalPlanningEditor(context)!.saveMilestone(
         Milestone(
-          id: old?.id ?? _newId('milestone'),
+          id: milestoneId,
           itemId: widget.itemId,
           title: _title.text.trim(),
           description: _textOrNull(_description.text),
@@ -1432,13 +1499,30 @@ class _MilestoneFormScreenState extends State<MilestoneFormScreen> {
           cancellationReason: old?.cancellationReason,
         ),
       );
-      if (mounted) Navigator.pop(context, true);
+      if (mounted) {
+        Navigator.pop(
+          context,
+          widget.usesTypedResult
+              ? old == null
+                    ? MilestoneFormResult.created(milestoneId)
+                    : const MilestoneFormResult.changed()
+              : true,
+        );
+      }
     } catch (error) {
       if (mounted) _showSaveError(context, error);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
   }
+}
+
+class MilestoneFormResult {
+  const MilestoneFormResult.created(this.createdMilestoneId);
+
+  const MilestoneFormResult.changed() : createdMilestoneId = null;
+
+  final String? createdMilestoneId;
 }
 
 class ScheduleFormScreen extends StatefulWidget {
