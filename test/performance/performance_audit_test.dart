@@ -100,12 +100,16 @@ void main() {
       stopwatch.stop();
       final memoryGrowth = ProcessInfo.currentRss - memoryBefore;
 
-      expect(find.text('今天需處理'), findsOneWidget);
+      expect(find.textContaining('今天需要處理（'), findsOneWidget);
       expect(find.text('今日提醒 0-0'), findsOneWidget);
       expect(stopwatch.elapsed, lessThan(_screenBudget));
       expect(memoryGrowth, lessThan(_memoryBudgetBytes));
+      final overviewScrollable = find.descendant(
+        of: find.byKey(const ValueKey('overview-scroll')),
+        matching: find.byType(Scrollable),
+      );
       for (var index = 0; index < 5; index++) {
-        await tester.drag(find.byType(ListView), const Offset(0, -700));
+        await tester.drag(overviewScrollable, const Offset(0, -700));
         await tester.pump();
       }
       expect(tester.takeException(), null);
