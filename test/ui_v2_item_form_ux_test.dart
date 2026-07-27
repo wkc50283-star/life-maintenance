@@ -53,6 +53,185 @@ void main() {
   );
 
   testWidgets(
+    'Item form creates and selects the exact formal category without losing input',
+    (tester) async {
+      final root = AppCompositionRoot(
+        database: AppDatabase(NativeDatabase.memory()),
+      );
+      addTearDown(root.database.close);
+      final editor = FormalPlanningEditor.from(root)!;
+      final now = DateTime.utc(2026, 7, 27);
+      await editor.saveCategory(
+        EditableCategory(
+          id: 'category-existing',
+          systemCode: 'home',
+          displayName: '既有分類',
+          sortOrder: 0,
+          status: 'active',
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+      await tester.pumpWidget(LifeMaintenanceApp(compositionRoot: root));
+      await tester.pumpAndSettle();
+      await _openNewItemForm(tester);
+
+      expect(
+        find.byKey(const ValueKey('create-item-category')),
+        findsOneWidget,
+      );
+      await tester.enterText(find.byKey(const ValueKey('item-name')), '客廳沙發');
+      await tester.enterText(
+        find.widgetWithText(TextFormField, '放置位置'),
+        '一樓客廳',
+      );
+      await tester.tap(find.byKey(const ValueKey('create-item-category')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('category-name')),
+        '家具用品',
+      );
+      await tester.tap(find.byKey(const ValueKey('save-form')));
+      await tester.pumpAndSettle();
+
+      final categories = await editor.loadCategories();
+      final createdCategory = categories.singleWhere(
+        (category) => category.displayName == '家具用品',
+      );
+      final categoryFieldState = tester.state<FormFieldState<String>>(
+        find.byKey(const ValueKey('item-category')),
+      );
+      expect(categoryFieldState.value, createdCategory.id);
+      expect(categoryFieldState.value, isNot('category-existing'));
+      expect(find.text('家具用品'), findsOneWidget);
+      expect(find.text('客廳沙發'), findsOneWidget);
+      expect(find.text('一樓客廳'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('item-form-next')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-form')));
+      await tester.pumpAndSettle();
+
+      final item = (await editor.loadItems()).single;
+      expect(item.categoryId, createdCategory.id);
+      final detail = tester.widget<ItemDetailScreen>(
+        find.byType(ItemDetailScreen),
+      );
+      expect(detail.item.id, item.id);
+      expect(detail.item.name, '客廳沙發');
+    },
+  );
+
+  testWidgets('cancelling category creation preserves Item form selection', (
+    tester,
+  ) async {
+    final root = AppCompositionRoot(
+      database: AppDatabase(NativeDatabase.memory()),
+    );
+    addTearDown(root.database.close);
+    final editor = FormalPlanningEditor.from(root)!;
+    final now = DateTime.utc(2026, 7, 27);
+    await editor.saveCategory(
+      EditableCategory(
+        id: 'category-existing',
+        systemCode: 'home',
+        displayName: '既有分類',
+        sortOrder: 0,
+        status: 'active',
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    await tester.pumpWidget(LifeMaintenanceApp(compositionRoot: root));
+    await tester.pumpAndSettle();
+    await _openNewItemForm(tester);
+    await tester.enterText(find.byKey(const ValueKey('item-name')), '保留名稱');
+
+    await tester.tap(find.byKey(const ValueKey('create-item-category')));
+    await tester.pumpAndSettle();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    final categoryField = tester.widget<DropdownButtonFormField<String>>(
+      find.byKey(const ValueKey('item-category')),
+    );
+    expect(categoryField.initialValue, 'category-existing');
+    expect(find.text('保留名稱'), findsOneWidget);
+    expect(await editor.loadCategories(), hasLength(1));
+  });
+
+  testWidgets('failed category save stays in Category form', (tester) async {
+    final database = AppDatabase(NativeDatabase.memory());
+    final root = AppCompositionRoot(database: database);
+    final editor = FormalPlanningEditor.from(root)!;
+    final now = DateTime.utc(2026, 7, 27);
+    await editor.saveCategory(
+      EditableCategory(
+        id: 'category-existing',
+        systemCode: 'home',
+        displayName: '既有分類',
+        sortOrder: 0,
+        status: 'active',
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    await tester.pumpWidget(LifeMaintenanceApp(compositionRoot: root));
+    await tester.pumpAndSettle();
+    await _openNewItemForm(tester);
+    await tester.tap(find.byKey(const ValueKey('create-item-category')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('category-name')), '不應建立');
+    await database.close();
+
+    await tester.tap(find.byKey(const ValueKey('save-form')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CategoryFormScreen), findsOneWidget);
+    expect(find.text('新增分類'), findsOneWidget);
+    expect(find.text('不應建立'), findsOneWidget);
+  });
+
+  testWidgets('Category form keeps the management bool result contract', (
+    tester,
+  ) async {
+    final root = AppCompositionRoot(
+      database: AppDatabase(NativeDatabase.memory()),
+    );
+    addTearDown(root.database.close);
+    bool? changed;
+    await tester.pumpWidget(
+      AppCompositionScope(
+        root: root,
+        child: MaterialApp(
+          home: Builder(
+            builder: (context) => TextButton(
+              onPressed: () async {
+                changed = await Navigator.of(context).push<bool>(
+                  MaterialPageRoute(builder: (_) => const CategoryFormScreen()),
+                );
+              },
+              child: const Text('開啟分類'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('開啟分類'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('category-name')), '管理分類');
+    await tester.tap(find.byKey(const ValueKey('save-form')));
+    await tester.pumpAndSettle();
+
+    expect(changed, isTrue);
+    expect(
+      await FormalPlanningEditor.from(root)!.loadCategories(),
+      hasLength(1),
+    );
+  });
+
+  testWidgets(
     'small phone keyboard keeps save visible and form bottom reachable',
     (tester) async {
       tester.view.devicePixelRatio = 1;
