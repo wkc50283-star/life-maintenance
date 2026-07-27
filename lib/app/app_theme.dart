@@ -27,7 +27,7 @@ abstract final class AppTheme {
         titleTextStyle: TextStyle(
           fontFamily: 'Roboto',
           color: UiColors.textPrimary,
-          fontSize: 18,
+          fontSize: 17,
           fontWeight: FontWeight.w700,
         ),
         iconTheme: IconThemeData(color: UiColors.primary, size: 22),
@@ -56,6 +56,7 @@ abstract final class AppTheme {
             color: states.contains(WidgetState.selected)
                 ? UiColors.primary
                 : UiColors.textSecondary,
+            fontSize: 12,
             fontWeight: states.contains(WidgetState.selected)
                 ? FontWeight.w700
                 : FontWeight.w500,
