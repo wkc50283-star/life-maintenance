@@ -244,8 +244,14 @@ class _ItemDetailBody extends StatelessWidget {
         _DetailSection(
           title: '一般提醒',
           icon: Icons.notifications_none_rounded,
-          onManage: () =>
-              _openPlanning(context, PlanningContentKind.reminder, item.id),
+          onManage: () async {
+            final changed = await _openPlanning(
+              context,
+              PlanningContentKind.reminder,
+              item.id,
+            );
+            if (changed == true) await onCaseChanged();
+          },
           child: snapshot.reminders.isEmpty
               ? const _EmptyMessage('目前沒有一般提醒。')
               : Column(
@@ -721,6 +727,7 @@ Future<bool?> _openPlanning(
         kind: kind,
         initialItemId: itemId,
         returnsMaintenanceChanges: kind == PlanningContentKind.maintenancePlan,
+        returnsReminderChanges: kind == PlanningContentKind.reminder,
       ),
     ),
   );

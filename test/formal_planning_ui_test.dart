@@ -336,6 +336,169 @@ void main() {
     expect(find.byType(MaintenancePlanFormScreen), findsOneWidget);
     expect(find.byType(ItemDetailScreen), findsNothing);
   });
+
+  testWidgets(
+    'Add screen creates a formal reminder and hands off to its Item',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(800, 1200);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+      await _seedItem(editor, now, id: 'item-first', name: '其他設備');
+      await _seedItem(editor, now, id: 'item-ac', name: '測試冷氣');
+      await tester.pumpWidget(
+        AppCompositionScope(
+          root: root,
+          child: const MaterialApp(home: Scaffold(body: AddScreen())),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('一般提醒'));
+      await tester.pumpAndSettle();
+      expect(find.byType(PlanningContentScreen), findsOneWidget);
+      tester
+          .widget<DropdownButtonFormField<String>>(
+            find.byType(DropdownButtonFormField<String>),
+          )
+          .onChanged!('item-ac');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('add-entry')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('reminder-title')),
+        '保固到期',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, '補充說明（選填）'),
+        '確認是否需要續約',
+      );
+      await tester.tap(find.byKey(const ValueKey('save-form')));
+      await tester.pumpAndSettle();
+
+      final reminder = (await editor.loadReminders('item-ac')).single;
+      expect(reminder.itemId, 'item-ac');
+      expect(reminder.reminderType, 'expiry');
+      expect(reminder.description, '確認是否需要續約');
+      expect(await editor.loadReminders('item-first'), isEmpty);
+      final detail = tester.widget<ItemDetailScreen>(
+        find.byType(ItemDetailScreen),
+      );
+      expect(detail.item.id, 'item-ac');
+      expect(find.text('保固到期'), findsNWidgets(2));
+      expect(find.text('到期提醒'), findsOneWidget);
+      expect(find.text('確認是否需要續約'), findsOneWidget);
+      expect(await root.scheduleRepository.loadSchedules(), isEmpty);
+      expect(await root.taskRepository.loadTasks(), isEmpty);
+      final history = await root.historyProjectionRepository.projectForItem(
+        'item-ac',
+      );
+      expect(history.entries, isEmpty);
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(find.byType(AddScreen), findsOneWidget);
+      expect(find.byType(PlanningContentScreen), findsNothing);
+    },
+  );
+
+  testWidgets('Item detail management refreshes created and edited reminders', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(800, 1200);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    await _seedItem(editor, now, id: 'item-ac', name: '測試冷氣');
+    final item = (await root.itemReadRepository.loadItems()).single;
+    await tester.pumpWidget(
+      AppCompositionScope(
+        root: root,
+        child: MaterialApp(home: ItemDetailScreen(item: item)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('管理').at(1),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('管理').at(1));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('add-entry')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('reminder-title')),
+      '保固到期',
+    );
+    await tester.tap(find.byKey(const ValueKey('save-form')));
+    await tester.pumpAndSettle();
+    expect(find.text('保固到期'), findsOneWidget);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.byType(ItemDetailScreen), findsOneWidget);
+    expect(find.text('保固到期'), findsNWidgets(2));
+
+    await tester.scrollUntilVisible(
+      find.text('管理').at(1),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('管理').at(1));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('保固到期'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('reminder-title')),
+      '冷氣保固到期',
+    );
+    await tester.tap(find.byKey(const ValueKey('save-form')));
+    await tester.pumpAndSettle();
+    expect(find.text('冷氣保固到期'), findsOneWidget);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.byType(ItemDetailScreen), findsOneWidget);
+    expect(find.text('冷氣保固到期'), findsOneWidget);
+    expect((await editor.loadReminders('item-ac')).single.title, '冷氣保固到期');
+  });
+
+  testWidgets('cancelled and failed reminder creation do not report success', (
+    tester,
+  ) async {
+    await _seedItem(editor, now, id: 'item-ac', name: '測試冷氣');
+    await tester.pumpWidget(
+      AppCompositionScope(
+        root: root,
+        child: const MaterialApp(
+          home: PlanningContentScreen(
+            kind: PlanningContentKind.reminder,
+            initialItemId: 'item-ac',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('add-entry')));
+    await tester.pumpAndSettle();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(await editor.loadReminders('item-ac'), isEmpty);
+
+    await tester.tap(find.byKey(const ValueKey('add-entry')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('reminder-title')),
+      '不應建立',
+    );
+    await database.close();
+    await tester.tap(find.byKey(const ValueKey('save-form')));
+    await tester.pumpAndSettle();
+    expect(find.byType(ReminderFormScreen), findsOneWidget);
+    expect(find.byType(ItemDetailScreen), findsNothing);
+  });
 }
 
 Future<void> _seedItem(
