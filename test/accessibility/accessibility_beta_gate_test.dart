@@ -29,7 +29,32 @@ void main() {
     );
   });
 
-  testWidgets('formal shell remains usable at 200 percent text scaling', (
+  testWidgets('runtime caps system text scaling at standard size', (
+    tester,
+  ) async {
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    final root = AppCompositionRoot(
+      database: AppDatabase(NativeDatabase.memory()),
+    );
+    addTearDown(root.database.close);
+
+    for (final systemScale in const [1.0, 1.5, 2.0]) {
+      tester.platformDispatcher.textScaleFactorTestValue = systemScale;
+      await tester.pumpWidget(LifeMaintenanceApp(compositionRoot: root));
+      await tester.pumpAndSettle();
+
+      final shellContext = tester.element(
+        find.byKey(const ValueKey('app-shell')),
+      );
+      expect(
+        MediaQuery.textScalerOf(shellContext).scale(1),
+        1,
+        reason: 'system text scale $systemScale',
+      );
+    }
+  });
+
+  testWidgets('formal shell remains usable when system text is enlarged', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(320, 568);
@@ -45,6 +70,11 @@ void main() {
     addTearDown(root.database.close);
     await tester.pumpWidget(LifeMaintenanceApp(compositionRoot: root));
     await tester.pumpAndSettle();
+
+    final shellContext = tester.element(
+      find.byKey(const ValueKey('app-shell')),
+    );
+    expect(MediaQuery.textScalerOf(shellContext).scale(1), 1);
 
     for (final label in const ['生活項目', '新增', '史略', '設定', '生活總覽']) {
       await tester.tap(find.text(label));
