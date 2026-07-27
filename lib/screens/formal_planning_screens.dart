@@ -180,9 +180,10 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
 }
 
 class ItemFormScreen extends StatefulWidget {
-  const ItemFormScreen({super.key, this.value});
+  const ItemFormScreen({super.key, this.value, this.usesTypedResult = false});
 
   final EditableItem? value;
+  final bool usesTypedResult;
 
   @override
   State<ItemFormScreen> createState() => _ItemFormScreenState();
@@ -379,10 +380,11 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
     setState(() => _saving = true);
     final now = DateTime.now();
     final old = widget.value;
+    final itemId = old?.id ?? _newId('item');
     try {
       await formalPlanningEditor(context)!.saveItem(
         EditableItem(
-          id: old?.id ?? _newId('item'),
+          id: itemId,
           name: _name.text,
           categoryId: _categoryId!,
           createdAt: old?.createdAt ?? now,
@@ -398,13 +400,31 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
           archivedAt: old?.archivedAt,
         ),
       );
-      if (mounted) Navigator.pop(context, true);
+      if (mounted) {
+        Navigator.pop(
+          context,
+          widget.usesTypedResult
+              ? old == null
+                    ? ItemFormResult.created(itemId)
+                    : const ItemFormResult.changed()
+              : true,
+        );
+      }
     } catch (error) {
       if (mounted) _showSaveError(context, error);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
   }
+}
+
+class ItemFormResult {
+  const ItemFormResult.created(this.createdItemId) : changed = true;
+
+  const ItemFormResult.changed() : createdItemId = null, changed = true;
+
+  final String? createdItemId;
+  final bool changed;
 }
 
 class ItemManagementScreen extends StatefulWidget {

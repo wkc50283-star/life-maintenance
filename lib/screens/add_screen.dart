@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../app/app_composition_root.dart';
 import '../app/ui_tokens.dart';
 import '../widgets/add_entry_card.dart';
 import '../widgets/add_item_preview_sheet.dart';
@@ -8,6 +9,7 @@ import '../widgets/maintenance_record_preview_sheet.dart';
 import '../widgets/reminder_list_sheet.dart';
 import '../widgets/ui_v2_components.dart';
 import 'formal_planning_screens.dart';
+import 'item_detail_screen.dart';
 
 class AddScreen extends StatelessWidget {
   const AddScreen({super.key});
@@ -94,7 +96,7 @@ class _FormalAddScreen extends StatelessWidget {
             title: '生活項目',
             description: '新增或修改家電、車輛、房屋、文件、健康與其他生活項目。',
             emphasized: true,
-            onTap: () => open(const ItemFormScreen()),
+            onTap: () => _openItemForm(context),
           ),
           AddEntryCard(
             icon: Icons.category_outlined,
@@ -145,6 +147,41 @@ class _FormalAddScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _openItemForm(BuildContext context) async {
+    final result = await Navigator.of(context).push<ItemFormResult>(
+      MaterialPageRoute<ItemFormResult>(
+        builder: (_) => const ItemFormScreen(usesTypedResult: true),
+      ),
+    );
+    final createdItemId = result?.createdItemId;
+    if (!context.mounted || createdItemId == null) return;
+
+    try {
+      final items = await AppCompositionScope.of(
+        context,
+      ).itemReadRepository.loadItems();
+      if (!context.mounted) return;
+      final createdItems = items.where((item) => item.id == createdItemId);
+      if (createdItems.isEmpty) {
+        _showItemReadFailure(context);
+        return;
+      }
+      await Navigator.of(context).push<bool>(
+        MaterialPageRoute<bool>(
+          builder: (_) => ItemDetailScreen(item: createdItems.single),
+        ),
+      );
+    } catch (_) {
+      if (context.mounted) _showItemReadFailure(context);
+    }
+  }
+
+  void _showItemReadFailure(BuildContext context) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('暫時無法讀取生活項目。')));
   }
 }
 
