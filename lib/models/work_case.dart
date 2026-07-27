@@ -12,6 +12,7 @@ class WorkCase {
     required this.updatedAt,
     this.schemaVersion = currentSchemaVersion,
     this.sourceId,
+    this.sourceTaskId,
     this.description,
     this.occurredAt,
     this.startedAt,
@@ -29,6 +30,7 @@ class WorkCase {
   final String itemId;
   final WorkCaseSourceType sourceType;
   final String? sourceId;
+  final String? sourceTaskId;
   final WorkCaseType caseType;
   final String title;
   final String? description;
@@ -60,6 +62,7 @@ class WorkCase {
         WorkCaseSourceType.unknown,
       ),
       sourceId: _readNullableString(json['sourceId']),
+      sourceTaskId: _readNullableString(json['sourceTaskId']),
       caseType: _readEnum(
         WorkCaseType.values,
         json['caseType'],
@@ -90,6 +93,7 @@ class WorkCase {
       'itemId': itemId,
       'sourceType': sourceType.name,
       'sourceId': sourceId,
+      'sourceTaskId': sourceTaskId,
       'caseType': caseType.name,
       'title': title,
       'description': description,
@@ -111,6 +115,7 @@ class WorkCase {
     String? itemId,
     WorkCaseSourceType? sourceType,
     Object? sourceId = _notProvided,
+    Object? sourceTaskId = _notProvided,
     WorkCaseType? caseType,
     String? title,
     Object? description = _notProvided,
@@ -132,6 +137,9 @@ class WorkCase {
       sourceId: identical(sourceId, _notProvided)
           ? this.sourceId
           : sourceId as String?,
+      sourceTaskId: identical(sourceTaskId, _notProvided)
+          ? this.sourceTaskId
+          : sourceTaskId as String?,
       caseType: caseType ?? this.caseType,
       title: title ?? this.title,
       description: identical(description, _notProvided)

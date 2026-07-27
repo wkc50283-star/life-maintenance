@@ -21,7 +21,7 @@ class DriftDatabaseBackupService {
   }) : _snapshotWriter = snapshotWriter ?? _writeSqliteSnapshot,
        _backupPromoter = backupPromoter ?? _promoteAtomically;
 
-  static const int formatVersion = 2;
+  static const int formatVersion = 3;
 
   static const Set<String> requiredTables = <String>{
     'item_categories',

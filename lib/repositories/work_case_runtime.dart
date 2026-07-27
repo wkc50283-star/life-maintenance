@@ -12,6 +12,8 @@ abstract interface class WorkCaseRuntime {
 
   Future<List<WorkCase>> listCasesForItem(String itemId);
 
+  Future<List<WorkCase>> listBySourceTaskId(String taskId);
+
   Future<List<WorkCaseUpdate>> listUpdatesForCase(String workCaseId);
 
   Future<WorkCaseClosure?> findClosureForCase(String workCaseId);

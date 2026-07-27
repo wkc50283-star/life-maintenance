@@ -25,66 +25,79 @@ import 'type_converters.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [
-  ItemCategories,
-  Items,
-  MaintenancePlans,
-  MaintenancePlanSteps,
-  GeneralReminders,
-  Milestones,
-  Schedules,
-  Tasks,
-  MaintenanceRecords,
-  WorkCases,
-  WorkCaseUpdates,
-  WorkCaseClosures,
-  Attachments,
-])
+@DriftDatabase(
+  tables: [
+    ItemCategories,
+    Items,
+    MaintenancePlans,
+    MaintenancePlanSteps,
+    GeneralReminders,
+    Milestones,
+    Schedules,
+    Tasks,
+    MaintenanceRecords,
+    WorkCases,
+    WorkCaseUpdates,
+    WorkCaseClosures,
+    Attachments,
+  ],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
   AppDatabase.defaults()
-      : super(
-          driftDatabase(
-            name: 'life_maintenance',
-            native: const DriftNativeOptions(shareAcrossIsolates: true),
-            web: DriftWebOptions(
-              sqlite3Wasm: Uri.parse('sqlite3.wasm'),
-              driftWorker: Uri.parse('drift_worker.dart.js'),
-            ),
+    : super(
+        driftDatabase(
+          name: 'life_maintenance',
+          native: const DriftNativeOptions(shareAcrossIsolates: true),
+          web: DriftWebOptions(
+            sqlite3Wasm: Uri.parse('sqlite3.wasm'),
+            driftWorker: Uri.parse('drift_worker.dart.js'),
           ),
-        );
+        ),
+      );
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onCreate: (migrator) async {
-          await _createAllIdempotently(migrator);
-        },
-        onUpgrade: (migrator, from, to) async {
-          if (from == 1 && to == 2) {
-            await customStatement('PRAGMA foreign_keys = OFF');
-            await transaction(() async {
-              await _migrateV1ToV2(migrator);
-              await _throwIfForeignKeyViolations();
-            });
-            return;
-          }
-          throw UnsupportedError(
-            'Unsupported database migration: schema $from to $to.',
+    onCreate: (migrator) async {
+      await _createAllIdempotently(migrator);
+    },
+    onUpgrade: (migrator, from, to) async {
+      if (from == 1 && to == 3) {
+        await customStatement('PRAGMA foreign_keys = OFF');
+        await transaction(() async {
+          await _migrateV1ToV2(migrator);
+          await _throwIfForeignKeyViolations();
+        });
+        return;
+      }
+      if (from == 2 && to == 3) {
+        await transaction(() async {
+          await migrator.addColumn(workCases, workCases.sourceTaskId);
+          await customStatement(
+            'CREATE INDEX work_cases_source_task_idx '
+            'ON work_cases (source_task_id)',
           );
-        },
-        beforeOpen: (details) async {
-          await customStatement('PRAGMA foreign_keys = ON');
-          final versionBefore = details.versionBefore;
-          final versionNow = details.versionNow;
-          if (versionBefore != null && versionBefore < versionNow) {
-            await _throwIfForeignKeyViolations();
-          }
-        },
+          await _throwIfForeignKeyViolations();
+        });
+        return;
+      }
+      throw UnsupportedError(
+        'Unsupported database migration: schema $from to $to.',
       );
+    },
+    beforeOpen: (details) async {
+      await customStatement('PRAGMA foreign_keys = ON');
+      final versionBefore = details.versionBefore;
+      final versionNow = details.versionNow;
+      if (versionBefore != null && versionBefore < versionNow) {
+        await _throwIfForeignKeyViolations();
+      }
+    },
+  );
 
   Future<void> _createAllIdempotently(Migrator migrator) async {
     for (final table in allTables) {
