@@ -209,6 +209,14 @@ class _TaskReminderDetailScreenState extends State<TaskReminderDetailScreen> {
                   );
                 },
               ),
+              if (_detail.canComplete) ...[
+                const SizedBox(height: UiSpace.md),
+                UiPrimaryButton(
+                  label: '完成',
+                  icon: Icons.check_circle_outline_rounded,
+                  onPressed: _saving ? null : _complete,
+                ),
+              ],
               if (_detail.canStartWorkCase) ...[
                 const SizedBox(height: UiSpace.md),
                 UiPrimaryButton(
@@ -259,6 +267,31 @@ class _TaskReminderDetailScreenState extends State<TaskReminderDetailScreen> {
     );
   }
 
+  Future<void> _complete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('完成這次提醒？'),
+        content: const Text('完成後會留下紀錄，週期提醒會安排下一次日期。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('返回'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('確認完成'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await _runMutation(
+      (runtime) => runtime.complete(_detail.task.id, DateTime.now()),
+      successMessage: '這次提醒已完成，紀錄會繼續保留。',
+    );
+  }
+
   Future<void> _startWorkCase() async {
     final created = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
@@ -266,7 +299,15 @@ class _TaskReminderDetailScreenState extends State<TaskReminderDetailScreen> {
       ),
     );
     if (!mounted || created != true) return;
-    _changed = true;
+    final runtime = _runtime;
+    final refreshed = runtime == null
+        ? null
+        : await runtime.findReminder(_detail.task.id);
+    if (!mounted) return;
+    setState(() {
+      if (refreshed != null) _detail = refreshed;
+      _changed = true;
+    });
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('已建立進行中案件，提醒資料保持不變。')));

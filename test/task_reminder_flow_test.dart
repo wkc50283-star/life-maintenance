@@ -6,6 +6,7 @@ import 'package:life_maintenance/app/ui_tokens.dart';
 import 'package:life_maintenance/database/app_database.dart';
 import 'package:life_maintenance/models/enums.dart';
 import 'package:life_maintenance/screens/today_screen.dart';
+import 'package:life_maintenance/screens/task_reminder_screens.dart';
 
 void main() {
   testWidgets(
@@ -78,6 +79,72 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('GeneralReminder Task confirms completion and refreshes views', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(430, 1600);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final root = AppCompositionRoot(database: database);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day, 8);
+    await _seed(root, today);
+    final taskBefore = await root.driftRepositories.tasks.findById('task-1');
+
+    await tester.pumpWidget(
+      AppCompositionScope(
+        root: root,
+        child: const MaterialApp(home: Scaffold(body: TodayScreen())),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('租約續約').first);
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(FilledButton, '完成'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, '完成'));
+    await tester.pumpAndSettle();
+    expect(find.text('完成這次提醒？'), findsOneWidget);
+    await tester.tap(find.text('返回'));
+    await tester.pumpAndSettle();
+    expect(await root.driftRepositories.tasks.findById('task-1'), taskBefore);
+
+    await tester.tap(find.widgetWithText(FilledButton, '完成'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('確認完成'));
+    await tester.pumpAndSettle();
+
+    final completed = await root.driftRepositories.tasks.findById('task-1');
+    expect(completed?.status, TaskStatus.completed.name);
+    expect(completed?.completedAt, isNotNull);
+    expect(completed?.postponedAt, isNull);
+    expect(find.text('已完成'), findsWidgets);
+    expect(find.widgetWithText(FilledButton, '完成'), findsNothing);
+    expect(find.widgetWithText(OutlinedButton, '重新安排'), findsNothing);
+    expect(find.widgetWithText(OutlinedButton, '暫停提醒'), findsNothing);
+    expect(find.widgetWithText(FilledButton, '開始處理'), findsNothing);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('overview-section-reminders')),
+      findsNothing,
+    );
+
+    await tester.pumpWidget(
+      AppCompositionScope(
+        root: root,
+        child: const MaterialApp(home: TaskReminderListScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('租約續約'), findsNothing);
+  });
 
   testWidgets(
     'Task detail shows its source and starts a WorkCase without completing Task',

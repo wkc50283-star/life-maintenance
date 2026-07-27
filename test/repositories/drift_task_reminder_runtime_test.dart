@@ -3,9 +3,12 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_maintenance/database/app_database.dart';
 import 'package:life_maintenance/models/enums.dart';
+import 'package:life_maintenance/models/history_projection.dart';
+import 'package:life_maintenance/models/work_case_closure.dart';
 import 'package:life_maintenance/models/work_case.dart';
 import 'package:life_maintenance/models/work_case_enums.dart';
 import 'package:life_maintenance/repositories/drift/drift_schema_v2_repositories.dart';
+import 'package:life_maintenance/repositories/drift/drift_history_projection_repository.dart';
 import 'package:life_maintenance/repositories/drift/drift_task_reminder_runtime.dart';
 import 'package:life_maintenance/repositories/drift/drift_work_case_runtime.dart';
 import 'package:life_maintenance/repositories/repository_constraint_exception.dart';
@@ -15,13 +18,18 @@ void main() {
   late AppDatabase database;
   late DriftSchemaV2Repositories repositories;
   late DriftTaskReminderRuntime runtime;
+  late DriftWorkCaseRuntime caseRuntime;
   final now = DateTime.utc(2026, 7, 19, 8);
 
-  TaskRow task(String id, DateTime dueDate) => TaskRow(
+  TaskRow task(
+    String id,
+    DateTime dueDate, {
+    String scheduleId = 'schedule-1',
+  }) => TaskRow(
     id: id,
     itemId: 'item-1',
     sourceType: 'scheduledReminder',
-    scheduleId: 'schedule-1',
+    scheduleId: scheduleId,
     generalReminderId: 'reminder-1',
     title: '租約續約',
     dueDate: dueDate,
@@ -33,7 +41,7 @@ void main() {
   setUp(() async {
     database = AppDatabase(NativeDatabase.memory());
     repositories = DriftSchemaV2Repositories(database);
-    final cases = DriftWorkCaseRuntime(
+    caseRuntime = DriftWorkCaseRuntime(
       database: database,
       workCases: repositories.workCases,
       closures: repositories.workCaseClosures,
@@ -42,7 +50,7 @@ void main() {
     runtime = DriftTaskReminderRuntime(
       database: database,
       repositories: repositories,
-      workCaseRuntime: cases,
+      workCaseRuntime: caseRuntime,
     );
     await repositories.itemCategories.save(
       ItemCategoryRow(
@@ -108,7 +116,244 @@ void main() {
     expect(detail?.sourceDescription, '確認條件並預留辦理時間');
     expect(detail?.scheduleCycleType, 'yearly');
     expect(detail?.scheduleAnchorPolicy, 'fixedCalendarPeriod');
+    expect(detail?.canComplete, isTrue);
     expect(detail?.canStartWorkCase, isTrue);
+  });
+
+  test('completes a Reminder Task and advances all recurring cycles', () async {
+    final dueDate = DateTime.utc(2026, 1, 31, 8);
+    final expectedDates = <String, DateTime>{
+      'daily': DateTime.utc(2026, 2, 2, 8),
+      'weekly': DateTime.utc(2026, 2, 14, 8),
+      'monthly': DateTime.utc(2026, 3, 31, 8),
+      'quarterly': DateTime.utc(2026, 7, 31, 8),
+      'semiAnnual': DateTime.utc(2027, 1, 31, 8),
+      'yearly': DateTime.utc(2028, 1, 31, 8),
+    };
+
+    for (final MapEntry(key: cycle, value: expected) in expectedDates.entries) {
+      final schedule = (await repositories.schedules.findById('schedule-1'))!;
+      final scheduleId = 'schedule-$cycle';
+      await repositories.schedules.save(
+        schedule.copyWith(
+          id: scheduleId,
+          cycleType: cycle,
+          interval: 2,
+          nextDueDate: dueDate,
+          updatedAt: dueDate,
+        ),
+      );
+      final taskId = 'task-$cycle';
+      await repositories.tasks.save(
+        task(taskId, dueDate, scheduleId: scheduleId),
+      );
+
+      await runtime.complete(taskId, dueDate);
+
+      final completed = await repositories.tasks.findById(taskId);
+      final advanced = await repositories.schedules.findById(scheduleId);
+      expect(completed?.status, TaskStatus.completed.name, reason: cycle);
+      expect(completed?.completedAt, dueDate, reason: cycle);
+      expect(completed?.postponedAt, isNull, reason: cycle);
+      expect(completed?.dueDate, dueDate, reason: cycle);
+      expect(advanced?.nextDueDate, expected, reason: cycle);
+      expect(advanced?.cycleType, cycle, reason: cycle);
+      expect(advanced?.interval, 2, reason: cycle);
+      expect(await repositories.tasks.listAll(), isNotEmpty);
+    }
+  });
+
+  test('completionBased anchor advances from completion time', () async {
+    final schedule = (await repositories.schedules.findById('schedule-1'))!;
+    final dueDate = DateTime.utc(2026, 7, 19, 8);
+    final completedAt = DateTime.utc(2026, 7, 25, 10);
+    await repositories.schedules.save(
+      schedule.copyWith(
+        cycleType: 'monthly',
+        interval: 1,
+        nextDueDate: dueDate,
+        anchorPolicy: 'completionBased',
+      ),
+    );
+
+    await runtime.complete('task-1', completedAt);
+
+    expect(
+      (await repositories.schedules.findById('schedule-1'))?.nextDueDate,
+      DateTime.utc(2026, 8, 25, 10),
+    );
+  });
+
+  test('custom Schedule is not completable in detail or Runtime', () async {
+    final schedule = (await repositories.schedules.findById('schedule-1'))!;
+    await repositories.schedules.save(
+      schedule.copyWith(
+        cycleType: 'custom',
+        anchorPolicy: 'userDefined',
+        userDefinedNextDate: Value(now.add(const Duration(days: 30))),
+      ),
+    );
+    final taskBefore = await repositories.tasks.findById('task-1');
+    final scheduleBefore = await repositories.schedules.findById('schedule-1');
+
+    expect((await runtime.findReminder('task-1'))?.canComplete, isFalse);
+    await expectLater(
+      runtime.complete('task-1', now),
+      throwsA(isA<RepositoryConstraintException>()),
+    );
+    expect(await repositories.tasks.findById('task-1'), taskBefore);
+    expect(await repositories.schedules.findById('schedule-1'), scheduleBefore);
+  });
+
+  test(
+    'exact open source Task case blocks completion only for that Task',
+    () async {
+      await repositories.tasks.save(
+        task('task-2', now.add(const Duration(days: 1))),
+      );
+      await runtime.startWorkCase(
+        taskId: 'task-2',
+        workCase: WorkCase(
+          id: 'case-2',
+          itemId: 'item-1',
+          sourceType: WorkCaseSourceType.manual,
+          caseType: WorkCaseType.administrative,
+          title: '處理另一個到期實例',
+          startedAt: now,
+          status: WorkCaseStatus.inProgress,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+      await caseRuntime.updateStatus(
+        'case-2',
+        WorkCaseStatus.waiting,
+        now.add(const Duration(hours: 1)),
+      );
+
+      expect((await runtime.findReminder('task-1'))?.canComplete, isTrue);
+      expect((await runtime.findReminder('task-2'))?.canComplete, isFalse);
+      await expectLater(
+        runtime.complete('task-2', now),
+        throwsA(isA<RepositoryConstraintException>()),
+      );
+      await runtime.complete('task-1', now);
+      expect(
+        (await repositories.tasks.findById('task-1'))?.status,
+        TaskStatus.completed.name,
+      );
+      expect((await caseRuntime.findCaseById('case-2'))?.isOpen, isTrue);
+    },
+  );
+
+  test('a closed source Task case does not block completion', () async {
+    await runtime.startWorkCase(
+      taskId: 'task-1',
+      workCase: WorkCase(
+        id: 'case-1',
+        itemId: 'item-1',
+        sourceType: WorkCaseSourceType.manual,
+        caseType: WorkCaseType.administrative,
+        title: '完成續約處理',
+        startedAt: now,
+        status: WorkCaseStatus.inProgress,
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    await caseRuntime.close(
+      WorkCaseClosure(
+        id: 'closure-1',
+        workCaseId: 'case-1',
+        completedAt: now,
+        finalResult: '已完成',
+        completionSummary: '完成續約處理',
+        totalCost: 0,
+        createdAt: now,
+      ),
+    );
+
+    expect((await runtime.findReminder('task-1'))?.canComplete, isTrue);
+    await runtime.complete('task-1', now);
+    expect(
+      (await repositories.tasks.findById('task-1'))?.status,
+      TaskStatus.completed.name,
+    );
+  });
+
+  test('terminal and non-Reminder Tasks cannot complete twice', () async {
+    await runtime.complete('task-1', now);
+    final completed = await repositories.tasks.findById('task-1');
+    final schedule = await repositories.schedules.findById('schedule-1');
+
+    await expectLater(
+      runtime.complete('task-1', now.add(const Duration(days: 1))),
+      throwsA(isA<RepositoryConstraintException>()),
+    );
+    expect(await repositories.tasks.findById('task-1'), completed);
+    expect(await repositories.schedules.findById('schedule-1'), schedule);
+
+    await repositories.tasks.save(
+      TaskRow(
+        id: 'manual-task',
+        itemId: 'item-1',
+        sourceType: 'manual',
+        title: '手動提醒',
+        dueDate: now,
+        status: TaskStatus.pending.name,
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    expect((await runtime.findReminder('manual-task'))?.canComplete, isFalse);
+    await expectLater(
+      runtime.complete('manual-task', now),
+      throwsA(isA<RepositoryConstraintException>()),
+    );
+  });
+
+  test('Schedule write failure rolls Task completion back', () async {
+    await database.customStatement('''
+      CREATE TRIGGER reject_schedule_advance
+      BEFORE UPDATE ON schedules
+      BEGIN SELECT RAISE(ABORT, 'reject schedule update'); END
+    ''');
+    final taskBefore = await repositories.tasks.findById('task-1');
+    final scheduleBefore = await repositories.schedules.findById('schedule-1');
+
+    await expectLater(runtime.complete('task-1', now), throwsA(anything));
+
+    expect(await repositories.tasks.findById('task-1'), taskBefore);
+    expect(await repositories.schedules.findById('schedule-1'), scheduleBefore);
+  });
+
+  test('completed Task is projected once without parallel records', () async {
+    final history = DriftHistoryProjectionRepository(
+      database: database,
+      attachments: repositories.attachments,
+    );
+    expect(
+      (await history.projectForItem(
+        'item-1',
+      )).entries.whereType<TaskHistoryEntry>(),
+      isEmpty,
+    );
+
+    await runtime.complete('task-1', now);
+    final entries = (await history.projectForItem(
+      'item-1',
+    )).entries.whereType<TaskHistoryEntry>().toList();
+
+    expect(entries, hasLength(1));
+    expect(entries.single.task.id, 'task-1');
+    expect(entries.single.task.title, '租約續約');
+    expect(entries.single.task.status, TaskStatus.completed.name);
+    expect(entries.single.occurredAt, now);
+    expect(
+      await repositories.maintenanceRecords.listForItem('item-1'),
+      isEmpty,
+    );
+    expect(await repositories.workCases.listCasesForItem('item-1'), isEmpty);
   });
 
   test(

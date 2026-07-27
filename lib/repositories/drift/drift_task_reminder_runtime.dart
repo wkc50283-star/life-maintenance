@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import '../../database/app_database.dart';
 import '../../models/enums.dart';
+import '../../models/schedule_anchor_policy.dart';
 import '../../models/task.dart';
 import '../../models/work_case.dart';
 import '../../models/work_case_enums.dart';
@@ -108,6 +109,69 @@ class DriftTaskReminderRuntime implements TaskReminderRuntime {
   }
 
   @override
+  Future<void> complete(String taskId, DateTime completedAt) async {
+    await _database.transaction(() async {
+      final row = await _requireMutableTask(taskId);
+      if (row.sourceType != 'scheduledReminder' ||
+          row.generalReminderId == null ||
+          row.scheduleId == null) {
+        throw const RepositoryConstraintException(
+          'Only a GeneralReminder Task can be completed directly.',
+        );
+      }
+
+      final schedule = await _repositories.schedules.findById(row.scheduleId!);
+      if (schedule == null ||
+          schedule.sourceType != 'generalReminder' ||
+          schedule.generalReminderId != row.generalReminderId) {
+        throw const RepositoryConstraintException(
+          'The Task has no matching formal GeneralReminder Schedule.',
+        );
+      }
+      if (schedule.status != ScheduleStatus.active.name) {
+        throw const RepositoryConstraintException(
+          'Only an active Schedule can advance after completion.',
+        );
+      }
+
+      final cycleType = _supportedCycleType(schedule.cycleType);
+      final sourceCases = await _workCaseRuntime.listBySourceTaskId(row.id);
+      if (sourceCases.any((workCase) => workCase.isOpen)) {
+        throw const RepositoryConstraintException(
+          'A Task with an open WorkCase cannot be completed directly.',
+        );
+      }
+
+      final anchorPolicy = _anchorPolicy(schedule.anchorPolicy);
+      final nextDueDate = ScheduleAnchorCalculator.nextDueDate(
+        policy: anchorPolicy,
+        cycleType: cycleType,
+        interval: schedule.interval,
+        scheduledDueDate: row.dueDate,
+        completedAt: completedAt,
+        userDefinedNextDueDate: schedule.userDefinedNextDate,
+      );
+      if (!nextDueDate.isAfter(row.dueDate)) {
+        throw const RepositoryConstraintException(
+          'The next Schedule date must follow this Task due date.',
+        );
+      }
+
+      await _repositories.tasks.save(
+        row.copyWith(
+          status: TaskStatus.completed.name,
+          completedAt: Value(completedAt),
+          postponedAt: const Value(null),
+          updatedAt: completedAt,
+        ),
+      );
+      await _repositories.schedules.save(
+        schedule.copyWith(nextDueDate: nextDueDate, updatedAt: completedAt),
+      );
+    });
+  }
+
+  @override
   Future<WorkCase> startWorkCase({
     required String taskId,
     required WorkCase workCase,
@@ -158,6 +222,7 @@ class DriftTaskReminderRuntime implements TaskReminderRuntime {
       'manual' => (TaskReminderSourceKind.manual, row.title, null),
       _ => (TaskReminderSourceKind.legacy, row.title, null),
     };
+    final sourceCases = await _workCaseRuntime.listBySourceTaskId(row.id);
     return TaskReminderDetail(
       task: _toTask(row),
       itemName: item?.name ?? '未命名生活項目',
@@ -167,6 +232,8 @@ class DriftTaskReminderRuntime implements TaskReminderRuntime {
       scheduleCycleType: schedule?.cycleType,
       scheduleInterval: schedule?.interval,
       scheduleAnchorPolicy: schedule?.anchorPolicy,
+      scheduleStatus: schedule?.status,
+      hasOpenWorkCase: sourceCases.any((workCase) => workCase.isOpen),
     );
   }
 
@@ -209,6 +276,34 @@ class DriftTaskReminderRuntime implements TaskReminderRuntime {
       TaskReminderSourceKind.milestone,
       milestone?.title ?? row.title,
       milestone?.description,
+    );
+  }
+}
+
+CycleType _supportedCycleType(String value) {
+  final cycleType = switch (value) {
+    'daily' => CycleType.daily,
+    'weekly' => CycleType.weekly,
+    'monthly' => CycleType.monthly,
+    'quarterly' => CycleType.quarterly,
+    'semiAnnual' => CycleType.semiAnnual,
+    'yearly' => CycleType.yearly,
+    _ => null,
+  };
+  if (cycleType == null) {
+    throw const RepositoryConstraintException(
+      'This Schedule cycle does not support direct completion.',
+    );
+  }
+  return cycleType;
+}
+
+ScheduleAnchorPolicy _anchorPolicy(String value) {
+  try {
+    return ScheduleAnchorPolicy.values.byName(value);
+  } catch (_) {
+    throw RepositoryConstraintException(
+      'Unsupported Schedule anchor policy $value.',
     );
   }
 }
