@@ -499,6 +499,266 @@ void main() {
     expect(find.byType(ReminderFormScreen), findsOneWidget);
     expect(find.byType(ItemDetailScreen), findsNothing);
   });
+
+  testWidgets(
+    'Add screen creates a formal milestone and hands off to its Item',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(800, 1200);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+      await _seedItem(editor, now, id: 'item-first', name: '其他設備');
+      await _seedItem(editor, now, id: 'item-ac', name: '測試冷氣');
+      await tester.pumpWidget(
+        AppCompositionScope(
+          root: root,
+          child: const MaterialApp(home: Scaffold(body: AddScreen())),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('階段性重點'));
+      await tester.pumpAndSettle();
+      tester
+          .widget<DropdownButtonFormField<String>>(
+            find.byType(DropdownButtonFormField<String>),
+          )
+          .onChanged!('item-ac');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('add-entry')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('milestone-title')),
+        '評估汰換冷氣',
+      );
+      await _selectMilestoneDate(tester);
+      await tester.tap(find.byKey(const ValueKey('save-form')));
+      await tester.pumpAndSettle();
+
+      final milestone = (await editor.loadMilestones('item-ac')).single;
+      expect(milestone.itemId, 'item-ac');
+      expect(milestone.triggerType, MilestoneTriggerType.specificDate);
+      expect(milestone.triggerDate, isNotNull);
+      expect(await editor.loadMilestones('item-first'), isEmpty);
+      final detail = tester.widget<ItemDetailScreen>(
+        find.byType(ItemDetailScreen),
+      );
+      expect(detail.item.id, 'item-ac');
+      expect(find.text('評估汰換冷氣'), findsOneWidget);
+      expect(find.textContaining('日期'), findsWidgets);
+      expect(await root.scheduleRepository.loadSchedules(), isEmpty);
+      expect(await root.taskRepository.loadTasks(), isEmpty);
+      final history = await root.historyProjectionRepository.projectForItem(
+        'item-ac',
+      );
+      expect(history.entries, isEmpty);
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(find.byType(AddScreen), findsOneWidget);
+      expect(find.byType(PlanningContentScreen), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'Item detail management refreshes created and edited milestones',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(800, 1200);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+      await _seedItem(editor, now, id: 'item-ac', name: '測試冷氣');
+      final item = (await root.itemReadRepository.loadItems()).single;
+      await tester.pumpWidget(
+        AppCompositionScope(
+          root: root,
+          child: MaterialApp(home: ItemDetailScreen(item: item)),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.scrollUntilVisible(
+        find.text('管理').at(3),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('管理').at(3));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('add-entry')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('milestone-title')),
+        '評估汰換冷氣',
+      );
+      await _selectMilestoneDate(tester);
+      await tester.tap(find.byKey(const ValueKey('save-form')));
+      await tester.pumpAndSettle();
+      expect(find.text('評估汰換冷氣'), findsOneWidget);
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(find.byType(ItemDetailScreen), findsOneWidget);
+      expect(find.text('評估汰換冷氣'), findsOneWidget);
+
+      await tester.scrollUntilVisible(
+        find.text('管理').at(3),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('管理').at(3));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('評估汰換冷氣'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('milestone-title')),
+        '評估更新冷氣',
+      );
+      await tester.tap(find.byKey(const ValueKey('save-form')));
+      await tester.pumpAndSettle();
+      expect(find.text('評估更新冷氣'), findsOneWidget);
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(find.byType(ItemDetailScreen), findsOneWidget);
+      expect(find.text('評估更新冷氣'), findsOneWidget);
+      expect((await editor.loadMilestones('item-ac')).single.title, '評估更新冷氣');
+    },
+  );
+
+  testWidgets('milestone relations remain scoped to the selected Item', (
+    tester,
+  ) async {
+    await _seedItem(editor, now, id: 'item-ac', name: '測試冷氣');
+    await _seedItem(editor, now, id: 'item-other', name: '其他設備');
+    await editor.savePlan(
+      MaintenancePlan(
+        id: 'plan-ac',
+        itemId: 'item-ac',
+        title: '冷氣大保養',
+        planType: MaintenancePlanType.inspection,
+        riskLevel: RiskLevel.low,
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    await editor.savePlan(
+      MaintenancePlan(
+        id: 'plan-other',
+        itemId: 'item-other',
+        title: '其他保養',
+        planType: MaintenancePlanType.inspection,
+        riskLevel: RiskLevel.low,
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    await editor.saveMilestone(
+      Milestone(
+        id: 'milestone-previous',
+        itemId: 'item-ac',
+        title: '完成前期評估',
+        kind: MilestoneKind.majorService,
+        triggerType: MilestoneTriggerType.manual,
+        status: MilestoneStatus.pending,
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    await editor.saveMilestone(
+      Milestone(
+        id: 'milestone-other',
+        itemId: 'item-other',
+        title: '其他設備重點',
+        kind: MilestoneKind.majorService,
+        triggerType: MilestoneTriggerType.manual,
+        status: MilestoneStatus.pending,
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    await tester.pumpWidget(
+      AppCompositionScope(
+        root: root,
+        child: const MaterialApp(home: MilestoneFormScreen(itemId: 'item-ac')),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('milestone-title')),
+      '依前期結果安排汰換',
+    );
+    tester
+        .widget<DropdownButtonFormField<MilestoneTriggerType>>(
+          find.byKey(const ValueKey('milestone-trigger')),
+        )
+        .onChanged!(MilestoneTriggerType.dependencyCompleted);
+    await tester.pumpAndSettle();
+    final relationFields = tester.widgetList<DropdownButtonFormField<String>>(
+      find.byType(DropdownButtonFormField<String>),
+    );
+    relationFields.first.onChanged!('milestone-previous');
+    await tester.pumpAndSettle();
+    tester
+        .widget<DropdownButtonFormField<String?>>(
+          find.byType(DropdownButtonFormField<String?>),
+        )
+        .onChanged!('plan-ac');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('save-form')));
+    await tester.pumpAndSettle();
+
+    final created = (await editor.loadMilestones(
+      'item-ac',
+    )).singleWhere((entry) => entry.title == '依前期結果安排汰換');
+    expect(created.sourcePlanId, 'plan-ac');
+    expect(created.dependencyMilestoneId, 'milestone-previous');
+    expect(created.sourcePlanId, isNot('plan-other'));
+    expect(created.dependencyMilestoneId, isNot('milestone-other'));
+  });
+
+  testWidgets('cancelled and failed milestone creation do not report success', (
+    tester,
+  ) async {
+    await _seedItem(editor, now, id: 'item-ac', name: '測試冷氣');
+    await tester.pumpWidget(
+      AppCompositionScope(
+        root: root,
+        child: const MaterialApp(
+          home: PlanningContentScreen(
+            kind: PlanningContentKind.milestone,
+            initialItemId: 'item-ac',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('add-entry')));
+    await tester.pumpAndSettle();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(await editor.loadMilestones('item-ac'), isEmpty);
+
+    await tester.tap(find.byKey(const ValueKey('add-entry')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('milestone-title')),
+      '不應建立',
+    );
+    await _selectMilestoneDate(tester);
+    await database.close();
+    await tester.tap(find.byKey(const ValueKey('save-form')));
+    await tester.pumpAndSettle();
+    expect(find.byType(MilestoneFormScreen), findsOneWidget);
+    expect(find.byType(ItemDetailScreen), findsNothing);
+  });
+}
+
+Future<void> _selectMilestoneDate(WidgetTester tester) async {
+  await tester.tap(find.text('尚未設定'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('OK'));
+  await tester.pumpAndSettle();
 }
 
 Future<void> _seedItem(

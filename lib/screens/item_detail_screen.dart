@@ -289,8 +289,14 @@ class _ItemDetailBody extends StatelessWidget {
         _DetailSection(
           title: '階段性重點／大修',
           icon: Icons.flag_outlined,
-          onManage: () =>
-              _openPlanning(context, PlanningContentKind.milestone, item.id),
+          onManage: () async {
+            final changed = await _openPlanning(
+              context,
+              PlanningContentKind.milestone,
+              item.id,
+            );
+            if (changed == true) await onCaseChanged();
+          },
           child: snapshot.milestones.isEmpty
               ? const _EmptyMessage('目前沒有階段性重點或大修。')
               : Column(
@@ -728,6 +734,7 @@ Future<bool?> _openPlanning(
         initialItemId: itemId,
         returnsMaintenanceChanges: kind == PlanningContentKind.maintenancePlan,
         returnsReminderChanges: kind == PlanningContentKind.reminder,
+        returnsMilestoneChanges: kind == PlanningContentKind.milestone,
       ),
     ),
   );
