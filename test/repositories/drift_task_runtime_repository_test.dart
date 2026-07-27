@@ -73,13 +73,17 @@ void main() {
 
   tearDown(() => database.close());
 
-  Task task({String id = 'task-1', String scheduleId = 'schedule-1'}) => Task(
+  Task task({
+    String id = 'task-1',
+    String scheduleId = 'schedule-1',
+    DateTime? dueDate,
+  }) => Task(
     id: id,
     itemId: 'item-1',
     cardId: 'manual-expiry-reminder',
     scheduleId: scheduleId,
     title: '租約續約',
-    dueDate: now,
+    dueDate: dueDate ?? now,
   );
 
   test('generates a reminder Task from the formal Schedule source', () async {
@@ -100,16 +104,44 @@ void main() {
     expect((await repositories.tasks.listAll()).single.id, 'task-1');
   });
 
+  test(
+    'same Schedule with a different dueDate remains a distinct Task',
+    () async {
+      final nextDueDate = now.add(const Duration(days: 30));
+      await runtimeRepository.saveGeneratedTasks([task()]);
+      await runtimeRepository.saveGeneratedTasks([
+        task(id: 'task-next', dueDate: nextDueDate),
+      ]);
+
+      final tasks = await runtimeRepository.loadTasks();
+      expect(tasks, hasLength(2));
+      expect(
+        tasks.map((task) => task.dueDate),
+        containsAll([now, nextDueDate]),
+      );
+    },
+  );
+
+  test('empty generation batch preserves existing Tasks', () async {
+    await runtimeRepository.saveGeneratedTasks([task()]);
+    await runtimeRepository.saveGeneratedTasks(const []);
+
+    expect((await runtimeRepository.loadTasks()).single.id, 'task-1');
+  });
+
   test('generation transaction rolls back when a source is invalid', () async {
+    await runtimeRepository.saveGeneratedTasks([task(id: 'task-existing')]);
     await expectLater(
       runtimeRepository.saveGeneratedTasks([
-        task(),
+        task(id: 'task-next', dueDate: now.add(const Duration(days: 1))),
         task(id: 'task-invalid', scheduleId: 'missing-schedule'),
       ]),
       throwsA(isA<RepositoryConstraintException>()),
     );
 
-    expect(await repositories.tasks.listAll(), isEmpty);
+    final tasks = await repositories.tasks.listAll();
+    expect(tasks, hasLength(1));
+    expect(tasks.single.id, 'task-existing');
   });
 
   test(

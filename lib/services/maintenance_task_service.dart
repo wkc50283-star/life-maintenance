@@ -10,6 +10,9 @@ class MaintenanceTaskService {
   }) {
     final generatedTasks = <Task>[];
     final todayDate = _dateOnly(today);
+    final existingKeys = {
+      for (final task in existingTasks) (task.scheduleId, task.dueDate),
+    };
 
     for (final schedule in schedules) {
       final dueDate = _dateOnly(schedule.nextDueDate);
@@ -18,15 +21,8 @@ class MaintenanceTaskService {
         continue;
       }
 
-      final hasExistingTask = existingTasks.any(
-        (task) =>
-            task.scheduleId == schedule.id &&
-            (task.dueDate == schedule.nextDueDate ||
-                (_isMutable(task.status) &&
-                    !task.dueDate.isBefore(schedule.nextDueDate))),
-      );
-
-      if (hasExistingTask) {
+      final taskKey = (schedule.id, schedule.nextDueDate);
+      if (existingKeys.contains(taskKey)) {
         continue;
       }
 
@@ -44,16 +40,15 @@ class MaintenanceTaskService {
           overdue: overdue,
         ),
       );
+      existingKeys.add(taskKey);
     }
 
     return generatedTasks;
   }
 
-  bool _isMutable(TaskStatus status) =>
-      status != TaskStatus.completed && status != TaskStatus.canceled;
-
   DateTime _dateOnly(DateTime date) {
-    return DateTime(date.year, date.month, date.day);
+    final local = date.toLocal();
+    return DateTime(local.year, local.month, local.day);
   }
 
   String _taskTitleFor(Schedule schedule) {
