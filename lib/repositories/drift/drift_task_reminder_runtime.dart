@@ -2,13 +2,13 @@ import 'package:drift/drift.dart';
 
 import '../../database/app_database.dart';
 import '../../models/enums.dart';
-import '../../models/schedule_anchor_policy.dart';
 import '../../models/task.dart';
 import '../../models/work_case.dart';
 import '../../models/work_case_enums.dart';
 import '../repository_constraint_exception.dart';
 import '../task_reminder_runtime.dart';
 import '../work_case_runtime.dart';
+import 'drift_recurring_task_completion.dart';
 import 'drift_schema_v2_repositories.dart';
 
 class DriftTaskReminderRuntime implements TaskReminderRuntime {
@@ -18,11 +18,16 @@ class DriftTaskReminderRuntime implements TaskReminderRuntime {
     required WorkCaseRuntime workCaseRuntime,
   }) : _database = database,
        _repositories = repositories,
-       _workCaseRuntime = workCaseRuntime;
+       _workCaseRuntime = workCaseRuntime,
+       _taskCompletion = DriftRecurringTaskCompletion(
+         tasks: repositories.tasks,
+         schedules: repositories.schedules,
+       );
 
   final AppDatabase _database;
   final DriftSchemaV2Repositories _repositories;
   final WorkCaseRuntime _workCaseRuntime;
+  final DriftRecurringTaskCompletion _taskCompletion;
 
   @override
   Future<List<TaskReminderDetail>> loadReminders() async {
@@ -112,36 +117,6 @@ class DriftTaskReminderRuntime implements TaskReminderRuntime {
   Future<void> complete(String taskId, DateTime completedAt) async {
     await _database.transaction(() async {
       final row = await _requireMutableTask(taskId);
-      if (row.scheduleId == null) {
-        throw const RepositoryConstraintException(
-          'Only a scheduled Reminder or Maintenance Task can be completed directly.',
-        );
-      }
-
-      final schedule = await _repositories.schedules.findById(row.scheduleId!);
-      final hasMatchingSource = switch (row.sourceType) {
-        'scheduledReminder' =>
-          row.generalReminderId != null &&
-              schedule?.sourceType == 'generalReminder' &&
-              schedule?.generalReminderId == row.generalReminderId,
-        'scheduledMaintenance' =>
-          row.maintenancePlanId != null &&
-              schedule?.sourceType == 'maintenancePlan' &&
-              schedule?.maintenancePlanId == row.maintenancePlanId,
-        _ => false,
-      };
-      if (schedule == null || !hasMatchingSource) {
-        throw const RepositoryConstraintException(
-          'The Task has no matching formal Reminder or Maintenance Schedule.',
-        );
-      }
-      if (schedule.status != ScheduleStatus.active.name) {
-        throw const RepositoryConstraintException(
-          'Only an active Schedule can advance after completion.',
-        );
-      }
-
-      final cycleType = _supportedCycleType(schedule.cycleType);
       final sourceCases = await _workCaseRuntime.listBySourceTaskId(row.id);
       if (sourceCases.any((workCase) => workCase.isOpen)) {
         throw const RepositoryConstraintException(
@@ -149,32 +124,7 @@ class DriftTaskReminderRuntime implements TaskReminderRuntime {
         );
       }
 
-      final anchorPolicy = _anchorPolicy(schedule.anchorPolicy);
-      final nextDueDate = ScheduleAnchorCalculator.nextDueDate(
-        policy: anchorPolicy,
-        cycleType: cycleType,
-        interval: schedule.interval,
-        scheduledDueDate: row.dueDate,
-        completedAt: completedAt,
-        userDefinedNextDueDate: schedule.userDefinedNextDate,
-      );
-      if (!nextDueDate.isAfter(row.dueDate)) {
-        throw const RepositoryConstraintException(
-          'The next Schedule date must follow this Task due date.',
-        );
-      }
-
-      await _repositories.tasks.save(
-        row.copyWith(
-          status: TaskStatus.completed.name,
-          completedAt: Value(completedAt),
-          postponedAt: const Value(null),
-          updatedAt: completedAt,
-        ),
-      );
-      await _repositories.schedules.save(
-        schedule.copyWith(nextDueDate: nextDueDate, updatedAt: completedAt),
-      );
+      await _taskCompletion.complete(task: row, completedAt: completedAt);
     });
   }
 
@@ -283,34 +233,6 @@ class DriftTaskReminderRuntime implements TaskReminderRuntime {
       TaskReminderSourceKind.milestone,
       milestone?.title ?? row.title,
       milestone?.description,
-    );
-  }
-}
-
-CycleType _supportedCycleType(String value) {
-  final cycleType = switch (value) {
-    'daily' => CycleType.daily,
-    'weekly' => CycleType.weekly,
-    'monthly' => CycleType.monthly,
-    'quarterly' => CycleType.quarterly,
-    'semiAnnual' => CycleType.semiAnnual,
-    'yearly' => CycleType.yearly,
-    _ => null,
-  };
-  if (cycleType == null) {
-    throw const RepositoryConstraintException(
-      'This Schedule cycle does not support direct completion.',
-    );
-  }
-  return cycleType;
-}
-
-ScheduleAnchorPolicy _anchorPolicy(String value) {
-  try {
-    return ScheduleAnchorPolicy.values.byName(value);
-  } catch (_) {
-    throw RepositoryConstraintException(
-      'Unsupported Schedule anchor policy $value.',
     );
   }
 }

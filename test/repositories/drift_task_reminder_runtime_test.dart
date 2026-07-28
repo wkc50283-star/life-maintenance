@@ -300,7 +300,7 @@ void main() {
     },
   );
 
-  test('a closed source Task case does not block completion', () async {
+  test('closing a source Task case settles it exactly once', () async {
     await runtime.startWorkCase(
       taskId: 'task-1',
       workCase: WorkCase(
@@ -327,12 +327,17 @@ void main() {
       ),
     );
 
-    expect((await runtime.findReminder('task-1'))?.canComplete, isTrue);
-    await runtime.complete('task-1', now);
+    final schedule = await repositories.schedules.findById('schedule-1');
+    expect((await runtime.findReminder('task-1'))?.canComplete, isFalse);
     expect(
       (await repositories.tasks.findById('task-1'))?.status,
       TaskStatus.completed.name,
     );
+    await expectLater(
+      runtime.complete('task-1', now.add(const Duration(days: 1))),
+      throwsA(isA<RepositoryConstraintException>()),
+    );
+    expect(await repositories.schedules.findById('schedule-1'), schedule);
   });
 
   test('terminal and non-Reminder Tasks cannot complete twice', () async {

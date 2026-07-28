@@ -1,7 +1,9 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_maintenance/database/app_database.dart';
 import 'package:life_maintenance/models/enums.dart';
+import 'package:life_maintenance/models/history_projection.dart';
 import 'package:life_maintenance/models/maintenance_plan.dart';
 import 'package:life_maintenance/models/maintenance_plan_enums.dart';
 import 'package:life_maintenance/models/milestone.dart';
@@ -11,6 +13,7 @@ import 'package:life_maintenance/models/work_case_closure.dart';
 import 'package:life_maintenance/models/work_case_enums.dart';
 import 'package:life_maintenance/models/work_case_update.dart';
 import 'package:life_maintenance/repositories/drift/drift_schema_v2_repositories.dart';
+import 'package:life_maintenance/repositories/drift/drift_history_projection_repository.dart';
 import 'package:life_maintenance/repositories/drift/drift_work_case_runtime.dart';
 import 'package:life_maintenance/repositories/repository_constraint_exception.dart';
 
@@ -383,6 +386,148 @@ void main() {
       await database.select(database.workCaseClosures).get(),
       hasLength(1),
     );
+  });
+
+  test(
+    'closing a Reminder case atomically completes its exact Task and Schedule',
+    () async {
+      await runtime.createFromTask(taskId: 'task-1', workCase: workCase());
+      await runtime.appendUpdate(update());
+      await runtime.appendUpdate(update(id: 'update-2'));
+      final value = closure();
+
+      await runtime.close(value);
+
+      final closed = await runtime.findCaseById('case-1');
+      final sourceTask = await repositories.tasks.findById('task-1');
+      final schedule = await repositories.schedules.findById('schedule-1');
+      expect(closed?.status, WorkCaseStatus.completed);
+      expect(closed?.closedAt, value.completedAt);
+      expect((await runtime.findClosureForCase('case-1'))?.id, value.id);
+      expect(sourceTask?.status, TaskStatus.completed.name);
+      expect(sourceTask?.completedAt, value.completedAt);
+      expect(sourceTask?.postponedAt, isNull);
+      expect(schedule?.nextDueDate, DateTime.utc(2027, 7, 19, 8));
+      expect(
+        await repositories.maintenanceRecords.listForItem('item-1'),
+        isEmpty,
+      );
+
+      final history = DriftHistoryProjectionRepository(
+        database: database,
+        attachments: repositories.attachments,
+      );
+      final projection = await history.projectForItem('item-1');
+      final caseEntries = projection.entries.whereType<WorkCaseHistoryEntry>();
+      expect(caseEntries, hasLength(1));
+      expect(caseEntries.single.updates, hasLength(2));
+      expect(caseEntries.single.closure?.id, value.id);
+      expect(
+        projection.entries.whereType<TaskHistoryEntry>().where(
+          (entry) => entry.task.id == 'task-1',
+        ),
+        isEmpty,
+      );
+    },
+  );
+
+  test('closing a Maintenance case completes its exact source Task', () async {
+    final created = await runtime.createFromTask(
+      taskId: 'task-plan',
+      workCase: workCase(id: 'case-plan'),
+    );
+    final value = closure(id: 'closure-plan').copyWith(workCaseId: created.id);
+
+    await runtime.close(value);
+
+    final sourceTask = await repositories.tasks.findById('task-plan');
+    final schedule = await repositories.schedules.findById('schedule-plan');
+    expect(
+      (await runtime.findCaseById('case-plan'))?.status,
+      WorkCaseStatus.completed,
+    );
+    expect(sourceTask?.status, TaskStatus.completed.name);
+    expect(sourceTask?.completedAt, value.completedAt);
+    expect(schedule?.nextDueDate, DateTime.utc(2026, 8, 19, 8));
+    expect(
+      await repositories.maintenanceRecords.listForItem('item-1'),
+      isEmpty,
+    );
+  });
+
+  test(
+    'postponed and overdue source Tasks settle through case closure',
+    () async {
+      final reminderTask = (await repositories.tasks.findById('task-1'))!;
+      final planTask = (await repositories.tasks.findById('task-plan'))!;
+      await repositories.tasks.save(
+        reminderTask.copyWith(
+          status: TaskStatus.postponed.name,
+          postponedAt: Value(now),
+        ),
+      );
+      await repositories.tasks.save(
+        planTask.copyWith(status: TaskStatus.overdue.name),
+      );
+      await runtime.createFromTask(taskId: 'task-1', workCase: workCase());
+      await runtime.createFromTask(
+        taskId: 'task-plan',
+        workCase: workCase(id: 'case-plan'),
+      );
+
+      await runtime.close(closure());
+      await runtime.close(
+        closure(id: 'closure-plan').copyWith(workCaseId: 'case-plan'),
+      );
+
+      for (final taskId in ['task-1', 'task-plan']) {
+        final task = await repositories.tasks.findById(taskId);
+        expect(task?.status, TaskStatus.completed.name);
+        expect(task?.postponedAt, isNull);
+      }
+    },
+  );
+
+  test('unsupported source Schedule rolls the whole closure back', () async {
+    await runtime.createFromTask(taskId: 'task-1', workCase: workCase());
+    final schedule = (await repositories.schedules.findById('schedule-1'))!;
+    await repositories.schedules.save(
+      schedule.copyWith(
+        cycleType: 'custom',
+        anchorPolicy: 'userDefined',
+        userDefinedNextDate: Value(now.add(const Duration(days: 30))),
+      ),
+    );
+    final taskBefore = await repositories.tasks.findById('task-1');
+    final scheduleBefore = await repositories.schedules.findById('schedule-1');
+
+    await expectLater(
+      runtime.close(closure()),
+      throwsA(isA<RepositoryConstraintException>()),
+    );
+
+    expect((await runtime.findCaseById('case-1'))?.isOpen, isTrue);
+    expect(await runtime.findClosureForCase('case-1'), isNull);
+    expect(await repositories.tasks.findById('task-1'), taskBefore);
+    expect(await repositories.schedules.findById('schedule-1'), scheduleBefore);
+  });
+
+  test('Schedule write failure rolls every closure fact back', () async {
+    await runtime.createFromTask(taskId: 'task-1', workCase: workCase());
+    await database.customStatement('''
+      CREATE TRIGGER reject_case_schedule_advance
+      BEFORE UPDATE ON schedules
+      BEGIN SELECT RAISE(ABORT, 'reject schedule update'); END
+    ''');
+    final taskBefore = await repositories.tasks.findById('task-1');
+    final scheduleBefore = await repositories.schedules.findById('schedule-1');
+
+    await expectLater(runtime.close(closure()), throwsA(anything));
+
+    expect((await runtime.findCaseById('case-1'))?.isOpen, isTrue);
+    expect(await runtime.findClosureForCase('case-1'), isNull);
+    expect(await repositories.tasks.findById('task-1'), taskBefore);
+    expect(await repositories.schedules.findById('schedule-1'), scheduleBefore);
   });
 
   test(

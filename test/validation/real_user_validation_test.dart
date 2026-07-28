@@ -134,10 +134,17 @@ void main() {
         await root.workCaseRuntime.listUpdatesForCase('case-1'),
         hasLength(2),
       );
+      final taskAfterCase = await root.driftRepositories.tasks.findById(
+        'task-plan-1',
+      );
+      expect(taskAfterCase?.status, TaskStatus.completed.name);
+      expect(taskAfterCase?.completedAt, dayFive);
+      expect(taskAfterCase?.dueDate, taskBeforeCase?.dueDate);
       expect(
-        await root.driftRepositories.tasks.findById('task-plan-1'),
-        taskBeforeCase,
-        reason: 'Task remains the original reminder after case closure.',
+        (await root.driftRepositories.schedules.findById(
+          'schedule-1',
+        ))?.nextDueDate,
+        DateTime.utc(2026, 8, 1, 9),
       );
       final history = await root.historyProjectionRepository.projectForItem(
         'item-1',
