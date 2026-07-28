@@ -9,6 +9,7 @@ import '../repository_constraint_exception.dart';
 import '../work_case_closure_repository.dart';
 import '../work_case_repository.dart';
 import '../work_case_runtime.dart';
+import 'drift_recurring_task_completion.dart';
 import 'drift_schema_v2_repositories.dart';
 import 'work_case_drift_mappers.dart';
 
@@ -21,12 +22,17 @@ class DriftWorkCaseRuntime implements WorkCaseRuntime {
   }) : _database = database,
        _workCases = workCases,
        _closures = closures,
-       _tasks = tasks;
+       _tasks = tasks,
+       _taskCompletion = DriftRecurringTaskCompletion(
+         tasks: tasks,
+         schedules: DriftScheduleRepository(database),
+       );
 
   final AppDatabase _database;
   final WorkCaseRepository _workCases;
   final WorkCaseClosureRepository _closures;
   final DriftTaskRepository _tasks;
+  final DriftRecurringTaskCompletion _taskCompletion;
 
   @override
   Future<WorkCase?> findCaseById(String id) => _workCases.findCaseById(id);
@@ -145,7 +151,8 @@ class DriftWorkCaseRuntime implements WorkCaseRuntime {
   ) => _workCases.updateStatus(workCaseId, status, updatedAt);
 
   @override
-  Future<void> close(WorkCaseClosure closure) => _closures.closeCase(closure);
+  Future<void> close(WorkCaseClosure closure) =>
+      _closeWithSourceTask(closure, nextReminderDueDate: null);
 
   @override
   Future<void> closeWithFollowUp(
@@ -165,14 +172,39 @@ class DriftWorkCaseRuntime implements WorkCaseRuntime {
       );
     }
 
+    await _closeWithSourceTask(
+      closure,
+      nextReminderDueDate: nextReminderDueDate,
+    );
+  }
+
+  Future<void> _closeWithSourceTask(
+    WorkCaseClosure closure, {
+    required DateTime? nextReminderDueDate,
+  }) async {
     await _database.transaction(() async {
-      if (reminderId != null && nextReminderDueDate != null) {
-        final workCase = await _workCases.findCaseById(closure.workCaseId);
-        if (workCase == null) {
+      final workCase = await _workCases.findCaseById(closure.workCaseId);
+      if (workCase == null) {
+        throw RepositoryConstraintException(
+          'WorkCase ${closure.workCaseId} does not exist.',
+        );
+      }
+      if (workCase.sourceTaskId case final sourceTaskId?) {
+        final sourceTask = await _tasks.findById(sourceTaskId);
+        if (sourceTask == null) {
           throw RepositoryConstraintException(
-            'WorkCase ${closure.workCaseId} does not exist.',
+            'Source Task $sourceTaskId does not exist.',
           );
         }
+        await _taskCompletion.complete(
+          task: sourceTask,
+          completedAt: closure.completedAt,
+          sourceWorkCase: workCase,
+        );
+      }
+
+      final reminderId = closure.nextReminderTaskId;
+      if (reminderId != null && nextReminderDueDate != null) {
         await _tasks.save(
           TaskRow(
             id: reminderId,
