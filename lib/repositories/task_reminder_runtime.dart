@@ -22,6 +22,7 @@ class TaskReminderDetail {
     this.scheduleAnchorPolicy,
     this.scheduleStatus,
     this.hasOpenWorkCase = false,
+    this.isOneOffManual = false,
   });
 
   final Task task;
@@ -34,15 +35,21 @@ class TaskReminderDetail {
   final String? scheduleAnchorPolicy;
   final String? scheduleStatus;
   final bool hasOpenWorkCase;
+  final bool isOneOffManual;
 
-  bool get canComplete =>
-      (sourceKind == TaskReminderSourceKind.generalReminder ||
-          sourceKind == TaskReminderSourceKind.maintenancePlan) &&
-      task.status != TaskStatus.completed &&
-      task.status != TaskStatus.canceled &&
-      scheduleStatus == 'active' &&
-      _recurringCycleTypes.contains(scheduleCycleType) &&
-      !hasOpenWorkCase;
+  bool get canComplete {
+    final recurring =
+        (sourceKind == TaskReminderSourceKind.generalReminder ||
+            sourceKind == TaskReminderSourceKind.maintenancePlan) &&
+        scheduleStatus == 'active' &&
+        _recurringCycleTypes.contains(scheduleCycleType);
+    final oneOffManual =
+        sourceKind == TaskReminderSourceKind.manual && isOneOffManual;
+    return (recurring || oneOffManual) &&
+        task.status != TaskStatus.completed &&
+        task.status != TaskStatus.canceled &&
+        !hasOpenWorkCase;
+  }
 
   bool get canStartWorkCase =>
       sourceKind == TaskReminderSourceKind.maintenancePlan ||

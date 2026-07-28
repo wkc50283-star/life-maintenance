@@ -6,6 +6,8 @@ import 'package:life_maintenance/models/enums.dart';
 import 'package:life_maintenance/models/history_projection.dart';
 import 'package:life_maintenance/models/maintenance_plan.dart';
 import 'package:life_maintenance/models/maintenance_plan_enums.dart';
+import 'package:life_maintenance/models/milestone.dart';
+import 'package:life_maintenance/models/milestone_enums.dart';
 import 'package:life_maintenance/models/work_case_closure.dart';
 import 'package:life_maintenance/models/work_case.dart';
 import 'package:life_maintenance/models/work_case_enums.dart';
@@ -340,7 +342,7 @@ void main() {
     expect(await repositories.schedules.findById('schedule-1'), schedule);
   });
 
-  test('terminal and non-Reminder Tasks cannot complete twice', () async {
+  test('terminal recurring Tasks cannot complete twice', () async {
     await runtime.complete('task-1', now);
     final completed = await repositories.tasks.findById('task-1');
     final schedule = await repositories.schedules.findById('schedule-1');
@@ -351,24 +353,250 @@ void main() {
     );
     expect(await repositories.tasks.findById('task-1'), completed);
     expect(await repositories.schedules.findById('schedule-1'), schedule);
+  });
 
+  test(
+    'completes a one-off manual Task without Schedule side effects',
+    () async {
+      final dueDate = now.add(const Duration(days: 3));
+      final completedAt = now.add(const Duration(days: 4));
+      await repositories.tasks.save(
+        TaskRow(
+          id: 'manual-task',
+          itemId: 'item-1',
+          sourceType: 'manual',
+          title: '後續確認文件',
+          dueDate: dueDate,
+          status: TaskStatus.pending.name,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+      final scheduleBefore = await repositories.schedules.listAll();
+      final detail = await runtime.findReminder('manual-task');
+      expect(detail?.sourceKind, TaskReminderSourceKind.manual);
+      expect(detail?.canComplete, isTrue);
+      expect(detail?.canStartWorkCase, isFalse);
+
+      await runtime.complete('manual-task', completedAt);
+
+      final completed = await repositories.tasks.findById('manual-task');
+      expect(completed?.status, TaskStatus.completed.name);
+      expect(completed?.completedAt, completedAt);
+      expect(completed?.postponedAt, isNull);
+      expect(completed?.dueDate, dueDate);
+      expect(await repositories.schedules.listAll(), scheduleBefore);
+      expect(await repositories.workCases.listCasesForItem('item-1'), isEmpty);
+      expect(
+        await repositories.maintenanceRecords.listForItem('item-1'),
+        isEmpty,
+      );
+
+      final history = DriftHistoryProjectionRepository(
+        database: database,
+        attachments: repositories.attachments,
+      );
+      final entries = (await history.projectForItem('item-1')).entries
+          .whereType<TaskHistoryEntry>()
+          .where((entry) => entry.task.id == 'manual-task');
+      expect(entries, hasLength(1));
+      expect(entries.single.task.title, '後續確認文件');
+      expect(entries.single.task.dueDate, dueDate);
+      expect(entries.single.occurredAt, completedAt);
+
+      await expectLater(
+        runtime.complete(
+          'manual-task',
+          completedAt.add(const Duration(days: 1)),
+        ),
+        throwsA(isA<RepositoryConstraintException>()),
+      );
+      expect(await repositories.tasks.findById('manual-task'), completed);
+    },
+  );
+
+  test('completes overdue and postponed one-off manual Tasks', () async {
+    for (final status in [TaskStatus.overdue, TaskStatus.postponed]) {
+      final id = 'manual-${status.name}';
+      await repositories.tasks.save(
+        TaskRow(
+          id: id,
+          itemId: 'item-1',
+          sourceType: 'manual',
+          title: '一次性提醒',
+          dueDate: now.subtract(const Duration(days: 1)),
+          status: status.name,
+          postponedAt: status == TaskStatus.postponed ? now : null,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+
+      await runtime.complete(id, now);
+
+      final completed = await repositories.tasks.findById(id);
+      expect(completed?.status, TaskStatus.completed.name);
+      expect(completed?.postponedAt, isNull);
+      expect((await runtime.findReminder(id))?.task.overdue, isFalse);
+    }
+  });
+
+  test('rejects a canceled one-off manual Task', () async {
     await repositories.tasks.save(
       TaskRow(
-        id: 'manual-task',
+        id: 'manual-canceled',
         itemId: 'item-1',
         sourceType: 'manual',
-        title: '手動提醒',
+        title: '已取消的一次性提醒',
         dueDate: now,
-        status: TaskStatus.pending.name,
+        status: TaskStatus.canceled.name,
         createdAt: now,
         updatedAt: now,
       ),
     );
-    expect((await runtime.findReminder('manual-task'))?.canComplete, isFalse);
+    final before = await repositories.tasks.findById('manual-canceled');
+    expect(
+      (await runtime.findReminder('manual-canceled'))?.canComplete,
+      isFalse,
+    );
+
     await expectLater(
-      runtime.complete('manual-task', now),
+      runtime.complete('manual-canceled', now.add(const Duration(days: 1))),
       throwsA(isA<RepositoryConstraintException>()),
     );
+    expect(await repositories.tasks.findById('manual-canceled'), before);
+  });
+
+  test('completes the existing WorkCase follow-up manual Task', () async {
+    await caseRuntime.createManual(
+      WorkCase(
+        id: 'case-follow-up',
+        itemId: 'item-1',
+        sourceType: WorkCaseSourceType.manual,
+        caseType: WorkCaseType.other,
+        title: '文件處理',
+        startedAt: now,
+        status: WorkCaseStatus.inProgress,
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    final closure = WorkCaseClosure(
+      id: 'closure-follow-up',
+      workCaseId: 'case-follow-up',
+      completedAt: now,
+      finalResult: '已完成',
+      completionSummary: '文件處理完成',
+      totalCost: 0,
+      followUpType: WorkCaseFollowUpType.reminder,
+      nextReminderTaskId: 'task-follow-up',
+      createdAt: now,
+    );
+    final dueDate = now.add(const Duration(days: 30));
+    await caseRuntime.closeWithFollowUp(closure, nextReminderDueDate: dueDate);
+    final scheduleBefore = await repositories.schedules.listAll();
+    final followUp = await repositories.tasks.findById('task-follow-up');
+    expect(followUp?.sourceType, 'manual');
+    expect(followUp?.scheduleId, isNull);
+    expect(followUp?.generalReminderId, isNull);
+    expect(followUp?.maintenancePlanId, isNull);
+    expect(followUp?.milestoneId, isNull);
+    expect((await runtime.findReminder('task-follow-up'))?.canComplete, isTrue);
+
+    await runtime.complete('task-follow-up', dueDate);
+
+    expect(
+      (await repositories.tasks.findById('task-follow-up'))?.status,
+      TaskStatus.completed.name,
+    );
+    expect(
+      (await caseRuntime.findClosureForCase('case-follow-up'))?.id,
+      closure.id,
+    );
+    expect(await repositories.schedules.listAll(), scheduleBefore);
+    expect(
+      (await repositories.tasks.listAll()).where(
+        (task) => task.id != 'task-1' && task.id != 'task-follow-up',
+      ),
+      isEmpty,
+    );
+  });
+
+  test('rejects manual Tasks with conflicting formal source data', () async {
+    await seedMaintenanceTask();
+    await repositories.milestones.save(
+      Milestone(
+        id: 'milestone-conflict',
+        itemId: 'item-1',
+        title: '階段重點',
+        kind: MilestoneKind.custom,
+        triggerType: MilestoneTriggerType.manual,
+        status: MilestoneStatus.pending,
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    final conflicts = <TaskRow>[
+      TaskRow(
+        id: 'manual-with-schedule',
+        itemId: 'item-1',
+        sourceType: 'manual',
+        scheduleId: 'schedule-1',
+        title: '衝突提醒',
+        dueDate: now.add(const Duration(days: 1)),
+        status: TaskStatus.pending.name,
+        createdAt: now,
+        updatedAt: now,
+      ),
+      TaskRow(
+        id: 'manual-with-reminder',
+        itemId: 'item-1',
+        sourceType: 'manual',
+        generalReminderId: 'reminder-1',
+        title: '衝突提醒',
+        dueDate: now.add(const Duration(days: 2)),
+        status: TaskStatus.pending.name,
+        createdAt: now,
+        updatedAt: now,
+      ),
+      TaskRow(
+        id: 'manual-with-plan',
+        itemId: 'item-1',
+        sourceType: 'manual',
+        maintenancePlanId: 'plan-1',
+        title: '衝突提醒',
+        dueDate: now.add(const Duration(days: 3)),
+        status: TaskStatus.pending.name,
+        createdAt: now,
+        updatedAt: now,
+      ),
+      TaskRow(
+        id: 'manual-with-milestone',
+        itemId: 'item-1',
+        sourceType: 'manual',
+        milestoneId: 'milestone-conflict',
+        title: '衝突提醒',
+        dueDate: now.add(const Duration(days: 4)),
+        status: TaskStatus.pending.name,
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ];
+    await database.customStatement('PRAGMA ignore_check_constraints = ON');
+    for (final row in conflicts) {
+      await database.into(database.tasks).insert(row);
+    }
+    await database.customStatement('PRAGMA ignore_check_constraints = OFF');
+
+    for (final row in conflicts) {
+      final before = await repositories.tasks.findById(row.id);
+      expect((await runtime.findReminder(row.id))?.canComplete, isFalse);
+      await expectLater(
+        runtime.complete(row.id, now),
+        throwsA(isA<RepositoryConstraintException>()),
+      );
+      expect(await repositories.tasks.findById(row.id), before);
+    }
   });
 
   test('Schedule write failure rolls Task completion back', () async {
