@@ -782,6 +782,24 @@ class _WorkCaseCancelFormScreenState extends State<WorkCaseCancelFormScreen> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('取消這次處理？'),
+        content: const Text('取消只會停止這次處理，原本的提醒仍會保留。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('返回'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('確認取消'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
     final runtime = AppCompositionScope.of(context).workCaseRuntime;
     if (runtime == null) return;
     setState(() => _saving = true);
@@ -872,6 +890,12 @@ class _WorkCaseBody extends StatelessWidget {
             cancellationReason: workCase.cancellationReason,
             attachments: snapshot.attachments[closure.id] ?? const [],
           ),
+        ] else if (workCase.status == WorkCaseStatus.canceled) ...[
+          const SizedBox(height: 18),
+          _InformationCard(
+            title: '案件已取消',
+            rows: [('取消原因', workCase.cancellationReason ?? '未填寫')],
+          ),
         ],
         const SizedBox(height: 18),
         const UiSectionHeader(title: '附件', icon: Icons.attach_file_rounded),
@@ -897,7 +921,9 @@ class _WorkCaseBody extends StatelessWidget {
             icon: const Icon(Icons.inventory_2_outlined),
             label: const Text('進入正式結案'),
           ),
-          TextButton(onPressed: onCancel, child: const Text('取消案件')),
+          if (workCase.status == WorkCaseStatus.waiting ||
+              workCase.status == WorkCaseStatus.inProgress)
+            TextButton(onPressed: onCancel, child: const Text('取消案件')),
         ] else ...[
           const SizedBox(height: 18),
           const _ReadOnlyNotice(),

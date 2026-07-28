@@ -193,7 +193,7 @@ void main() {
     expect(history.entries.whereType<WorkCaseHistoryEntry>(), hasLength(1));
   });
 
-  testWidgets('cancel entry creates the unique terminal Closure', (
+  testWidgets('cancel entry confirms and preserves a closure-free case', (
     tester,
   ) async {
     tester.view.devicePixelRatio = 1;
@@ -209,11 +209,31 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('取消案件'));
     await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextFormField, '取消原因'), '   ');
+    await tester.tap(find.widgetWithText(FilledButton, '確認取消案件'));
+    await tester.pumpAndSettle();
+    expect(find.text('請填寫取消原因'), findsOneWidget);
+    expect(find.text('取消這次處理？'), findsNothing);
+
     await tester.enterText(
       find.widgetWithText(TextFormField, '取消原因'),
       '設備已由原廠直接換新',
     );
+    await tester.pump();
     await tester.tap(find.widgetWithText(FilledButton, '確認取消案件'));
+    await tester.pumpAndSettle();
+    expect(find.text('取消這次處理？'), findsOneWidget);
+    expect(find.text('取消只會停止這次處理，原本的提醒仍會保留。'), findsOneWidget);
+    await tester.tap(find.text('返回'));
+    await tester.pumpAndSettle();
+    expect(
+      (await root.workCaseRuntime.findCaseById('case-1'))?.status,
+      WorkCaseStatus.waiting,
+    );
+
+    await tester.tap(find.widgetWithText(FilledButton, '確認取消案件'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('確認取消'));
     await tester.pumpAndSettle();
 
     expect(
@@ -221,9 +241,11 @@ void main() {
       WorkCaseStatus.canceled,
     );
     final closure = await root.workCaseRuntime.findClosureForCase('case-1');
-    expect(closure?.finalResult, '案件已取消');
+    expect(closure, isNull);
     expect(find.text('設備已由原廠直接換新'), findsWidgets);
     expect(find.text('新增案件進度'), findsNothing);
+    expect(find.text('進入正式結案'), findsNothing);
+    expect(find.text('取消案件'), findsNothing);
   });
 }
 
