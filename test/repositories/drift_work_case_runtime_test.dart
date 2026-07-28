@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_maintenance/database/app_database.dart';
+import 'package:life_maintenance/models/attachment.dart';
 import 'package:life_maintenance/models/enums.dart';
 import 'package:life_maintenance/models/history_projection.dart';
 import 'package:life_maintenance/models/maintenance_plan.dart';
@@ -14,6 +15,7 @@ import 'package:life_maintenance/models/work_case_enums.dart';
 import 'package:life_maintenance/models/work_case_update.dart';
 import 'package:life_maintenance/repositories/drift/drift_schema_v2_repositories.dart';
 import 'package:life_maintenance/repositories/drift/drift_history_projection_repository.dart';
+import 'package:life_maintenance/repositories/drift/drift_task_reminder_runtime.dart';
 import 'package:life_maintenance/repositories/drift/drift_work_case_runtime.dart';
 import 'package:life_maintenance/repositories/repository_constraint_exception.dart';
 
@@ -259,6 +261,224 @@ void main() {
     expect(await runtime.listUpdatesForCase(created.id), hasLength(1));
     expect((await repositories.tasks.findById('task-1'))?.status, 'pending');
   });
+
+  test(
+    'canceling a waiting case preserves its exact Task and Schedule',
+    () async {
+      final cancelAt = now.add(const Duration(hours: 3));
+      await runtime.createFromTask(
+        taskId: 'task-1',
+        workCase: workCase().copyWith(status: WorkCaseStatus.waiting),
+        initialUpdate: update(),
+      );
+      await repositories.attachments.create(
+        Attachment(
+          id: 'attachment-cancel',
+          ownerType: AttachmentOwnerType.workCaseUpdate,
+          ownerId: 'update-1',
+          kind: AttachmentKind.document,
+          storageIdentifier: 'managed-cancel-document',
+          originalFileName: '取消前文件.pdf',
+          mimeType: 'application/pdf',
+          contentHash: 'sha256:cancel-document',
+          createdAt: now,
+        ),
+      );
+      final taskBefore = await repositories.tasks.findById('task-1');
+      final scheduleBefore = await repositories.schedules.findById(
+        'schedule-1',
+      );
+
+      await runtime.cancel(
+        closure().copyWith(completedAt: cancelAt, updatedAt: cancelAt),
+        cancellationReason: '  改由其他方式處理  ',
+      );
+
+      final canceled = await runtime.findCaseById('case-1');
+      expect(canceled?.status, WorkCaseStatus.canceled);
+      expect(canceled?.canceledAt, cancelAt);
+      expect(canceled?.cancellationReason, '改由其他方式處理');
+      expect(canceled?.updatedAt, cancelAt);
+      expect(canceled?.closedAt, isNull);
+      expect(canceled?.sourceTaskId, 'task-1');
+      expect(await runtime.listUpdatesForCase('case-1'), hasLength(1));
+      expect(
+        await repositories.attachments.listForOwner(
+          AttachmentOwnerType.workCaseUpdate,
+          'update-1',
+        ),
+        hasLength(1),
+      );
+      expect(await runtime.findClosureForCase('case-1'), isNull);
+      expect(await repositories.tasks.findById('task-1'), taskBefore);
+      expect(
+        await repositories.schedules.findById('schedule-1'),
+        scheduleBefore,
+      );
+
+      final projection = await DriftHistoryProjectionRepository(
+        database: database,
+        attachments: repositories.attachments,
+      ).projectForItem('item-1');
+      final caseEntry = projection.entries
+          .whereType<WorkCaseHistoryEntry>()
+          .single;
+      expect(caseEntry.workCase.canceledAt, cancelAt);
+      expect(caseEntry.workCase.cancellationReason, '改由其他方式處理');
+      expect(caseEntry.updates, hasLength(1));
+      expect(caseEntry.closure, isNull);
+      expect(caseEntry.relatedTasks.single.id, 'task-1');
+      expect(
+        projection.entries.whereType<TaskHistoryEntry>().where(
+          (entry) => entry.task.id == 'task-1',
+        ),
+        isEmpty,
+      );
+
+      final taskRuntime = DriftTaskReminderRuntime(
+        database: database,
+        repositories: repositories,
+        workCaseRuntime: runtime,
+      );
+      final detail = await taskRuntime.findReminder('task-1');
+      expect(detail?.hasOpenWorkCase, isFalse);
+      expect(detail?.canStartWorkCase, isTrue);
+      final reopened = await taskRuntime.startWorkCase(
+        taskId: 'task-1',
+        workCase: workCase(id: 'case-2').copyWith(
+          startedAt: cancelAt.add(const Duration(hours: 1)),
+          updatedAt: cancelAt.add(const Duration(hours: 1)),
+        ),
+      );
+      expect(reopened.sourceTaskId, 'task-1');
+      final linkedCases = await runtime.listBySourceTaskId('task-1');
+      expect(linkedCases, hasLength(2));
+      expect(linkedCases.where((entry) => entry.isOpen), hasLength(1));
+      expect(linkedCases.where((entry) => !entry.isOpen), hasLength(1));
+    },
+  );
+
+  test('canceling cases preserves every mutable Task state', () async {
+    final taskRows = <TaskRow>[
+      (await repositories.tasks.findById('task-1'))!,
+      (await repositories.tasks.findById(
+        'task-2',
+      ))!.copyWith(status: TaskStatus.overdue.name),
+      TaskRow(
+        id: 'task-3',
+        itemId: 'item-1',
+        sourceType: 'scheduledReminder',
+        scheduleId: 'schedule-1',
+        generalReminderId: 'reminder-1',
+        title: '租約續約',
+        dueDate: now.add(const Duration(days: 60)),
+        status: TaskStatus.postponed.name,
+        postponedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ];
+    for (final row in taskRows.skip(1)) {
+      await repositories.tasks.save(row);
+    }
+    final scheduleBefore = await repositories.schedules.findById('schedule-1');
+    final taskCount = (await repositories.tasks.listAll()).length;
+
+    for (var index = 0; index < taskRows.length; index++) {
+      final row = taskRows[index];
+      final before = await repositories.tasks.findById(row.id);
+      final caseId = 'case-status-$index';
+      await runtime.createFromTask(
+        taskId: row.id,
+        workCase: workCase(id: caseId),
+      );
+      await runtime.cancel(
+        closure(id: 'unused-$index').copyWith(
+          workCaseId: caseId,
+          completedAt: now.add(Duration(hours: index + 1)),
+        ),
+        cancellationReason: '停止這次處理',
+      );
+      expect(await repositories.tasks.findById(row.id), before);
+      expect(await runtime.findClosureForCase(caseId), isNull);
+    }
+
+    expect(await repositories.schedules.findById('schedule-1'), scheduleBefore);
+    expect((await repositories.tasks.listAll()).length, taskCount);
+  });
+
+  test(
+    'manual cancellation is terminal and never invents source data',
+    () async {
+      final cancelAt = now.add(const Duration(hours: 2));
+      await runtime.createManual(workCase());
+      final taskCount = (await repositories.tasks.listAll()).length;
+      final scheduleCount = (await repositories.schedules.listAll()).length;
+      final reminderCount = (await repositories.generalReminders.listForItem(
+        'item-1',
+      )).length;
+      final planCount = (await repositories.maintenancePlans.listForItem(
+        'item-1',
+      )).length;
+
+      await expectLater(
+        runtime.cancel(closure(), cancellationReason: '   '),
+        throwsA(isA<RepositoryConstraintException>()),
+      );
+      await runtime.cancel(
+        closure().copyWith(completedAt: cancelAt),
+        cancellationReason: '不再繼續處理',
+      );
+      final canceled = await runtime.findCaseById('case-1');
+      expect(canceled?.sourceTaskId, isNull);
+      expect(canceled?.status, WorkCaseStatus.canceled);
+      expect(await runtime.findClosureForCase('case-1'), isNull);
+      expect((await repositories.tasks.listAll()).length, taskCount);
+      expect((await repositories.schedules.listAll()).length, scheduleCount);
+      expect(
+        (await repositories.generalReminders.listForItem('item-1')).length,
+        reminderCount,
+      );
+      expect(
+        (await repositories.maintenancePlans.listForItem('item-1')).length,
+        planCount,
+      );
+      expect(
+        await repositories.maintenanceRecords.listForItem('item-1'),
+        isEmpty,
+      );
+
+      final canceledAt = canceled?.canceledAt;
+      final cancelReason = canceled?.cancellationReason;
+      await expectLater(
+        runtime.cancel(
+          closure(
+            id: 'unused-repeat',
+          ).copyWith(completedAt: cancelAt.add(const Duration(hours: 1))),
+          cancellationReason: '改寫原因',
+        ),
+        throwsA(isA<RepositoryConstraintException>()),
+      );
+      final afterRepeat = await runtime.findCaseById('case-1');
+      expect(afterRepeat?.status, WorkCaseStatus.canceled);
+      expect(afterRepeat?.canceledAt, canceledAt);
+      expect(afterRepeat?.cancellationReason, cancelReason);
+
+      await runtime.createManual(workCase(id: 'case-completed'));
+      await runtime.close(
+        closure(id: 'closure-completed').copyWith(workCaseId: 'case-completed'),
+      );
+      await expectLater(
+        runtime.cancel(
+          closure(
+            id: 'unused-completed',
+          ).copyWith(workCaseId: 'case-completed'),
+          cancellationReason: '不得取消',
+        ),
+        throwsA(isA<RepositoryConstraintException>()),
+      );
+    },
+  );
 
   test('maps every supported Task source to the formal case source', () async {
     final maintenance = await runtime.createFromTask(

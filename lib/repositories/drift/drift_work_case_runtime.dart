@@ -226,5 +226,38 @@ class DriftWorkCaseRuntime implements WorkCaseRuntime {
   Future<void> cancel(
     WorkCaseClosure closure, {
     required String cancellationReason,
-  }) => _closures.cancelCase(closure, cancellationReason: cancellationReason);
+  }) async {
+    final reason = cancellationReason.trim();
+    if (reason.isEmpty) {
+      throw const RepositoryConstraintException(
+        'A canceled WorkCase requires a cancellation reason.',
+      );
+    }
+    await _database.transaction(() async {
+      final query = _database.select(_database.workCases)
+        ..where((table) => table.id.equals(closure.workCaseId));
+      final workCase = await query.getSingleOrNull();
+      if (workCase == null) {
+        throw RepositoryConstraintException(
+          'WorkCase ${closure.workCaseId} does not exist.',
+        );
+      }
+      if (workCase.status != WorkCaseStatus.waiting &&
+          workCase.status != WorkCaseStatus.inProgress) {
+        throw const RepositoryConstraintException(
+          'Only a waiting or in-progress WorkCase can be canceled.',
+        );
+      }
+      await (_database.update(
+        _database.workCases,
+      )..where((table) => table.id.equals(workCase.id))).write(
+        WorkCasesCompanion(
+          status: const Value(WorkCaseStatus.canceled),
+          canceledAt: Value(closure.completedAt),
+          cancellationReason: Value(reason),
+          updatedAt: Value(closure.completedAt),
+        ),
+      );
+    });
+  }
 }
