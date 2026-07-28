@@ -1307,11 +1307,14 @@ class _MilestoneFormScreenState extends State<MilestoneFormScreen> {
   String? _sourcePlanId;
   String? _dependencyId;
   bool _saving = false;
+  bool _changed = false;
+  late Milestone? _value;
 
   @override
   void initState() {
     super.initState();
     final value = widget.value;
+    _value = value;
     _title = TextEditingController(text: value?.title);
     _description = TextEditingController(text: value?.description);
     _threshold = TextEditingController(text: value?.thresholdValue?.toString());
@@ -1357,7 +1360,7 @@ class _MilestoneFormScreenState extends State<MilestoneFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final locked = widget.value?.isClosed ?? false;
+    final locked = _value?.isClosed ?? false;
     final thresholdTrigger = {
       MilestoneTriggerType.usageYears,
       MilestoneTriggerType.mileage,
@@ -1365,10 +1368,11 @@ class _MilestoneFormScreenState extends State<MilestoneFormScreen> {
       MilestoneTriggerType.completionCount,
       MilestoneTriggerType.anomalyCount,
     }.contains(_trigger);
-    return _FormScaffold(
-      title: widget.value == null ? '新增階段性重點' : '編輯階段性重點',
+    final scaffold = _FormScaffold(
+      title: _value == null ? '新增階段性重點' : '編輯階段性重點',
       saving: _saving,
       onSave: locked ? null : _save,
+      showPrimary: !locked,
       child: Form(
         key: _formKey,
         child: Column(
@@ -1476,11 +1480,85 @@ class _MilestoneFormScreenState extends State<MilestoneFormScreen> {
               maxLines: 3,
               decoration: const InputDecoration(labelText: '補充說明（選填）'),
             ),
+            if (_value case final value?) ...[
+              if (!value.isClosed) ...[
+                const SizedBox(height: 16),
+                UiPrimaryButton(
+                  key: const ValueKey('milestone-complete'),
+                  label: '完成',
+                  icon: Icons.check_circle_outline,
+                  onPressed: _saving ? null : _confirmComplete,
+                ),
+              ],
+              if (value.completedAt case final completedAt?) ...[
+                const SizedBox(height: 16),
+                _ReadOnlyNotice('完成時間：${_formatDate(completedAt)}'),
+              ],
+            ],
             if (locked) const _ReadOnlyNotice('已結束的階段性重點不能再修改。'),
           ],
         ),
       ),
     );
+    if (!_changed) return scaffold;
+    return PopScope<Object?>(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        Navigator.pop(
+          context,
+          widget.usesTypedResult ? const MilestoneFormResult.changed() : true,
+        );
+      },
+      child: scaffold,
+    );
+  }
+
+  Future<void> _confirmComplete() async {
+    final milestone = _value;
+    if (milestone == null || milestone.isClosed) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('完成這個階段重點？'),
+        content: const Text('完成後會留下紀錄。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('返回'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('確認完成'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _saving = true);
+    final completedAt = DateTime.now();
+    try {
+      final editor = formalPlanningEditor(context)!;
+      await editor.completeMilestone(milestone.id, completedAt);
+      final milestones = await editor.loadMilestones(widget.itemId);
+      if (!mounted) return;
+      final matches = milestones.where((entry) => entry.id == milestone.id);
+      if (matches.length != 1) {
+        _showSaveError(context, '暫時無法讀取階段性重點。');
+        return;
+      }
+      setState(() {
+        _value = matches.single;
+        _changed = true;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('階段性重點已完成。')));
+    } catch (error) {
+      if (mounted) _showSaveError(context, error);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   Future<void> _save() async {
@@ -1491,7 +1569,7 @@ class _MilestoneFormScreenState extends State<MilestoneFormScreen> {
     }
     setState(() => _saving = true);
     final now = DateTime.now();
-    final old = widget.value;
+    final old = _value;
     final milestoneId = old?.id ?? _newId('milestone');
     final thresholdTrigger = {
       MilestoneTriggerType.usageYears,
@@ -1925,6 +2003,7 @@ class _FormScaffold extends StatelessWidget {
     this.primaryLabel = '儲存',
     this.primaryIcon = Icons.save_outlined,
     this.onBackStep,
+    this.showPrimary = true,
   });
 
   final String title;
@@ -1934,6 +2013,7 @@ class _FormScaffold extends StatelessWidget {
   final String primaryLabel;
   final IconData primaryIcon;
   final VoidCallback? onBackStep;
+  final bool showPrimary;
 
   @override
   Widget build(BuildContext context) {
@@ -1974,28 +2054,30 @@ class _FormScaffold extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: AnimatedPadding(
-        duration: UiMotion.standard,
-        curve: UiMotion.standardCurve,
-        padding: EdgeInsets.only(bottom: keyboardInset),
-        child: SafeArea(
-          minimum: const EdgeInsets.fromLTRB(
-            UiSpace.md,
-            UiSpace.xs,
-            UiSpace.md,
-            UiSpace.md,
-          ),
-          child: UiPrimaryButton(
-            key: ValueKey(
-              primaryLabel == '下一步' ? 'item-form-next' : 'save-form',
+      bottomNavigationBar: !showPrimary
+          ? null
+          : AnimatedPadding(
+              duration: UiMotion.standard,
+              curve: UiMotion.standardCurve,
+              padding: EdgeInsets.only(bottom: keyboardInset),
+              child: SafeArea(
+                minimum: const EdgeInsets.fromLTRB(
+                  UiSpace.md,
+                  UiSpace.xs,
+                  UiSpace.md,
+                  UiSpace.md,
+                ),
+                child: UiPrimaryButton(
+                  key: ValueKey(
+                    primaryLabel == '下一步' ? 'item-form-next' : 'save-form',
+                  ),
+                  label: onSave == null ? '目前不可修改' : primaryLabel,
+                  icon: primaryIcon,
+                  onPressed: onSave,
+                  loading: saving,
+                ),
+              ),
             ),
-            label: onSave == null ? '目前不可修改' : primaryLabel,
-            icon: primaryIcon,
-            onPressed: onSave,
-            loading: saving,
-          ),
-        ),
-      ),
     );
   }
 }

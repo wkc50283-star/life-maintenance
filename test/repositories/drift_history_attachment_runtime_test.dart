@@ -150,10 +150,9 @@ void main() {
           title: '完成年度整理',
           kind: MilestoneKind.custom,
           triggerType: MilestoneTriggerType.manual,
-          status: MilestoneStatus.completed,
-          completedAt: now.add(const Duration(hours: 5)),
+          status: MilestoneStatus.pending,
           createdAt: now,
-          updatedAt: now.add(const Duration(hours: 5)),
+          updatedAt: now,
         ),
       );
       await repositories.workCases.saveCase(
@@ -198,6 +197,10 @@ void main() {
       ]) {
         await attachmentRuntime.registerManaged(value);
       }
+      await repositories.milestones.complete(
+        'milestone-1',
+        now.add(const Duration(hours: 5)),
+      );
 
       final sourceCountsBefore = <int>[
         (await database.select(database.items).get()).length,
@@ -216,6 +219,18 @@ void main() {
       expect(projection.entries[1], isA<MaintenanceRecordHistoryEntry>());
       expect(projection.entries[2], isA<WorkCaseHistoryEntry>());
       expect(projection.itemAttachments.single.id, 'attachment-item');
+      final milestoneEntry = projection.entries[0] as MilestoneHistoryEntry;
+      expect(milestoneEntry.milestone.id, 'milestone-1');
+      expect(milestoneEntry.milestone.itemId, 'item-1');
+      expect(milestoneEntry.milestone.status, MilestoneStatus.completed);
+      expect(milestoneEntry.occurredAt, now.add(const Duration(hours: 5)));
+      expect(milestoneEntry.attachments.single.id, 'attachment-milestone');
+      expect(
+        (await history.projectForItem(
+          'item-1',
+        )).entries.whereType<MilestoneHistoryEntry>(),
+        hasLength(1),
+      );
       final caseEntry = projection.entries[2] as WorkCaseHistoryEntry;
       expect(caseEntry.updates, hasLength(2));
       expect(caseEntry.closure?.id, 'closure-1');

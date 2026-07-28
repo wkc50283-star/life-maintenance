@@ -59,8 +59,10 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
           ),
       ];
       final milestones =
-          await root.milestoneRepository?.listForItem(widget.item.id) ??
-          const <Milestone>[];
+          (await root.milestoneRepository?.listForItem(widget.item.id) ??
+                  const <Milestone>[])
+              .where((milestone) => !milestone.isClosed)
+              .toList(growable: false);
       final schedules = (await root.scheduleRepository.loadSchedules())
           .where((schedule) => schedule.itemId == widget.item.id)
           .toList(growable: false);

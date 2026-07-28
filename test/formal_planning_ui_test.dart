@@ -717,6 +717,87 @@ void main() {
     expect(created.dependencyMilestoneId, isNot('milestone-other'));
   });
 
+  testWidgets('milestone completion confirms, reloads, and returns changed', (
+    tester,
+  ) async {
+    await _seedItem(editor, now, id: 'item-ac', name: '測試冷氣');
+    final milestone = Milestone(
+      id: 'milestone-complete',
+      itemId: 'item-ac',
+      title: '評估汰換冷氣',
+      description: '保留說明',
+      kind: MilestoneKind.replacementEvaluation,
+      triggerType: MilestoneTriggerType.specificDate,
+      triggerDate: DateTime.utc(2027, 7, 19),
+      status: MilestoneStatus.pending,
+      createdAt: now,
+      updatedAt: now,
+    );
+    await editor.saveMilestone(milestone);
+    Object? result;
+    await tester.pumpWidget(
+      AppCompositionScope(
+        root: root,
+        child: MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                onPressed: () async {
+                  result = await Navigator.of(context).push<Object?>(
+                    MaterialPageRoute(
+                      builder: (_) => MilestoneFormScreen(
+                        itemId: 'item-ac',
+                        value: milestone,
+                        usesTypedResult: true,
+                      ),
+                    ),
+                  );
+                },
+                child: const Text('開啟'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('開啟'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('milestone-complete')), findsOneWidget);
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('milestone-complete')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('milestone-complete')));
+    await tester.pumpAndSettle();
+    expect(find.text('完成這個階段重點？'), findsOneWidget);
+    expect(find.text('完成後會留下紀錄。'), findsOneWidget);
+    await tester.tap(find.text('返回'));
+    await tester.pumpAndSettle();
+    expect(
+      (await editor.loadMilestones('item-ac')).single.status,
+      MilestoneStatus.pending,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('milestone-complete')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('確認完成'));
+    await tester.pumpAndSettle();
+    final completed = (await editor.loadMilestones('item-ac')).single;
+    expect(completed.status, MilestoneStatus.completed);
+    expect(completed.completedAt, isNotNull);
+    expect(completed.updatedAt, completed.completedAt);
+    expect(completed.triggerDate, milestone.triggerDate);
+    expect(find.text('階段性重點已完成。'), findsOneWidget);
+    expect(find.byKey(const ValueKey('milestone-complete')), findsNothing);
+    expect(find.byKey(const ValueKey('save-form')), findsNothing);
+    expect(find.textContaining('完成時間：'), findsOneWidget);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(result, isA<MilestoneFormResult>());
+  });
+
   testWidgets('cancelled and failed milestone creation do not report success', (
     tester,
   ) async {

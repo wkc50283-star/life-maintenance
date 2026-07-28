@@ -301,6 +301,78 @@ void main() {
   );
 
   test(
+    'Milestone completion is terminal and changes no related data',
+    () async {
+      final milestone = Milestone(
+        id: 'milestone-complete',
+        itemId: 'item-1',
+        title: '評估汰換冷氣',
+        description: '保留原始條件與說明',
+        kind: MilestoneKind.replacementEvaluation,
+        triggerType: MilestoneTriggerType.specificDate,
+        triggerDate: DateTime.utc(2027, 7, 18),
+        status: MilestoneStatus.inProgress,
+        startedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      );
+      await repositories.milestones.save(milestone);
+      final completedAt = now.add(const Duration(hours: 2));
+
+      await repositories.milestones.complete(milestone.id, completedAt);
+
+      final completed = await repositories.milestones.findById(milestone.id);
+      expect(completed?.status, MilestoneStatus.completed);
+      expect(completed?.completedAt, completedAt);
+      expect(completed?.updatedAt, completedAt);
+      expect(completed?.title, milestone.title);
+      expect(completed?.description, milestone.description);
+      expect(completed?.triggerDate, milestone.triggerDate);
+      expect(completed?.startedAt, milestone.startedAt);
+      expect(await repositories.tasks.listForItem('item-1'), isEmpty);
+      expect(await repositories.schedules.listForItem('item-1'), isEmpty);
+      expect(await database.select(database.workCases).get(), isEmpty);
+      expect(await database.select(database.workCaseClosures).get(), isEmpty);
+      expect(await database.select(database.maintenanceRecords).get(), isEmpty);
+      expect(
+        await repositories.maintenancePlans.listForItem('item-1'),
+        isEmpty,
+      );
+      expect(
+        await repositories.generalReminders.listForItem('item-1'),
+        isEmpty,
+      );
+      expect(await repositories.milestones.listForItem('item-1'), hasLength(1));
+
+      final secondTime = completedAt.add(const Duration(hours: 1));
+      await expectLater(
+        repositories.milestones.complete(milestone.id, secondTime),
+        throwsA(isA<RepositoryConstraintException>()),
+      );
+      final unchanged = await repositories.milestones.findById(milestone.id);
+      expect(unchanged?.completedAt, completedAt);
+      expect(unchanged?.updatedAt, completedAt);
+
+      for (final status in [
+        MilestoneStatus.canceled,
+        MilestoneStatus.archived,
+      ]) {
+        final terminal = milestone.copyWith(
+          id: 'milestone-${status.name}',
+          status: status,
+          canceledAt: status == MilestoneStatus.canceled ? completedAt : null,
+          archivedAt: status == MilestoneStatus.archived ? completedAt : null,
+        );
+        await repositories.milestones.save(terminal);
+        await expectLater(
+          repositories.milestones.complete(terminal.id, secondTime),
+          throwsA(isA<RepositoryConstraintException>()),
+        );
+      }
+    },
+  );
+
+  test(
     'MaintenanceRecord validates Task and Plan Item in one transaction',
     () async {
       await repositories.generalReminders.save(reminder());

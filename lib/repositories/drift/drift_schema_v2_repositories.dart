@@ -394,6 +394,29 @@ class DriftMilestoneRepository {
     });
   }
 
+  Future<void> complete(String id, DateTime completedAt) async {
+    await _database.transaction(() async {
+      final milestone = await findById(id);
+      if (milestone == null) {
+        throw RepositoryConstraintException('Milestone $id does not exist.');
+      }
+      if (milestone.isClosed) {
+        throw const RepositoryConstraintException(
+          'A closed Milestone cannot be completed.',
+        );
+      }
+      await (_database.update(
+        _database.milestones,
+      )..where((table) => table.id.equals(id))).write(
+        MilestonesCompanion(
+          status: Value(MilestoneStatus.completed.name),
+          completedAt: Value(completedAt),
+          updatedAt: Value(completedAt),
+        ),
+      );
+    });
+  }
+
   Future<void> deleteUnused(String id) async {
     await _database.transaction(() async {
       final milestone = await findById(id);
