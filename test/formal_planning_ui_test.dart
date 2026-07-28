@@ -439,7 +439,12 @@ void main() {
     await tester.pageBack();
     await tester.pumpAndSettle();
     expect(find.byType(ItemDetailScreen), findsOneWidget);
-    expect(find.text('保固到期'), findsNWidgets(2));
+    await tester.scrollUntilVisible(
+      find.text('保固到期'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('保固到期'), findsOneWidget);
 
     await tester.scrollUntilVisible(
       find.text('管理').at(1),
