@@ -117,6 +117,22 @@ class DriftTaskReminderRuntime implements TaskReminderRuntime {
   Future<void> complete(String taskId, DateTime completedAt) async {
     await _database.transaction(() async {
       final row = await _requireMutableTask(taskId);
+      if (row.sourceType == 'manual') {
+        if (!_isOneOffManual(row)) {
+          throw const RepositoryConstraintException(
+            'The manual Task has conflicting formal source data.',
+          );
+        }
+        await _repositories.tasks.save(
+          row.copyWith(
+            status: TaskStatus.completed.name,
+            completedAt: Value(completedAt),
+            postponedAt: const Value(null),
+            updatedAt: completedAt,
+          ),
+        );
+        return;
+      }
       final sourceCases = await _workCaseRuntime.listBySourceTaskId(row.id);
       if (sourceCases.any((workCase) => workCase.isOpen)) {
         throw const RepositoryConstraintException(
@@ -191,6 +207,7 @@ class DriftTaskReminderRuntime implements TaskReminderRuntime {
       scheduleAnchorPolicy: schedule?.anchorPolicy,
       scheduleStatus: schedule?.status,
       hasOpenWorkCase: sourceCases.any((workCase) => workCase.isOpen),
+      isOneOffManual: _isOneOffManual(row),
     );
   }
 
@@ -236,6 +253,13 @@ class DriftTaskReminderRuntime implements TaskReminderRuntime {
     );
   }
 }
+
+bool _isOneOffManual(TaskRow row) =>
+    row.sourceType == 'manual' &&
+    row.scheduleId == null &&
+    row.generalReminderId == null &&
+    row.maintenancePlanId == null &&
+    row.milestoneId == null;
 
 String _activeStatus(DateTime dueDate, DateTime now) =>
     _dateOnly(dueDate).isBefore(_dateOnly(now))

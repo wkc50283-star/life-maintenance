@@ -148,6 +148,89 @@ void main() {
     expect(find.text('租約續約'), findsNothing);
   });
 
+  testWidgets('one-off manual Task confirms completion without case action', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(430, 1000);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final root = AppCompositionRoot(database: database);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day, 8);
+    await _seed(root, today);
+    await root.driftRepositories.tasks.save(
+      TaskRow(
+        id: 'task-manual',
+        itemId: 'item-1',
+        sourceType: 'manual',
+        title: '確認後續文件',
+        dueDate: today,
+        status: TaskStatus.pending.name,
+        createdAt: today,
+        updatedAt: today,
+      ),
+    );
+    await tester.pumpWidget(
+      AppCompositionScope(
+        root: root,
+        child: const MaterialApp(home: Scaffold(body: TodayScreen())),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('確認後續文件').first);
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(FilledButton, '完成'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, '開始處理'), findsNothing);
+    await tester.tap(find.widgetWithText(FilledButton, '完成'));
+    await tester.pumpAndSettle();
+    expect(find.text('完成後會留下紀錄。'), findsOneWidget);
+    expect(find.textContaining('週期提醒'), findsNothing);
+    await tester.tap(find.text('返回'));
+    await tester.pumpAndSettle();
+    expect(
+      (await root.driftRepositories.tasks.findById('task-manual'))?.status,
+      TaskStatus.pending.name,
+    );
+
+    await tester.tap(find.widgetWithText(FilledButton, '完成'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('確認完成'));
+    await tester.pumpAndSettle();
+
+    expect(
+      (await root.driftRepositories.tasks.findById('task-manual'))?.status,
+      TaskStatus.completed.name,
+    );
+    expect(find.text('已完成'), findsWidgets);
+    expect(find.widgetWithText(FilledButton, '完成'), findsNothing);
+    expect(find.widgetWithText(OutlinedButton, '重新安排'), findsNothing);
+    expect(find.widgetWithText(OutlinedButton, '暫停提醒'), findsNothing);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('overview-section-reminders')),
+        matching: find.text('確認後續文件'),
+      ),
+      findsNothing,
+    );
+
+    await tester.pumpWidget(
+      AppCompositionScope(
+        root: root,
+        child: const MaterialApp(home: TaskReminderListScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('確認後續文件'), findsNothing);
+  });
+
   testWidgets(
     'Task detail shows its source and starts a WorkCase without completing Task',
     (tester) async {

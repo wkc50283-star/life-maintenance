@@ -272,7 +272,11 @@ class _TaskReminderDetailScreenState extends State<TaskReminderDetailScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('完成這次提醒？'),
-        content: const Text('完成後會留下紀錄，週期提醒會安排下一次日期。'),
+        content: Text(
+          _detail.sourceKind == TaskReminderSourceKind.manual
+              ? '完成後會留下紀錄。'
+              : '完成後會留下紀錄，週期提醒會安排下一次日期。',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
