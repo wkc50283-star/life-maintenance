@@ -153,6 +153,16 @@ class FormalPlanningEditor {
   Future<void> completeMilestone(String id, DateTime completedAt) =>
       _root.driftRepositories.milestones.complete(id, completedAt);
 
+  Future<void> cancelMilestone(
+    String id,
+    DateTime canceledAt, {
+    required String cancellationReason,
+  }) => _root.driftRepositories.milestones.cancel(
+    id,
+    canceledAt,
+    cancellationReason: cancellationReason,
+  );
+
   Future<List<EditableSchedule>> loadSchedules(String itemId) async => [
     for (final row in await _root.driftRepositories.schedules.listForItem(
       itemId,

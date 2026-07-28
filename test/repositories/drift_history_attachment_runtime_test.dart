@@ -539,6 +539,69 @@ void main() {
     expect(await database.select(database.attachments).get(), isEmpty);
   });
 
+  test(
+    'projects one canceled Milestone with its reason and attachment',
+    () async {
+      final milestone = Milestone(
+        id: 'milestone-canceled',
+        itemId: 'item-1',
+        title: '不再追蹤換發',
+        description: '保留原條件',
+        kind: MilestoneKind.renewal,
+        triggerType: MilestoneTriggerType.specificDate,
+        triggerDate: DateTime.utc(2027, 8, 19),
+        status: MilestoneStatus.pending,
+        createdAt: now,
+        updatedAt: now,
+      );
+      await repositories.milestones.save(milestone);
+      await attachmentRuntime.registerManaged(
+        attachment(
+          id: 'attachment-canceled-milestone',
+          ownerType: AttachmentOwnerType.milestone,
+          ownerId: milestone.id,
+        ),
+      );
+      expect(
+        (await history.projectForItem(
+          'item-1',
+        )).entries.whereType<MilestoneHistoryEntry>(),
+        isEmpty,
+      );
+      final canceledAt = now.add(const Duration(hours: 1));
+
+      await repositories.milestones.cancel(
+        milestone.id,
+        canceledAt,
+        cancellationReason: '不再需要換發',
+      );
+
+      final first = await history.projectForItem('item-1');
+      final entry = first.entries.whereType<MilestoneHistoryEntry>().single;
+      expect(entry.milestone.id, milestone.id);
+      expect(entry.milestone.itemId, milestone.itemId);
+      expect(entry.milestone.title, milestone.title);
+      expect(entry.milestone.status, MilestoneStatus.canceled);
+      expect(entry.milestone.canceledAt, canceledAt);
+      expect(entry.milestone.cancellationReason, '不再需要換發');
+      expect(entry.milestone.completedAt, isNull);
+      expect(entry.milestone.triggerDate, milestone.triggerDate);
+      expect(entry.occurredAt, canceledAt);
+      expect(entry.attachments.single.id, 'attachment-canceled-milestone');
+      expect(entry.attachments.single.ownerType, AttachmentOwnerType.milestone);
+      expect(entry.attachments.single.ownerId, milestone.id);
+      expect(first.entries.whereType<TaskHistoryEntry>(), isEmpty);
+      expect(first.entries.whereType<WorkCaseHistoryEntry>(), isEmpty);
+      expect(first.entries.whereType<MaintenanceRecordHistoryEntry>(), isEmpty);
+      expect(
+        (await history.projectForItem(
+          'item-1',
+        )).entries.whereType<MilestoneHistoryEntry>(),
+        hasLength(1),
+      );
+    },
+  );
+
   test('Attachment lifecycle preserves missing and deletion facts', () async {
     await attachmentRuntime.registerManaged(
       attachment(

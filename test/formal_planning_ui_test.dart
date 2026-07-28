@@ -798,6 +798,115 @@ void main() {
     expect(result, isA<MilestoneFormResult>());
   });
 
+  testWidgets('milestone cancellation requires reason and returns changed', (
+    tester,
+  ) async {
+    await _seedItem(editor, now, id: 'item-ac', name: '測試冷氣');
+    final milestone = Milestone(
+      id: 'milestone-cancel',
+      itemId: 'item-ac',
+      title: '不再追蹤汰換評估',
+      description: '保留原始說明',
+      kind: MilestoneKind.replacementEvaluation,
+      triggerType: MilestoneTriggerType.specificDate,
+      triggerDate: DateTime.utc(2027, 8, 19),
+      status: MilestoneStatus.pending,
+      createdAt: now,
+      updatedAt: now,
+    );
+    await editor.saveMilestone(milestone);
+    Object? result;
+    await tester.pumpWidget(
+      AppCompositionScope(
+        root: root,
+        child: MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                onPressed: () async {
+                  result = await Navigator.of(context).push<Object?>(
+                    MaterialPageRoute(
+                      builder: (_) => MilestoneFormScreen(
+                        itemId: 'item-ac',
+                        value: milestone,
+                        usesTypedResult: true,
+                      ),
+                    ),
+                  );
+                },
+                child: const Text('開啟取消'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('開啟取消'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const ValueKey('milestone-cancel')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('milestone-complete')), findsOneWidget);
+    expect(find.byKey(const ValueKey('milestone-cancel')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('milestone-cancel')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('milestone-cancellation-continue')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('請輸入取消原因'), findsOneWidget);
+    expect(
+      (await editor.loadMilestones('item-ac')).single.status,
+      MilestoneStatus.pending,
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('milestone-cancellation-reason')),
+      '  已改用其他方案  ',
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('milestone-cancellation-continue')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('取消這個階段重點？'), findsOneWidget);
+    expect(find.text('取消後會保留紀錄，但不會再出現在待處理項目中。'), findsOneWidget);
+    await tester.tap(find.text('返回'));
+    await tester.pumpAndSettle();
+    expect(
+      (await editor.loadMilestones('item-ac')).single.status,
+      MilestoneStatus.pending,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('milestone-cancel')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('milestone-cancellation-reason')),
+      '  已改用其他方案  ',
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('milestone-cancellation-continue')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('確認取消'));
+    await tester.pumpAndSettle();
+    final canceled = (await editor.loadMilestones('item-ac')).single;
+    expect(canceled.status, MilestoneStatus.canceled);
+    expect(canceled.canceledAt, isNotNull);
+    expect(canceled.cancellationReason, '已改用其他方案');
+    expect(canceled.updatedAt, canceled.canceledAt);
+    expect(canceled.completedAt, isNull);
+    expect(canceled.triggerDate, milestone.triggerDate);
+    expect(find.text('階段性重點已取消。'), findsOneWidget);
+    expect(find.byKey(const ValueKey('milestone-complete')), findsNothing);
+    expect(find.byKey(const ValueKey('milestone-cancel')), findsNothing);
+    expect(find.byKey(const ValueKey('save-form')), findsNothing);
+    expect(find.textContaining('取消時間：'), findsOneWidget);
+    expect(find.text('取消原因：已改用其他方案'), findsOneWidget);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(result, isA<MilestoneFormResult>());
+  });
+
   testWidgets('cancelled and failed milestone creation do not report success', (
     tester,
   ) async {
