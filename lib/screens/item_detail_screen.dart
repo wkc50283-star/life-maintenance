@@ -450,6 +450,11 @@ class _ItemDetailBody extends StatelessWidget {
                   ],
                 ),
         ),
+        _DetailSection(
+          title: '基本資料',
+          icon: Icons.info_outline_rounded,
+          child: _BasicInformation(item: item),
+        ),
       ],
     );
   }
@@ -564,6 +569,20 @@ class _MainInformation extends StatelessWidget {
           label: '位置',
           value: _nullableText(item.location) ?? '未設定',
         ),
+      ],
+    );
+  }
+}
+
+class _BasicInformation extends StatelessWidget {
+  const _BasicInformation({required this.item});
+
+  final Item item;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
         _InformationRow(label: '建立日期', value: _formatDate(item.createdAt)),
         _InformationRow(
           label: '購買日期',
