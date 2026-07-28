@@ -11,11 +11,13 @@ import '../models/maintenance_plan_enums.dart';
 import '../models/milestone.dart';
 import '../models/milestone_enums.dart';
 import '../models/schedule.dart';
+import '../models/task.dart' as maintenance_task;
 import '../models/work_case.dart';
 import '../models/work_case_enums.dart';
 import '../models/work_case_update.dart';
 import '../widgets/ui_v2_components.dart';
 import 'formal_planning_screens.dart';
+import 'task_reminder_screens.dart';
 import 'work_case_screens.dart';
 
 class ItemDetailScreen extends StatefulWidget {
@@ -63,6 +65,14 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                   const <Milestone>[])
               .where((milestone) => !milestone.isClosed)
               .toList(growable: false);
+      final today = _dateOnly(DateTime.now());
+      final tasks = (await root.taskRepository.loadTasks())
+          .where(
+            (task) =>
+                task.itemId == widget.item.id &&
+                _taskNeedsAttention(task, today),
+          )
+          .toList(growable: false);
       final schedules = (await root.scheduleRepository.loadSchedules())
           .where((schedule) => schedule.itemId == widget.item.id)
           .toList(growable: false);
@@ -112,6 +122,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
       milestones.sort(
         (left, right) => right.updatedAt.compareTo(left.updatedAt),
       );
+      tasks.sort(_compareAttentionTasks);
       final historyEntries = [...?history?.entries]
         ..sort((left, right) => right.occurredAt.compareTo(left.occurredAt));
       final uniqueAttachments =
@@ -124,6 +135,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
       setState(() {
         _snapshot = _ItemDetailSnapshot(
           plans: plans,
+          tasks: tasks,
           reminders: reminders,
           schedules: schedules,
           milestones: milestones,
@@ -204,6 +216,12 @@ class _ItemDetailBody extends StatelessWidget {
     final openCases = snapshot.cases
         .where((entry) => entry.workCase.isOpen)
         .toList(growable: false);
+    final attentionMilestones =
+        snapshot.milestones
+            .where((milestone) => milestone.isReached && !milestone.isClosed)
+            .toList(growable: false)
+          ..sort(_compareAttentionMilestones);
+    final attentionCases = [...openCases]..sort(_compareAttentionCases);
     final closedCases = snapshot.cases
         .where((entry) => entry.workCase.isClosed)
         .toList(growable: false);
@@ -217,6 +235,48 @@ class _ItemDetailBody extends StatelessWidget {
           title: '主資訊',
           icon: Icons.info_outline_rounded,
           child: _MainInformation(item: item),
+        ),
+        _DetailSection(
+          title: '需要注意',
+          icon: Icons.notifications_active_outlined,
+          child:
+              snapshot.tasks.isEmpty &&
+                  attentionMilestones.isEmpty &&
+                  attentionCases.isEmpty
+              ? const _EmptyMessage('目前沒有需要注意的事項')
+              : Column(
+                  children: [
+                    for (final task in snapshot.tasks)
+                      _FactCard(
+                        key: ValueKey('attention-task-${task.id}'),
+                        title: task.title,
+                        subtitle: '提醒',
+                        detail: '日期 ${_formatDate(task.dueDate)}',
+                        status: _taskStatusLabel(task.status),
+                        onTap: () => _openTask(context, task.id),
+                      ),
+                    for (final milestone in attentionMilestones)
+                      _FactCard(
+                        key: ValueKey('attention-milestone-${milestone.id}'),
+                        title: milestone.title,
+                        subtitle: _milestoneKindLabel(milestone.kind),
+                        detail: _milestoneTriggerLabel(milestone),
+                        status: _milestoneStatusLabel(milestone.status),
+                        onTap: () => _openMilestone(context, milestone),
+                      ),
+                    for (final entry in attentionCases)
+                      _FactCard(
+                        key: ValueKey(
+                          'attention-work-case-${entry.workCase.id}',
+                        ),
+                        title: entry.workCase.title,
+                        subtitle: _workCaseTypeLabel(entry.workCase.caseType),
+                        detail: _caseDetail(entry),
+                        status: _workCaseStatusLabel(entry.workCase.status),
+                        onTap: () => _openCase(context, entry.workCase),
+                      ),
+                  ],
+                ),
         ),
         _DetailSection(
           title: '保養項目',
@@ -403,6 +463,31 @@ class _ItemDetailBody extends StatelessWidget {
     );
     if (changed == true) await onCaseChanged();
   }
+
+  Future<void> _openTask(BuildContext context, String taskId) async {
+    final runtime = AppCompositionScope.of(context).taskReminderRuntime;
+    final detail = await runtime?.findReminder(taskId);
+    if (!context.mounted || detail == null) return;
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => TaskReminderDetailScreen(initialDetail: detail),
+      ),
+    );
+    if (changed == true) await onCaseChanged();
+  }
+
+  Future<void> _openMilestone(BuildContext context, Milestone milestone) async {
+    final changed = await Navigator.of(context).push<MilestoneFormResult>(
+      MaterialPageRoute(
+        builder: (_) => MilestoneFormScreen(
+          itemId: item.id,
+          value: milestone,
+          usesTypedResult: true,
+        ),
+      ),
+    );
+    if (changed != null) await onCaseChanged();
+  }
 }
 
 class _ItemHero extends StatelessWidget {
@@ -555,6 +640,7 @@ class _DetailSection extends StatelessWidget {
 
 class _FactCard extends StatelessWidget {
   const _FactCard({
+    super.key,
     required this.title,
     required this.subtitle,
     required this.detail,
@@ -674,6 +760,7 @@ class _LoadFailure extends StatelessWidget {
 class _ItemDetailSnapshot {
   const _ItemDetailSnapshot({
     required this.plans,
+    required this.tasks,
     required this.reminders,
     required this.schedules,
     required this.milestones,
@@ -683,6 +770,7 @@ class _ItemDetailSnapshot {
   });
 
   final List<MaintenancePlan> plans;
+  final List<maintenance_task.Task> tasks;
   final List<_ReminderSummary> reminders;
   final List<Schedule> schedules;
   final List<Milestone> milestones;
@@ -973,10 +1061,55 @@ String _genericStatusLabel(String status) => switch (status) {
   _ => '已記錄',
 };
 
+String _taskStatusLabel(TaskStatus status) => switch (status) {
+  TaskStatus.pending => '已安排',
+  TaskStatus.overdue => '日期已過',
+  TaskStatus.postponed => '稍後提醒',
+  TaskStatus.completed => '已完成',
+  TaskStatus.canceled => '已取消',
+};
+
 String _formatDate(DateTime date) {
   final month = date.month.toString().padLeft(2, '0');
   final day = date.day.toString().padLeft(2, '0');
   return '${date.year}/$month/$day';
+}
+
+DateTime _dateOnly(DateTime value) =>
+    DateTime(value.year, value.month, value.day);
+
+bool _taskNeedsAttention(maintenance_task.Task task, DateTime today) {
+  if (task.status == TaskStatus.completed ||
+      task.status == TaskStatus.canceled ||
+      task.status == TaskStatus.postponed) {
+    return false;
+  }
+  return !_dateOnly(task.dueDate).isAfter(today);
+}
+
+int _compareAttentionTasks(
+  maintenance_task.Task left,
+  maintenance_task.Task right,
+) {
+  final group = _taskAttentionGroup(left).compareTo(_taskAttentionGroup(right));
+  if (group != 0) return group;
+  final date = left.dueDate.compareTo(right.dueDate);
+  return date != 0 ? date : left.id.compareTo(right.id);
+}
+
+int _taskAttentionGroup(maintenance_task.Task task) =>
+    task.status == TaskStatus.overdue || task.overdue ? 0 : 1;
+
+int _compareAttentionMilestones(Milestone left, Milestone right) {
+  final leftDate = left.reachedAt ?? left.triggerDate ?? left.updatedAt;
+  final rightDate = right.reachedAt ?? right.triggerDate ?? right.updatedAt;
+  final date = leftDate.compareTo(rightDate);
+  return date != 0 ? date : left.id.compareTo(right.id);
+}
+
+int _compareAttentionCases(_CaseSummary left, _CaseSummary right) {
+  final date = left.workCase.updatedAt.compareTo(right.workCase.updatedAt);
+  return date != 0 ? date : left.workCase.id.compareTo(right.workCase.id);
 }
 
 String? _nullableText(String? value) {
