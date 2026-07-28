@@ -1489,10 +1489,25 @@ class _MilestoneFormScreenState extends State<MilestoneFormScreen> {
                   icon: Icons.check_circle_outline,
                   onPressed: _saving ? null : _confirmComplete,
                 ),
+                const SizedBox(height: 12),
+                UiSecondaryButton(
+                  key: const ValueKey('milestone-cancel'),
+                  label: '取消',
+                  icon: Icons.cancel_outlined,
+                  onPressed: _saving ? null : _startCancellation,
+                ),
               ],
               if (value.completedAt case final completedAt?) ...[
                 const SizedBox(height: 16),
                 _ReadOnlyNotice('完成時間：${_formatDate(completedAt)}'),
+              ],
+              if (value.canceledAt case final canceledAt?) ...[
+                const SizedBox(height: 16),
+                _ReadOnlyNotice('取消時間：${_formatDate(canceledAt)}'),
+              ],
+              if (value.cancellationReason case final reason?) ...[
+                const SizedBox(height: 8),
+                _ReadOnlyNotice('取消原因：$reason'),
               ],
             ],
             if (locked) const _ReadOnlyNotice('已結束的階段性重點不能再修改。'),
@@ -1559,6 +1574,96 @@ class _MilestoneFormScreenState extends State<MilestoneFormScreen> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  Future<void> _startCancellation() async {
+    final milestone = _value;
+    if (milestone == null || milestone.isClosed) return;
+    final reason = await _requestCancellationReason();
+    if (reason == null || !mounted) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('取消這個階段重點？'),
+        content: const Text('取消後會保留紀錄，但不會再出現在待處理項目中。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('返回'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('確認取消'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _saving = true);
+    final canceledAt = DateTime.now();
+    try {
+      final editor = formalPlanningEditor(context)!;
+      await editor.cancelMilestone(
+        milestone.id,
+        canceledAt,
+        cancellationReason: reason,
+      );
+      final milestones = await editor.loadMilestones(widget.itemId);
+      if (!mounted) return;
+      final matches = milestones.where((entry) => entry.id == milestone.id);
+      if (matches.length != 1) {
+        _showSaveError(context, '暫時無法讀取階段性重點。');
+        return;
+      }
+      setState(() {
+        _value = matches.single;
+        _changed = true;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('階段性重點已取消。')));
+    } catch (error) {
+      if (mounted) _showSaveError(context, error);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<String?> _requestCancellationReason() async {
+    final formKey = GlobalKey<FormState>();
+    var reason = '';
+    return showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('取消原因'),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            key: const ValueKey('milestone-cancellation-reason'),
+            autofocus: true,
+            decoration: const InputDecoration(labelText: '取消原因'),
+            onChanged: (value) => reason = value,
+            validator: (value) =>
+                value == null || value.trim().isEmpty ? '請輸入取消原因' : null,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('返回'),
+          ),
+          FilledButton(
+            key: const ValueKey('milestone-cancellation-continue'),
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                Navigator.pop(context, reason.trim());
+              }
+            },
+            child: const Text('繼續'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _save() async {

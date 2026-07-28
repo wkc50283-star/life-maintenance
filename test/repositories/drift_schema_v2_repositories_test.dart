@@ -372,6 +372,125 @@ void main() {
     },
   );
 
+  test('Milestone cancellation requires a reason and is terminal', () async {
+    Milestone milestone(String id, MilestoneStatus status) => Milestone(
+      id: id,
+      itemId: 'item-1',
+      title: '不再追蹤 $id',
+      description: '保留原始說明',
+      kind: MilestoneKind.replacementEvaluation,
+      triggerType: MilestoneTriggerType.specificDate,
+      triggerDate: DateTime.utc(2027, 8, 18),
+      status: status,
+      reachedAt: status == MilestoneStatus.pending ? null : now,
+      acknowledgedAt: status == MilestoneStatus.acknowledged ? now : null,
+      startedAt: status == MilestoneStatus.inProgress ? now : null,
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    final pending = milestone('milestone-cancel', MilestoneStatus.pending);
+    await repositories.milestones.save(pending);
+    for (final reason in ['', '   ']) {
+      await expectLater(
+        repositories.milestones.cancel(
+          pending.id,
+          now.add(const Duration(hours: 1)),
+          cancellationReason: reason,
+        ),
+        throwsA(isA<RepositoryConstraintException>()),
+      );
+    }
+    final beforeCancel = await repositories.milestones.findById(pending.id);
+    expect(beforeCancel?.status, MilestoneStatus.pending);
+    expect(beforeCancel?.canceledAt, isNull);
+    expect(beforeCancel?.cancellationReason, isNull);
+
+    final canceledAt = now.add(const Duration(hours: 2));
+    await repositories.milestones.cancel(
+      pending.id,
+      canceledAt,
+      cancellationReason: '  已改用其他方案  ',
+    );
+    final canceled = await repositories.milestones.findById(pending.id);
+    expect(canceled?.status, MilestoneStatus.canceled);
+    expect(canceled?.canceledAt, canceledAt);
+    expect(canceled?.cancellationReason, '已改用其他方案');
+    expect(canceled?.updatedAt, canceledAt);
+    expect(canceled?.completedAt, isNull);
+    expect(canceled?.title, pending.title);
+    expect(canceled?.description, pending.description);
+    expect(canceled?.triggerDate, pending.triggerDate);
+    expect(canceled?.isClosed, isTrue);
+
+    final secondTime = canceledAt.add(const Duration(hours: 1));
+    await expectLater(
+      repositories.milestones.cancel(
+        pending.id,
+        secondTime,
+        cancellationReason: '不得覆寫',
+      ),
+      throwsA(isA<RepositoryConstraintException>()),
+    );
+    final unchanged = await repositories.milestones.findById(pending.id);
+    expect(unchanged?.canceledAt, canceledAt);
+    expect(unchanged?.cancellationReason, '已改用其他方案');
+    expect(unchanged?.updatedAt, canceledAt);
+
+    for (final status in [
+      MilestoneStatus.reached,
+      MilestoneStatus.acknowledged,
+      MilestoneStatus.inProgress,
+    ]) {
+      final value = milestone('milestone-${status.name}', status);
+      await repositories.milestones.save(value);
+      await repositories.milestones.cancel(
+        value.id,
+        canceledAt,
+        cancellationReason: '取消 ${status.name}',
+      );
+      expect(
+        (await repositories.milestones.findById(value.id))?.status,
+        MilestoneStatus.canceled,
+      );
+    }
+
+    final completedAt = now.add(const Duration(minutes: 30));
+    for (final terminal in [
+      milestone(
+        'milestone-completed-cancel',
+        MilestoneStatus.completed,
+      ).copyWith(completedAt: completedAt),
+      milestone(
+        'milestone-archived-cancel',
+        MilestoneStatus.archived,
+      ).copyWith(archivedAt: completedAt),
+    ]) {
+      await repositories.milestones.save(terminal);
+      await expectLater(
+        repositories.milestones.cancel(
+          terminal.id,
+          canceledAt,
+          cancellationReason: '不得取消',
+        ),
+        throwsA(isA<RepositoryConstraintException>()),
+      );
+    }
+    expect(
+      (await repositories.milestones.findById(
+        'milestone-completed-cancel',
+      ))?.completedAt,
+      completedAt,
+    );
+    expect(await repositories.tasks.listForItem('item-1'), isEmpty);
+    expect(await repositories.schedules.listForItem('item-1'), isEmpty);
+    expect(await database.select(database.workCases).get(), isEmpty);
+    expect(await database.select(database.workCaseClosures).get(), isEmpty);
+    expect(await database.select(database.maintenanceRecords).get(), isEmpty);
+    expect(await repositories.maintenancePlans.listForItem('item-1'), isEmpty);
+    expect(await repositories.generalReminders.listForItem('item-1'), isEmpty);
+  });
+
   test(
     'MaintenanceRecord validates Task and Plan Item in one transaction',
     () async {
