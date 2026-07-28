@@ -58,7 +58,6 @@ void main() {
     expect(find.text('生活項目詳情'), findsOneWidget);
     expect(find.text('主資訊'), findsOneWidget);
     expect(find.text('客廳'), findsOneWidget);
-    expect(find.text('夏季使用頻繁'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('清洗濾網').first,
       300,
@@ -108,6 +107,13 @@ void main() {
     expect(find.text('冷氣保固書.pdf'), findsOneWidget);
     expect(find.text('application/pdf · 2.0 KB'), findsOneWidget);
     expect(find.textContaining('managed-item-document'), findsNothing);
+
+    await tester.scrollUntilVisible(
+      find.text('基本資料'),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(find.text('夏季使用頻繁'), findsOneWidget);
 
     expect(
       await root.driftRepositories.maintenancePlans.listForItem('item-1'),
@@ -277,6 +283,74 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('需要注意'), findsOneWidget);
+    expect(find.text('目前沒有需要注意的事項'), findsOneWidget);
+  });
+
+  testWidgets('item detail separates information and preserves section order', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(430, 3000);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    final database = AppDatabase(NativeDatabase.memory());
+    final root = AppCompositionRoot(database: database);
+    addTearDown(database.close);
+    final now = DateTime.utc(2026, 7, 29, 8);
+    await _seedItem(root, now, id: 'item-sections', name: '測試桌燈');
+
+    await tester.pumpWidget(_app(root));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('測試桌燈'));
+    await tester.pumpAndSettle();
+
+    const sectionTitles = [
+      '主資訊',
+      '需要注意',
+      '保養項目',
+      '一般提醒',
+      '提醒與排程',
+      '階段性重點／大修',
+      '進行中案件',
+      '已結案件',
+      '史略',
+      '附件',
+      '基本資料',
+    ];
+    for (final title in sectionTitles) {
+      expect(find.text(title), findsOneWidget);
+    }
+    for (var index = 0; index < sectionTitles.length - 1; index += 1) {
+      expect(
+        tester.getTopLeft(find.text(sectionTitles[index])).dy,
+        lessThan(tester.getTopLeft(find.text(sectionTitles[index + 1])).dy),
+      );
+    }
+    expect(
+      tester.getTopLeft(find.text('測試桌燈').last).dy,
+      lessThan(tester.getTopLeft(find.text('主資訊')).dy),
+    );
+
+    for (final label in const ['分類', '狀態', '位置']) {
+      expect(find.text(label), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text(label)).dy,
+        greaterThan(tester.getTopLeft(find.text('主資訊')).dy),
+      );
+      expect(
+        tester.getTopLeft(find.text(label)).dy,
+        lessThan(tester.getTopLeft(find.text('需要注意')).dy),
+      );
+    }
+    for (final label in const ['建立日期', '購買日期', '保固到期', '管理年限', '備註']) {
+      expect(find.text(label), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text(label)).dy,
+        greaterThan(tester.getTopLeft(find.text('基本資料')).dy),
+      );
+    }
+    expect(find.text('未設定'), findsNWidgets(5));
     expect(find.text('目前沒有需要注意的事項'), findsOneWidget);
   });
 }

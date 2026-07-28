@@ -385,7 +385,7 @@ void main() {
         find.byType(ItemDetailScreen),
       );
       expect(detail.item.id, 'item-ac');
-      expect(find.text('保固到期'), findsNWidgets(2));
+      expect(find.text('保固到期'), findsOneWidget);
       expect(find.text('到期提醒'), findsOneWidget);
       expect(find.text('確認是否需要續約'), findsOneWidget);
       expect(await root.scheduleRepository.loadSchedules(), isEmpty);
@@ -440,11 +440,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(ItemDetailScreen), findsOneWidget);
     await tester.scrollUntilVisible(
-      find.text('保固到期'),
+      find.text('保固到期').first,
       200,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.text('保固到期'), findsOneWidget);
+    expect(find.text('保固到期'), findsWidgets);
 
     await tester.scrollUntilVisible(
       find.text('管理').at(1),
@@ -453,7 +453,7 @@ void main() {
     );
     await tester.tap(find.text('管理').at(1));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('保固到期'));
+    await tester.tap(find.text('保固到期').first);
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('reminder-title')),
