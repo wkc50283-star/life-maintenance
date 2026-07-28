@@ -259,6 +259,104 @@ void main() {
     },
   );
 
+  test('a Reminder case consumes only its exact source Task', () async {
+    await repositories.generalReminders.save(
+      GeneralReminderRow(
+        schemaVersion: 1,
+        id: 'reminder-1',
+        itemId: 'item-1',
+        title: '定期提醒',
+        reminderType: 'general',
+        status: 'active',
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    await repositories.schedules.save(
+      ScheduleRow(
+        id: 'schedule-reminder-1',
+        itemId: 'item-1',
+        sourceType: 'generalReminder',
+        generalReminderId: 'reminder-1',
+        cycleType: 'monthly',
+        interval: 1,
+        startDate: now,
+        nextDueDate: now.add(const Duration(days: 30)),
+        status: 'active',
+        anchorPolicy: 'fixedCalendarPeriod',
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    for (final task in [
+      TaskRow(
+        id: 'task-reminder-1',
+        itemId: 'item-1',
+        sourceType: 'scheduledReminder',
+        scheduleId: 'schedule-reminder-1',
+        generalReminderId: 'reminder-1',
+        title: '第一次提醒',
+        dueDate: now,
+        status: 'completed',
+        completedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      ),
+      TaskRow(
+        id: 'task-reminder-2',
+        itemId: 'item-1',
+        sourceType: 'scheduledReminder',
+        scheduleId: 'schedule-reminder-1',
+        generalReminderId: 'reminder-1',
+        title: '第二次提醒',
+        dueDate: now.add(const Duration(days: 30)),
+        status: 'completed',
+        completedAt: now.add(const Duration(days: 30)),
+        createdAt: now,
+        updatedAt: now.add(const Duration(days: 30)),
+      ),
+    ]) {
+      await repositories.tasks.save(task);
+    }
+    final workCase = WorkCase(
+      id: 'case-reminder-1',
+      itemId: 'item-1',
+      sourceType: WorkCaseSourceType.generalReminder,
+      sourceId: 'reminder-1',
+      sourceTaskId: 'task-reminder-1',
+      caseType: WorkCaseType.other,
+      title: '處理第一次提醒',
+      status: WorkCaseStatus.inProgress,
+      createdAt: now,
+      updatedAt: now,
+    );
+    await repositories.workCases.saveCase(workCase);
+    await repositories.workCaseClosures.closeCase(
+      WorkCaseClosure(
+        id: 'closure-reminder-1',
+        workCaseId: workCase.id,
+        completedAt: now,
+        finalResult: '完成',
+        completionSummary: '完成第一次提醒',
+        totalCost: 0,
+        createdAt: now,
+      ),
+    );
+
+    final projection = await history.projectForItem('item-1');
+    final caseEntry = projection.entries
+        .whereType<WorkCaseHistoryEntry>()
+        .single;
+
+    expect(caseEntry.relatedTasks.map((task) => task.id), ['task-reminder-1']);
+    expect(
+      projection.entries.whereType<TaskHistoryEntry>().map(
+        (entry) => entry.task.id,
+      ),
+      ['task-reminder-2'],
+    );
+  });
+
   test('orders events newest first with a stable source tie-breaker', () async {
     final sameTime = now.add(const Duration(hours: 1));
     for (final task in [

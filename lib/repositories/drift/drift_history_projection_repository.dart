@@ -167,9 +167,14 @@ class DriftHistoryProjectionRepository implements HistoryProjectionRepository {
       case WorkCaseSourceType.maintenanceTask:
         query.where((table) => table.id.equals(workCase.sourceId ?? ''));
       case WorkCaseSourceType.generalReminder:
-        query.where(
-          (table) => table.generalReminderId.equals(workCase.sourceId ?? ''),
-        );
+        final sourceTaskId = workCase.sourceTaskId;
+        if (sourceTaskId != null) {
+          query.where((table) => table.id.equals(sourceTaskId));
+        } else {
+          query.where(
+            (table) => table.generalReminderId.equals(workCase.sourceId ?? ''),
+          );
+        }
       case WorkCaseSourceType.milestone:
         query.where(
           (table) => table.milestoneId.equals(workCase.sourceId ?? ''),
