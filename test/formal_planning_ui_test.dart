@@ -158,7 +158,7 @@ void main() {
     expect(find.text('階段性重點'), findsOneWidget);
     expect(find.text('提醒排程'), findsOneWidget);
     expect(find.text('突發事項／工程'), findsOneWidget);
-    expect(find.text('補登完成紀錄'), findsNothing);
+    expect(find.text('補登完成紀錄'), findsOneWidget);
     expect(find.textContaining('MaintenancePlan'), findsNothing);
     expect(find.textContaining('AnchorPolicy'), findsNothing);
   });

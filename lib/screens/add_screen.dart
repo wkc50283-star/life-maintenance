@@ -5,11 +5,13 @@ import '../app/ui_tokens.dart';
 import '../widgets/add_entry_card.dart';
 import '../widgets/add_item_preview_sheet.dart';
 import '../widgets/expiry_reminder_preview_sheet.dart';
+import '../widgets/maintenance_record_detail_sheet.dart';
 import '../widgets/maintenance_record_preview_sheet.dart';
 import '../widgets/reminder_list_sheet.dart';
 import '../widgets/ui_v2_components.dart';
 import 'formal_planning_screens.dart';
 import 'item_detail_screen.dart';
+import 'maintenance_record_screens.dart';
 import 'work_case_screens.dart';
 
 class AddScreen extends StatelessWidget {
@@ -167,9 +169,54 @@ class _FormalAddScreen extends StatelessWidget {
             description: '建立仍在處理中的突發狀況、修繕、維修或工程案件。',
             onTap: () => _openManualWorkCase(context),
           ),
+          AddEntryCard(
+            icon: Icons.fact_check_outlined,
+            title: '補登完成紀錄',
+            description: '已經完成的事情，可以補留下正式紀錄。',
+            onTap: () => _openManualMaintenanceRecord(context),
+          ),
         ],
       ),
     );
+  }
+
+  Future<void> _openManualMaintenanceRecord(BuildContext context) async {
+    final result = await Navigator.of(context)
+        .push<ManualMaintenanceRecordResult>(
+          MaterialPageRoute<ManualMaintenanceRecordResult>(
+            builder: (_) => const ManualMaintenanceRecordFormScreen(),
+          ),
+        );
+    if (!context.mounted || result == null) return;
+
+    try {
+      final repository = AppCompositionScope.of(
+        context,
+      ).maintenanceRecordRepository;
+      final record = await repository.findById(result.recordId);
+      if (!context.mounted) return;
+      if (record == null ||
+          record.id != result.recordId ||
+          record.itemId != result.itemId) {
+        _showMaintenanceRecordReadFailure(context);
+        return;
+      }
+      showMaintenanceRecordDetailSheet(
+        context,
+        data: MaintenanceRecordDetailData(
+          title: record.title,
+          recordType: '完成紀錄',
+          date: _formatRecordDate(record.date),
+          result: '已記錄',
+          rows: [
+            if (record.note case final note? when note.trim().isNotEmpty)
+              MaintenanceRecordDetailRow(label: '備註', value: note),
+          ],
+        ),
+      );
+    } catch (_) {
+      if (context.mounted) _showMaintenanceRecordReadFailure(context);
+    }
   }
 
   Future<void> _openManualWorkCase(BuildContext context) async {
@@ -250,6 +297,15 @@ class _FormalAddScreen extends StatelessWidget {
       context,
     ).showSnackBar(const SnackBar(content: Text('暫時無法讀取剛建立的案件。')));
   }
+
+  void _showMaintenanceRecordReadFailure(BuildContext context) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('無法讀取剛建立的紀錄。')));
+  }
+
+  String _formatRecordDate(DateTime value) =>
+      '${value.year}/${value.month.toString().padLeft(2, '0')}/${value.day.toString().padLeft(2, '0')}';
 }
 
 class _AddSectionHeader extends StatelessWidget {
