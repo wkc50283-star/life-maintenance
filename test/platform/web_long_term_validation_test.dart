@@ -68,6 +68,6 @@ void main() {
 
   test('patch version matches the Web long-term validation baseline', () {
     final pubspec = File('pubspec.yaml').readAsStringSync();
-    expect(pubspec, contains('version: 0.5.49+50'));
+    expect(pubspec, contains('version: 0.5.50+51'));
   });
 }

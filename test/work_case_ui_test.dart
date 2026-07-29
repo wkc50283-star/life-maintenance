@@ -247,6 +247,54 @@ void main() {
     expect(find.text('進入正式結案'), findsNothing);
     expect(find.text('取消案件'), findsNothing);
   });
+
+  testWidgets('manual WorkCase save failure stays on the form for retry', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(430, 900);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    final database = AppDatabase(NativeDatabase.memory());
+    final root = AppCompositionRoot(database: database);
+    await _seed(root);
+    await tester.pumpWidget(
+      AppCompositionScope(
+        root: root,
+        child: const MaterialApp(home: ManualWorkCaseFormScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    tester
+        .widget<DropdownButtonFormField<String>>(
+          find.byKey(const ValueKey('manual-case-item')),
+        )
+        .onChanged!('item-1');
+    tester
+        .widget<DropdownButtonFormField<WorkCaseType>>(
+          find.byKey(const ValueKey('manual-case-type')),
+        )
+        .onChanged!(WorkCaseType.repair);
+    await tester.enterText(
+      find.byKey(const ValueKey('manual-case-title')),
+      '冷氣滴水',
+    );
+    await database.close();
+    final save = find.byKey(const ValueKey('manual-case-save'));
+    await tester.scrollUntilVisible(
+      save,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ManualWorkCaseFormScreen), findsOneWidget);
+    expect(find.byType(WorkCaseDetailScreen), findsNothing);
+    expect(find.text('目前無法完成這個動作，請稍後再試。'), findsOneWidget);
+    expect(find.text('建立案件'), findsOneWidget);
+  });
 }
 
 Widget _app(AppCompositionRoot root) => AppCompositionScope(

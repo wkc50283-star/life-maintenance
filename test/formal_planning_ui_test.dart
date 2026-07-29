@@ -9,10 +9,13 @@ import 'package:life_maintenance/models/maintenance_plan_enums.dart';
 import 'package:life_maintenance/models/maintenance_plan_step.dart';
 import 'package:life_maintenance/models/milestone.dart';
 import 'package:life_maintenance/models/milestone_enums.dart';
+import 'package:life_maintenance/models/work_case.dart';
+import 'package:life_maintenance/models/work_case_enums.dart';
 import 'package:life_maintenance/repositories/formal_planning_editor.dart';
 import 'package:life_maintenance/screens/add_screen.dart';
 import 'package:life_maintenance/screens/formal_planning_screens.dart';
 import 'package:life_maintenance/screens/item_detail_screen.dart';
+import 'package:life_maintenance/screens/work_case_screens.dart';
 
 void main() {
   late AppDatabase database;
@@ -154,9 +157,184 @@ void main() {
     expect(find.text('一般提醒'), findsOneWidget);
     expect(find.text('階段性重點'), findsOneWidget);
     expect(find.text('提醒排程'), findsOneWidget);
+    expect(find.text('突發事項／工程'), findsOneWidget);
     expect(find.text('補登完成紀錄'), findsNothing);
     expect(find.textContaining('MaintenancePlan'), findsNothing);
     expect(find.textContaining('AnchorPolicy'), findsNothing);
+  });
+
+  testWidgets('manual WorkCase entry refuses to create without an Item', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      AppCompositionScope(
+        root: root,
+        child: const MaterialApp(home: Scaffold(body: AddScreen())),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await _openManualWorkCaseForm(tester);
+
+    expect(find.byType(ManualWorkCaseFormScreen), findsOneWidget);
+    expect(find.text('目前還沒有生活項目'), findsOneWidget);
+    expect(find.byKey(const ValueKey('manual-case-save')), findsNothing);
+  });
+
+  testWidgets(
+    'Add screen creates the selected manual WorkCase with one optional update',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(800, 1400);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+      await _seedItem(editor, now, id: 'item-first', name: '其他設備');
+      await _seedItem(editor, now, id: 'item-target', name: '浴室漏水');
+      await root.workCaseRuntime.createManual(
+        WorkCase(
+          id: 'case-existing',
+          itemId: 'item-first',
+          sourceType: WorkCaseSourceType.manual,
+          caseType: WorkCaseType.other,
+          title: '既有案件',
+          status: WorkCaseStatus.inProgress,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+      await tester.pumpWidget(
+        AppCompositionScope(
+          root: root,
+          child: const MaterialApp(home: Scaffold(body: AddScreen())),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await _openManualWorkCaseForm(tester);
+      tester
+          .widget<DropdownButtonFormField<String>>(
+            find.byKey(const ValueKey('manual-case-item')),
+          )
+          .onChanged!('item-target');
+      tester
+          .widget<DropdownButtonFormField<WorkCaseType>>(
+            find.byKey(const ValueKey('manual-case-type')),
+          )
+          .onChanged!(WorkCaseType.construction);
+      await tester.enterText(
+        find.byKey(const ValueKey('manual-case-title')),
+        '  浴室防水修繕  ',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('manual-case-initial-update')),
+        '  已確認牆角持續滲水  ',
+      );
+      await tester.tap(find.byKey(const ValueKey('manual-case-save')));
+      await tester.tap(find.byKey(const ValueKey('manual-case-save')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(WorkCaseDetailScreen), findsOneWidget);
+      expect(find.text('浴室防水修繕'), findsOneWidget);
+      expect(find.text('已確認牆角持續滲水'), findsOneWidget);
+      expect(find.text('既有案件'), findsNothing);
+      final targetCases = await root.workCaseRuntime.listCasesForItem(
+        'item-target',
+      );
+      expect(targetCases, hasLength(1));
+      final created = targetCases.single;
+      expect(created.sourceType, WorkCaseSourceType.manual);
+      expect(created.sourceId, isNull);
+      expect(created.sourceTaskId, isNull);
+      expect(created.itemId, 'item-target');
+      expect(created.title, '浴室防水修繕');
+      expect(created.caseType, WorkCaseType.construction);
+      expect(created.status, WorkCaseStatus.inProgress);
+      final updates = await root.workCaseRuntime.listUpdatesForCase(created.id);
+      expect(updates, hasLength(1));
+      expect(updates.single.workCaseId, created.id);
+      expect(updates.single.description, '已確認牆角持續滲水');
+      expect(
+        (await root.historyProjectionRepository.projectForItem(
+          'item-target',
+        )).entries,
+        isEmpty,
+      );
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(find.byType(AddScreen), findsOneWidget);
+    },
+  );
+
+  testWidgets('manual WorkCase validates title and omits a blank update', (
+    tester,
+  ) async {
+    await _seedItem(editor, now, id: 'item-target', name: '客廳窗戶');
+    await tester.pumpWidget(
+      AppCompositionScope(
+        root: root,
+        child: const MaterialApp(home: Scaffold(body: AddScreen())),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _openManualWorkCaseForm(tester);
+
+    tester
+        .widget<DropdownButtonFormField<String>>(
+          find.byKey(const ValueKey('manual-case-item')),
+        )
+        .onChanged!('item-target');
+    tester
+        .widget<DropdownButtonFormField<WorkCaseType>>(
+          find.byKey(const ValueKey('manual-case-type')),
+        )
+        .onChanged!(WorkCaseType.repair);
+    await tester.enterText(
+      find.byKey(const ValueKey('manual-case-title')),
+      '   ',
+    );
+    await _tapManualWorkCaseSave(tester);
+    expect(find.text('請填寫案件標題'), findsOneWidget);
+    expect(await root.workCaseRuntime.listCasesForItem('item-target'), isEmpty);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('manual-case-title')),
+      '窗戶把手鬆動',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('manual-case-initial-update')),
+      '   ',
+    );
+    await _tapManualWorkCaseSave(tester);
+
+    final created = (await root.workCaseRuntime.listCasesForItem(
+      'item-target',
+    )).single;
+    expect(await root.workCaseRuntime.listUpdatesForCase(created.id), isEmpty);
+  });
+
+  testWidgets('canceling the manual WorkCase form writes nothing', (
+    tester,
+  ) async {
+    await _seedItem(editor, now, id: 'item-target', name: '陽台門');
+    await tester.pumpWidget(
+      AppCompositionScope(
+        root: root,
+        child: const MaterialApp(home: Scaffold(body: AddScreen())),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _openManualWorkCaseForm(tester);
+    await tester.enterText(
+      find.byKey(const ValueKey('manual-case-title')),
+      '陽台門卡住',
+    );
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AddScreen), findsOneWidget);
+    expect(await root.workCaseRuntime.listCasesForItem('item-target'), isEmpty);
   });
 
   testWidgets('category create form writes through the formal repository', (
@@ -1142,6 +1320,27 @@ Future<void> _selectMilestoneDate(WidgetTester tester) async {
   await tester.tap(find.text('尚未設定'));
   await tester.pumpAndSettle();
   await tester.tap(find.text('OK'));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _openManualWorkCaseForm(WidgetTester tester) async {
+  final entry = find.text('突發事項／工程');
+  await tester.scrollUntilVisible(
+    entry,
+    200,
+    scrollable: find.byType(Scrollable).first,
+  );
+  await tester.tap(entry);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _tapManualWorkCaseSave(WidgetTester tester) async {
+  final save = find.byKey(const ValueKey('manual-case-save'));
+  final scrollable = find.byType(Scrollable).first;
+  await tester.scrollUntilVisible(save, 200, scrollable: scrollable);
+  await tester.drag(scrollable, const Offset(0, -80));
+  await tester.pumpAndSettle();
+  await tester.tap(save);
   await tester.pumpAndSettle();
 }
 
