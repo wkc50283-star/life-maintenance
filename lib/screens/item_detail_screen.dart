@@ -20,6 +20,19 @@ import 'formal_planning_screens.dart';
 import 'task_reminder_screens.dart';
 import 'work_case_screens.dart';
 
+const _itemDetailJumpSections = [
+  '需要注意',
+  '保養項目',
+  '一般提醒',
+  '提醒與排程',
+  '階段性重點／大修',
+  '進行中案件',
+  '已結案件',
+  '史略',
+  '附件',
+  '基本資料',
+];
+
 class ItemDetailScreen extends StatefulWidget {
   const ItemDetailScreen({super.key, required this.item});
 
@@ -32,6 +45,16 @@ class ItemDetailScreen extends StatefulWidget {
 class _ItemDetailScreenState extends State<ItemDetailScreen> {
   _ItemDetailSnapshot? _snapshot;
   Object? _loadError;
+  final _scrollController = ScrollController();
+  final _sectionKeys = {
+    for (final title in _itemDetailJumpSections) title: GlobalKey(),
+  };
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   void didChangeDependencies() {
@@ -171,9 +194,36 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
           item: widget.item,
           snapshot: snapshot,
           onCaseChanged: _reload,
+          scrollController: _scrollController,
+          sectionKeys: _sectionKeys,
+          onSectionSelected: _scrollToSection,
         ),
       },
     );
+  }
+
+  Future<void> _scrollToSection(String title) async {
+    final sectionKey = _sectionKeys[title];
+    if (sectionKey == null || !_scrollController.hasClients) return;
+
+    if (sectionKey.currentContext == null) {
+      _scrollController.jumpTo(0);
+      await WidgetsBinding.instance.endOfFrame;
+      while (mounted && sectionKey.currentContext == null) {
+        final position = _scrollController.position;
+        if (position.pixels >= position.maxScrollExtent) break;
+        final nextOffset = (position.pixels + position.viewportDimension).clamp(
+          0.0,
+          position.maxScrollExtent,
+        );
+        _scrollController.jumpTo(nextOffset);
+        await WidgetsBinding.instance.endOfFrame;
+      }
+    }
+
+    final sectionContext = sectionKey.currentContext;
+    if (sectionContext == null || !sectionContext.mounted) return;
+    await Scrollable.ensureVisible(sectionContext, duration: Duration.zero);
   }
 
   void _retry() {
@@ -205,11 +255,17 @@ class _ItemDetailBody extends StatelessWidget {
     required this.item,
     required this.snapshot,
     required this.onCaseChanged,
+    required this.scrollController,
+    required this.sectionKeys,
+    required this.onSectionSelected,
   });
 
   final Item item;
   final _ItemDetailSnapshot snapshot;
   final Future<void> Function() onCaseChanged;
+  final ScrollController scrollController;
+  final Map<String, GlobalKey> sectionKeys;
+  final Future<void> Function(String) onSectionSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -227,6 +283,7 @@ class _ItemDetailBody extends StatelessWidget {
         .toList(growable: false);
 
     return ListView(
+      controller: scrollController,
       padding: UiInsets.pageCompact,
       children: [
         _ItemHero(item: item, openCaseCount: openCases.length),
@@ -236,224 +293,256 @@ class _ItemDetailBody extends StatelessWidget {
           icon: Icons.info_outline_rounded,
           child: _MainInformation(item: item),
         ),
-        _DetailSection(
-          title: '需要注意',
-          icon: Icons.notifications_active_outlined,
-          child:
-              snapshot.tasks.isEmpty &&
-                  attentionMilestones.isEmpty &&
-                  attentionCases.isEmpty
-              ? const _EmptyMessage('目前沒有需要注意的事項')
-              : Column(
-                  children: [
-                    for (final task in snapshot.tasks)
-                      _FactCard(
-                        key: ValueKey('attention-task-${task.id}'),
-                        title: task.title,
-                        subtitle: '提醒',
-                        detail: '日期 ${_formatDate(task.dueDate)}',
-                        status: _taskStatusLabel(task.status),
-                        onTap: () => _openTask(context, task.id),
-                      ),
-                    for (final milestone in attentionMilestones)
-                      _FactCard(
-                        key: ValueKey('attention-milestone-${milestone.id}'),
-                        title: milestone.title,
-                        subtitle: _milestoneKindLabel(milestone.kind),
-                        detail: _milestoneTriggerLabel(milestone),
-                        status: _milestoneStatusLabel(milestone.status),
-                        onTap: () => _openMilestone(context, milestone),
-                      ),
-                    for (final entry in attentionCases)
-                      _FactCard(
-                        key: ValueKey(
-                          'attention-work-case-${entry.workCase.id}',
+        _SectionJumpNavigation(onSelected: onSectionSelected),
+        KeyedSubtree(
+          key: sectionKeys['需要注意'],
+          child: _DetailSection(
+            title: '需要注意',
+            icon: Icons.notifications_active_outlined,
+            child:
+                snapshot.tasks.isEmpty &&
+                    attentionMilestones.isEmpty &&
+                    attentionCases.isEmpty
+                ? const _EmptyMessage('目前沒有需要注意的事項')
+                : Column(
+                    children: [
+                      for (final task in snapshot.tasks)
+                        _FactCard(
+                          key: ValueKey('attention-task-${task.id}'),
+                          title: task.title,
+                          subtitle: '提醒',
+                          detail: '日期 ${_formatDate(task.dueDate)}',
+                          status: _taskStatusLabel(task.status),
+                          onTap: () => _openTask(context, task.id),
                         ),
-                        title: entry.workCase.title,
-                        subtitle: _workCaseTypeLabel(entry.workCase.caseType),
-                        detail: _caseDetail(entry),
-                        status: _workCaseStatusLabel(entry.workCase.status),
-                        onTap: () => _openCase(context, entry.workCase),
-                      ),
-                  ],
-                ),
+                      for (final milestone in attentionMilestones)
+                        _FactCard(
+                          key: ValueKey('attention-milestone-${milestone.id}'),
+                          title: milestone.title,
+                          subtitle: _milestoneKindLabel(milestone.kind),
+                          detail: _milestoneTriggerLabel(milestone),
+                          status: _milestoneStatusLabel(milestone.status),
+                          onTap: () => _openMilestone(context, milestone),
+                        ),
+                      for (final entry in attentionCases)
+                        _FactCard(
+                          key: ValueKey(
+                            'attention-work-case-${entry.workCase.id}',
+                          ),
+                          title: entry.workCase.title,
+                          subtitle: _workCaseTypeLabel(entry.workCase.caseType),
+                          detail: _caseDetail(entry),
+                          status: _workCaseStatusLabel(entry.workCase.status),
+                          onTap: () => _openCase(context, entry.workCase),
+                        ),
+                    ],
+                  ),
+          ),
         ),
-        _DetailSection(
-          title: '保養項目',
-          icon: Icons.home_repair_service_outlined,
-          onManage: () async {
-            final changed = await _openPlanning(
-              context,
-              PlanningContentKind.maintenancePlan,
-              item.id,
-            );
-            if (changed == true) await onCaseChanged();
-          },
-          child: snapshot.plans.isEmpty
-              ? const _EmptyMessage('目前沒有保養項目。')
-              : Column(
-                  children: [
-                    for (final plan in snapshot.plans)
-                      _FactCard(
-                        title: plan.title,
-                        subtitle: _maintenancePlanTypeLabel(plan.planType),
-                        detail: _planDetail(plan, snapshot.schedules),
-                        status: _maintenancePlanStatusLabel(plan.status),
-                      ),
-                  ],
-                ),
+        KeyedSubtree(
+          key: sectionKeys['保養項目'],
+          child: _DetailSection(
+            title: '保養項目',
+            icon: Icons.home_repair_service_outlined,
+            onManage: () async {
+              final changed = await _openPlanning(
+                context,
+                PlanningContentKind.maintenancePlan,
+                item.id,
+              );
+              if (changed == true) await onCaseChanged();
+            },
+            child: snapshot.plans.isEmpty
+                ? const _EmptyMessage('目前沒有保養項目。')
+                : Column(
+                    children: [
+                      for (final plan in snapshot.plans)
+                        _FactCard(
+                          title: plan.title,
+                          subtitle: _maintenancePlanTypeLabel(plan.planType),
+                          detail: _planDetail(plan, snapshot.schedules),
+                          status: _maintenancePlanStatusLabel(plan.status),
+                        ),
+                    ],
+                  ),
+          ),
         ),
-        _DetailSection(
-          title: '一般提醒',
-          icon: Icons.notifications_none_rounded,
-          onManage: () async {
-            final changed = await _openPlanning(
-              context,
-              PlanningContentKind.reminder,
-              item.id,
-            );
-            if (changed == true) await onCaseChanged();
-          },
-          child: snapshot.reminders.isEmpty
-              ? const _EmptyMessage('目前沒有一般提醒。')
-              : Column(
-                  children: [
-                    for (final reminder in snapshot.reminders)
-                      _FactCard(
-                        title: reminder.title,
-                        subtitle: _reminderTypeLabel(reminder.reminderType),
-                        detail:
-                            _nullableText(reminder.description) ?? '已納入生活項目管理',
-                        status: _genericStatusLabel(reminder.status),
-                      ),
-                  ],
-                ),
+        KeyedSubtree(
+          key: sectionKeys['一般提醒'],
+          child: _DetailSection(
+            title: '一般提醒',
+            icon: Icons.notifications_none_rounded,
+            onManage: () async {
+              final changed = await _openPlanning(
+                context,
+                PlanningContentKind.reminder,
+                item.id,
+              );
+              if (changed == true) await onCaseChanged();
+            },
+            child: snapshot.reminders.isEmpty
+                ? const _EmptyMessage('目前沒有一般提醒。')
+                : Column(
+                    children: [
+                      for (final reminder in snapshot.reminders)
+                        _FactCard(
+                          title: reminder.title,
+                          subtitle: _reminderTypeLabel(reminder.reminderType),
+                          detail:
+                              _nullableText(reminder.description) ??
+                              '已納入生活項目管理',
+                          status: _genericStatusLabel(reminder.status),
+                        ),
+                    ],
+                  ),
+          ),
         ),
-        _DetailSection(
-          title: '提醒與排程',
-          icon: Icons.event_repeat_outlined,
-          onManage: () async {
-            final changed = await _openPlanning(
-              context,
-              PlanningContentKind.schedule,
-              item.id,
-            );
-            if (changed == true) await onCaseChanged();
-          },
-          child: snapshot.schedules.isEmpty
-              ? const _EmptyMessage('目前沒有排程。')
-              : Column(
-                  children: [
-                    for (final schedule in snapshot.schedules)
-                      _FactCard(
-                        title: _nullableText(schedule.title) ?? '排程',
-                        subtitle: _cycleLabel(schedule),
-                        detail: '下次日期 ${_formatDate(schedule.nextDueDate)}',
-                        status: _scheduleStatusLabel(schedule.status),
-                      ),
-                  ],
-                ),
+        KeyedSubtree(
+          key: sectionKeys['提醒與排程'],
+          child: _DetailSection(
+            title: '提醒與排程',
+            icon: Icons.event_repeat_outlined,
+            onManage: () async {
+              final changed = await _openPlanning(
+                context,
+                PlanningContentKind.schedule,
+                item.id,
+              );
+              if (changed == true) await onCaseChanged();
+            },
+            child: snapshot.schedules.isEmpty
+                ? const _EmptyMessage('目前沒有排程。')
+                : Column(
+                    children: [
+                      for (final schedule in snapshot.schedules)
+                        _FactCard(
+                          title: _nullableText(schedule.title) ?? '排程',
+                          subtitle: _cycleLabel(schedule),
+                          detail: '下次日期 ${_formatDate(schedule.nextDueDate)}',
+                          status: _scheduleStatusLabel(schedule.status),
+                        ),
+                    ],
+                  ),
+          ),
         ),
-        _DetailSection(
-          title: '階段性重點／大修',
-          icon: Icons.flag_outlined,
-          onManage: () async {
-            final changed = await _openPlanning(
-              context,
-              PlanningContentKind.milestone,
-              item.id,
-            );
-            if (changed == true) await onCaseChanged();
-          },
-          child: snapshot.milestones.isEmpty
-              ? const _EmptyMessage('目前沒有階段性重點或大修。')
-              : Column(
-                  children: [
-                    for (final milestone in snapshot.milestones)
-                      _FactCard(
-                        title: milestone.title,
-                        subtitle: _milestoneKindLabel(milestone.kind),
-                        detail: _milestoneTriggerLabel(milestone),
-                        status: _milestoneStatusLabel(milestone.status),
-                      ),
-                  ],
-                ),
+        KeyedSubtree(
+          key: sectionKeys['階段性重點／大修'],
+          child: _DetailSection(
+            title: '階段性重點／大修',
+            icon: Icons.flag_outlined,
+            onManage: () async {
+              final changed = await _openPlanning(
+                context,
+                PlanningContentKind.milestone,
+                item.id,
+              );
+              if (changed == true) await onCaseChanged();
+            },
+            child: snapshot.milestones.isEmpty
+                ? const _EmptyMessage('目前沒有階段性重點或大修。')
+                : Column(
+                    children: [
+                      for (final milestone in snapshot.milestones)
+                        _FactCard(
+                          title: milestone.title,
+                          subtitle: _milestoneKindLabel(milestone.kind),
+                          detail: _milestoneTriggerLabel(milestone),
+                          status: _milestoneStatusLabel(milestone.status),
+                        ),
+                    ],
+                  ),
+          ),
         ),
-        _DetailSection(
-          title: '進行中案件',
-          icon: Icons.handyman_outlined,
-          child: openCases.isEmpty
-              ? const _EmptyMessage('目前沒有進行中的案件。')
-              : Column(
-                  children: [
-                    for (final entry in openCases)
-                      _FactCard(
-                        title: entry.workCase.title,
-                        subtitle: _workCaseTypeLabel(entry.workCase.caseType),
-                        detail: _caseDetail(entry),
-                        status: _workCaseStatusLabel(entry.workCase.status),
-                        onTap: () => _openCase(context, entry.workCase),
-                      ),
-                  ],
-                ),
+        KeyedSubtree(
+          key: sectionKeys['進行中案件'],
+          child: _DetailSection(
+            title: '進行中案件',
+            icon: Icons.handyman_outlined,
+            child: openCases.isEmpty
+                ? const _EmptyMessage('目前沒有進行中的案件。')
+                : Column(
+                    children: [
+                      for (final entry in openCases)
+                        _FactCard(
+                          title: entry.workCase.title,
+                          subtitle: _workCaseTypeLabel(entry.workCase.caseType),
+                          detail: _caseDetail(entry),
+                          status: _workCaseStatusLabel(entry.workCase.status),
+                          onTap: () => _openCase(context, entry.workCase),
+                        ),
+                    ],
+                  ),
+          ),
         ),
-        _DetailSection(
-          title: '已結案件',
-          icon: Icons.inventory_2_outlined,
-          child: closedCases.isEmpty
-              ? const _EmptyMessage('目前沒有已結案件。')
-              : Column(
-                  children: [
-                    for (final entry in closedCases)
-                      _FactCard(
-                        title: entry.workCase.title,
-                        subtitle: _workCaseTypeLabel(entry.workCase.caseType),
-                        detail:
-                            '結束於 ${_formatDate(entry.workCase.closedAt ?? entry.workCase.updatedAt)}',
-                        status: _workCaseStatusLabel(entry.workCase.status),
-                        onTap: () => _openCase(context, entry.workCase),
-                      ),
-                  ],
-                ),
+        KeyedSubtree(
+          key: sectionKeys['已結案件'],
+          child: _DetailSection(
+            title: '已結案件',
+            icon: Icons.inventory_2_outlined,
+            child: closedCases.isEmpty
+                ? const _EmptyMessage('目前沒有已結案件。')
+                : Column(
+                    children: [
+                      for (final entry in closedCases)
+                        _FactCard(
+                          title: entry.workCase.title,
+                          subtitle: _workCaseTypeLabel(entry.workCase.caseType),
+                          detail:
+                              '結束於 ${_formatDate(entry.workCase.closedAt ?? entry.workCase.updatedAt)}',
+                          status: _workCaseStatusLabel(entry.workCase.status),
+                          onTap: () => _openCase(context, entry.workCase),
+                        ),
+                    ],
+                  ),
+          ),
         ),
-        _DetailSection(
-          title: '史略',
-          icon: Icons.history_rounded,
-          child: snapshot.historyEntries.isEmpty
-              ? const _EmptyMessage('目前還沒有史略。')
-              : Column(
-                  children: [
-                    for (final entry in snapshot.historyEntries)
-                      _FactCard(
-                        title: _historyTitle(entry),
-                        subtitle: _historyTypeLabel(entry),
-                        detail: _historyDetail(entry),
-                        status: _formatDate(entry.occurredAt),
-                      ),
-                  ],
-                ),
+        KeyedSubtree(
+          key: sectionKeys['史略'],
+          child: _DetailSection(
+            title: '史略',
+            icon: Icons.history_rounded,
+            child: snapshot.historyEntries.isEmpty
+                ? const _EmptyMessage('目前還沒有史略。')
+                : Column(
+                    children: [
+                      for (final entry in snapshot.historyEntries)
+                        _FactCard(
+                          title: _historyTitle(entry),
+                          subtitle: _historyTypeLabel(entry),
+                          detail: _historyDetail(entry),
+                          status: _formatDate(entry.occurredAt),
+                        ),
+                    ],
+                  ),
+          ),
         ),
-        _DetailSection(
-          title: '附件',
-          icon: Icons.attach_file_rounded,
-          child: snapshot.attachments.isEmpty
-              ? const _EmptyMessage('目前沒有附件。')
-              : Column(
-                  children: [
-                    for (final attachment in snapshot.attachments)
-                      _FactCard(
-                        title: _attachmentName(attachment),
-                        subtitle: _attachmentKindLabel(attachment.kind),
-                        detail: _attachmentDetail(attachment),
-                        status: _attachmentStateLabel(attachment.state),
-                      ),
-                  ],
-                ),
+        KeyedSubtree(
+          key: sectionKeys['附件'],
+          child: _DetailSection(
+            title: '附件',
+            icon: Icons.attach_file_rounded,
+            child: snapshot.attachments.isEmpty
+                ? const _EmptyMessage('目前沒有附件。')
+                : Column(
+                    children: [
+                      for (final attachment in snapshot.attachments)
+                        _FactCard(
+                          title: _attachmentName(attachment),
+                          subtitle: _attachmentKindLabel(attachment.kind),
+                          detail: _attachmentDetail(attachment),
+                          status: _attachmentStateLabel(attachment.state),
+                        ),
+                    ],
+                  ),
+          ),
         ),
-        _DetailSection(
-          title: '基本資料',
-          icon: Icons.info_outline_rounded,
-          child: _BasicInformation(item: item),
+        KeyedSubtree(
+          key: sectionKeys['基本資料'],
+          child: _DetailSection(
+            title: '基本資料',
+            icon: Icons.info_outline_rounded,
+            child: _BasicInformation(item: item),
+          ),
         ),
       ],
     );
@@ -492,6 +581,41 @@ class _ItemDetailBody extends StatelessWidget {
       ),
     );
     if (changed != null) await onCaseChanged();
+  }
+}
+
+class _SectionJumpNavigation extends StatelessWidget {
+  const _SectionJumpNavigation({required this.onSelected});
+
+  final Future<void> Function(String) onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: UiSpace.sm),
+      child: UiSurfaceCard(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('快速前往', style: UiType.sectionTitle),
+            const SizedBox(height: UiSpace.sm),
+            Wrap(
+              spacing: UiSpace.xs,
+              runSpacing: UiSpace.xs,
+              children: [
+                for (final title in _itemDetailJumpSections)
+                  ActionChip(
+                    key: ValueKey('item-detail-jump-$title'),
+                    label: Text(title),
+                    onPressed: () async => onSelected(title),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

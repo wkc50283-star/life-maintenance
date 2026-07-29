@@ -63,15 +63,20 @@ void main() {
       300,
       scrollable: find.byType(Scrollable).last,
     );
-    expect(find.text('清洗濾網'), findsNWidgets(2));
+    expect(find.text('清洗濾網'), findsOneWidget);
 
-    await tester.scrollUntilVisible(
-      find.text('提醒與排程'),
-      300,
-      scrollable: find.byType(Scrollable).last,
-    );
-    expect(find.text('清洗濾網'), findsNWidgets(2));
-    expect(find.text('保固到期提醒'), findsNWidgets(2));
+    await tester.drag(find.byType(ListView), const Offset(0, 10000));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('item-detail-jump-一般提醒')));
+    await tester.pumpAndSettle();
+    expect(find.text('保固到期提醒'), findsWidgets);
+
+    await tester.drag(find.byType(ListView), const Offset(0, 10000));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('item-detail-jump-提醒與排程')));
+    await tester.pumpAndSettle();
+    expect(find.text('清洗濾網'), findsOneWidget);
+    expect(find.text('保固到期提醒'), findsWidgets);
     expect(find.text('每月'), findsOneWidget);
 
     await tester.scrollUntilVisible(
@@ -92,27 +97,24 @@ void main() {
     expect(find.text('冷氣異音檢查'), findsOneWidget);
     expect(find.text('下一步：等待到府檢查'), findsOneWidget);
 
-    await tester.scrollUntilVisible(
-      find.text('史略'),
-      400,
-      scrollable: find.byType(Scrollable).last,
-    );
+    await tester.drag(find.byType(ListView), const Offset(0, 10000));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('item-detail-jump-史略')));
+    await tester.pumpAndSettle();
     expect(find.text('完成冷氣濾網清潔'), findsOneWidget);
 
-    await tester.scrollUntilVisible(
-      find.text('附件'),
-      300,
-      scrollable: find.byType(Scrollable).last,
-    );
+    await tester.drag(find.byType(ListView), const Offset(0, 10000));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('item-detail-jump-附件')));
+    await tester.pumpAndSettle();
     expect(find.text('冷氣保固書.pdf'), findsOneWidget);
     expect(find.text('application/pdf · 2.0 KB'), findsOneWidget);
     expect(find.textContaining('managed-item-document'), findsNothing);
 
-    await tester.scrollUntilVisible(
-      find.text('基本資料'),
-      300,
-      scrollable: find.byType(Scrollable).last,
-    );
+    await tester.drag(find.byType(ListView), const Offset(0, 10000));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('item-detail-jump-基本資料')));
+    await tester.pumpAndSettle();
     expect(find.text('夏季使用頻繁'), findsOneWidget);
 
     expect(
@@ -160,7 +162,7 @@ void main() {
     await tester.tap(find.text('客廳冷氣'));
     await tester.pumpAndSettle();
 
-    expect(find.text('需要注意'), findsOneWidget);
+    expect(find.text('需要注意'), findsWidgets);
     expect(
       find.byKey(const ValueKey('attention-task-task-overdue')),
       findsOneWidget,
@@ -282,7 +284,7 @@ void main() {
     await tester.tap(find.text('書房桌燈'));
     await tester.pumpAndSettle();
 
-    expect(find.text('需要注意'), findsOneWidget);
+    expect(find.text('需要注意'), findsWidgets);
     expect(find.text('目前沒有需要注意的事項'), findsOneWidget);
   });
 
@@ -318,13 +320,16 @@ void main() {
       '附件',
       '基本資料',
     ];
-    for (final title in sectionTitles) {
-      expect(find.text(title), findsOneWidget);
+    expect(find.text('主資訊'), findsOneWidget);
+    for (final title in sectionTitles.skip(1)) {
+      expect(find.text(title), findsNWidgets(2));
     }
     for (var index = 0; index < sectionTitles.length - 1; index += 1) {
       expect(
-        tester.getTopLeft(find.text(sectionTitles[index])).dy,
-        lessThan(tester.getTopLeft(find.text(sectionTitles[index + 1])).dy),
+        tester.getTopLeft(find.text(sectionTitles[index]).last).dy,
+        lessThan(
+          tester.getTopLeft(find.text(sectionTitles[index + 1]).last).dy,
+        ),
       );
     }
     expect(
@@ -340,18 +345,69 @@ void main() {
       );
       expect(
         tester.getTopLeft(find.text(label)).dy,
-        lessThan(tester.getTopLeft(find.text('需要注意')).dy),
+        lessThan(tester.getTopLeft(find.text('需要注意').last).dy),
       );
     }
     for (final label in const ['建立日期', '購買日期', '保固到期', '管理年限', '備註']) {
       expect(find.text(label), findsOneWidget);
       expect(
         tester.getTopLeft(find.text(label)).dy,
-        greaterThan(tester.getTopLeft(find.text('基本資料')).dy),
+        greaterThan(tester.getTopLeft(find.text('基本資料').last).dy),
       );
     }
     expect(find.text('未設定'), findsNWidgets(5));
     expect(find.text('目前沒有需要注意的事項'), findsOneWidget);
+  });
+
+  testWidgets('item detail jump navigation reaches every formal section', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(430, 800);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    final database = AppDatabase(NativeDatabase.memory());
+    final root = AppCompositionRoot(database: database);
+    addTearDown(database.close);
+    final now = DateTime.utc(2026, 7, 29, 8);
+    await _seedItem(root, now, id: 'item-jump', name: '導覽測試桌燈');
+
+    await tester.pumpWidget(_app(root));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('導覽測試桌燈'));
+    await tester.pumpAndSettle();
+
+    const jumpTitles = [
+      '需要注意',
+      '保養項目',
+      '一般提醒',
+      '提醒與排程',
+      '階段性重點／大修',
+      '進行中案件',
+      '已結案件',
+      '史略',
+      '附件',
+      '基本資料',
+    ];
+    expect(find.text('快速前往'), findsOneWidget);
+    for (final title in jumpTitles) {
+      await tester.drag(find.byType(ListView), const Offset(0, 10000));
+      await tester.pumpAndSettle();
+      final jump = find.byKey(ValueKey('item-detail-jump-$title'));
+      expect(jump, findsOneWidget);
+      await tester.tap(jump);
+      await tester.pumpAndSettle();
+
+      final sectionTitle = find.text(title).last;
+      expect(sectionTitle, findsOneWidget);
+      final sectionTop = tester.getTopLeft(sectionTitle).dy;
+      expect(sectionTop, greaterThanOrEqualTo(0));
+      expect(sectionTop, lessThan(800));
+    }
+
+    expect(await root.itemReadRepository.loadItems(), hasLength(1));
+    expect(await root.taskRepository.loadTasks(), isEmpty);
   });
 }
 
