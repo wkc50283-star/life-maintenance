@@ -13,6 +13,204 @@ import '../models/work_case_update.dart';
 import '../repositories/repository_constraint_exception.dart';
 import '../widgets/ui_v2_components.dart';
 
+class ManualWorkCaseFormScreen extends StatefulWidget {
+  const ManualWorkCaseFormScreen({super.key});
+
+  @override
+  State<ManualWorkCaseFormScreen> createState() =>
+      _ManualWorkCaseFormScreenState();
+}
+
+class _ManualWorkCaseFormScreenState extends State<ManualWorkCaseFormScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _title = TextEditingController();
+  final _initialUpdate = TextEditingController();
+  List<Item>? _items;
+  Object? _loadError;
+  String? _itemId;
+  WorkCaseType? _caseType;
+  bool _saving = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_items == null && _loadError == null) _loadItems();
+  }
+
+  @override
+  void dispose() {
+    _title.dispose();
+    _initialUpdate.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadItems() async {
+    try {
+      final values = await AppCompositionScope.of(
+        context,
+      ).itemReadRepository.loadItems();
+      if (!mounted) return;
+      setState(() {
+        _items = values
+            .where((item) => item.status != ItemStatus.archived)
+            .toList(growable: false);
+        _loadError = null;
+      });
+    } catch (error) {
+      if (mounted) setState(() => _loadError = error);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('新增突發事項／工程')),
+      body: switch ((_items, _loadError)) {
+        (null, null) => const Center(child: CircularProgressIndicator()),
+        (null, _) => _LoadFailure(onRetry: _retry),
+        (final items?, _) when items.isEmpty => const Padding(
+          padding: UiInsets.page,
+          child: UiEmptyState(
+            icon: Icons.inventory_2_outlined,
+            title: '目前還沒有生活項目',
+            description: '請先建立生活項目，才能新增突發事項或工程案件。',
+          ),
+        ),
+        (final items?, _) => Form(
+          key: _formKey,
+          child: ListView(
+            padding: UiInsets.page,
+            children: [
+              const _FormIntro(
+                title: '建立正在處理的案件',
+                description: '選擇所屬生活項目，後續可持續補充進度、等待狀況與結果。',
+              ),
+              _FormSection(
+                title: '案件資料',
+                icon: Icons.handyman_outlined,
+                children: [
+                  DropdownButtonFormField<String>(
+                    key: const ValueKey('manual-case-item'),
+                    initialValue: _itemId,
+                    decoration: const InputDecoration(labelText: '所屬生活項目'),
+                    hint: const Text('請選擇生活項目'),
+                    items: [
+                      for (final item in items)
+                        DropdownMenuItem(
+                          value: item.id,
+                          child: Text(item.name),
+                        ),
+                    ],
+                    validator: (value) => value == null ? '請選擇生活項目' : null,
+                    onChanged: _saving
+                        ? null
+                        : (value) => setState(() => _itemId = value),
+                  ),
+                  const SizedBox(height: UiSpace.md),
+                  TextFormField(
+                    key: const ValueKey('manual-case-title'),
+                    controller: _title,
+                    decoration: const InputDecoration(labelText: '案件標題'),
+                    validator: (value) =>
+                        _text(value) == null ? '請填寫案件標題' : null,
+                  ),
+                  const SizedBox(height: UiSpace.md),
+                  DropdownButtonFormField<WorkCaseType>(
+                    key: const ValueKey('manual-case-type'),
+                    initialValue: _caseType,
+                    decoration: const InputDecoration(labelText: '案件類型'),
+                    hint: const Text('請選擇案件類型'),
+                    items: [
+                      for (final type in WorkCaseType.values)
+                        DropdownMenuItem(
+                          value: type,
+                          child: Text(_caseTypeLabel(type)),
+                        ),
+                    ],
+                    validator: (value) => value == null ? '請選擇案件類型' : null,
+                    onChanged: _saving
+                        ? null
+                        : (value) => setState(() => _caseType = value),
+                  ),
+                  const SizedBox(height: UiSpace.md),
+                  TextFormField(
+                    key: const ValueKey('manual-case-initial-update'),
+                    controller: _initialUpdate,
+                    minLines: 3,
+                    maxLines: 6,
+                    decoration: const InputDecoration(
+                      labelText: '初始狀況／第一筆進度（選填）',
+                      alignLabelWithHint: true,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: UiSpace.lg),
+              UiPrimaryButton(
+                key: const ValueKey('manual-case-save'),
+                label: _saving ? '建立中…' : '建立案件',
+                icon: Icons.add_task_rounded,
+                onPressed: _saving ? null : _save,
+              ),
+            ],
+          ),
+        ),
+      },
+    );
+  }
+
+  void _retry() {
+    setState(() => _loadError = null);
+    _loadItems();
+  }
+
+  Future<void> _save() async {
+    if (_saving || !_formKey.currentState!.validate()) return;
+    final runtime = AppCompositionScope.of(context).workCaseRuntime;
+    if (runtime == null) {
+      _showError(context, StateError('正式案件服務目前無法使用。'));
+      return;
+    }
+    final itemId = _itemId;
+    final caseType = _caseType;
+    if (itemId == null || caseType == null) return;
+
+    setState(() => _saving = true);
+    final now = DateTime.now();
+    final workCaseId = 'case-${now.microsecondsSinceEpoch}';
+    final initialDescription = _text(_initialUpdate.text);
+    final workCase = WorkCase(
+      id: workCaseId,
+      itemId: itemId,
+      sourceType: WorkCaseSourceType.manual,
+      caseType: caseType,
+      title: _title.text.trim(),
+      occurredAt: now,
+      startedAt: now,
+      status: WorkCaseStatus.inProgress,
+      createdAt: now,
+      updatedAt: now,
+    );
+    final initialUpdate = initialDescription == null
+        ? null
+        : WorkCaseUpdate(
+            id: 'update-${now.microsecondsSinceEpoch}',
+            workCaseId: workCaseId,
+            occurredAt: now,
+            description: initialDescription,
+            createdAt: now,
+          );
+    try {
+      await runtime.createManual(workCase, initialUpdate: initialUpdate);
+      if (mounted) Navigator.pop(context, workCaseId);
+    } catch (error) {
+      if (mounted) _showError(context, error);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+}
+
 class WorkCaseListScreen extends StatefulWidget {
   const WorkCaseListScreen({super.key});
 

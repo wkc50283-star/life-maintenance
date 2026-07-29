@@ -10,6 +10,7 @@ import '../widgets/reminder_list_sheet.dart';
 import '../widgets/ui_v2_components.dart';
 import 'formal_planning_screens.dart';
 import 'item_detail_screen.dart';
+import 'work_case_screens.dart';
 
 class AddScreen extends StatelessWidget {
   const AddScreen({super.key});
@@ -154,9 +155,59 @@ class _FormalAddScreen extends StatelessWidget {
               ),
             ),
           ),
+          const SizedBox(height: UiSpace.sm),
+          const _AddSectionHeader(
+            step: '3',
+            title: '開始處理正在發生的事情',
+            description: '突發狀況、維修或工程，可以從案件持續留下處理過程。',
+          ),
+          AddEntryCard(
+            icon: Icons.handyman_outlined,
+            title: '突發事項／工程',
+            description: '建立仍在處理中的突發狀況、修繕、維修或工程案件。',
+            onTap: () => _openManualWorkCase(context),
+          ),
         ],
       ),
     );
+  }
+
+  Future<void> _openManualWorkCase(BuildContext context) async {
+    final createdCaseId = await Navigator.of(context).push<String>(
+      MaterialPageRoute<String>(
+        builder: (_) => const ManualWorkCaseFormScreen(),
+      ),
+    );
+    if (!context.mounted || createdCaseId == null) return;
+
+    try {
+      final root = AppCompositionScope.of(context);
+      final runtime = root.workCaseRuntime;
+      if (runtime == null) throw StateError('正式案件服務目前無法使用。');
+      final createdCase = await runtime.findCaseById(createdCaseId);
+      if (createdCase == null || createdCase.id != createdCaseId) {
+        throw StateError('無法讀取剛建立的案件。');
+      }
+      final items = await root.itemReadRepository.loadItems();
+      final matchingItems = items.where(
+        (item) => item.id == createdCase.itemId,
+      );
+      if (!context.mounted) return;
+      if (matchingItems.length != 1) {
+        _showWorkCaseReadFailure(context);
+        return;
+      }
+      await Navigator.of(context).push<bool>(
+        MaterialPageRoute<bool>(
+          builder: (_) => WorkCaseDetailScreen(
+            workCaseId: createdCase.id,
+            itemName: matchingItems.single.name,
+          ),
+        ),
+      );
+    } catch (_) {
+      if (context.mounted) _showWorkCaseReadFailure(context);
+    }
   }
 
   Future<void> _openItemForm(BuildContext context) async {
@@ -192,6 +243,12 @@ class _FormalAddScreen extends StatelessWidget {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('暫時無法讀取生活項目。')));
+  }
+
+  void _showWorkCaseReadFailure(BuildContext context) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('暫時無法讀取剛建立的案件。')));
   }
 }
 
