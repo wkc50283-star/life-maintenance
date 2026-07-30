@@ -22,12 +22,6 @@ class DriftItemCreationRuntime implements ItemCreationRuntime {
           'Item ID and name must not be empty.',
         );
       }
-      if (request.managementPeriods.isEmpty) {
-        throw const RepositoryConstraintException(
-          'Item requires at least one management period.',
-        );
-      }
-
       final categoryId = request.categoryId?.trim().isNotEmpty == true
           ? request.categoryId!.trim()
           : ItemSystemCategory.unclassifiedId;

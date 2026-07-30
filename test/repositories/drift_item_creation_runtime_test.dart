@@ -212,17 +212,65 @@ void main() {
     },
   );
 
-  test('duplicate created fact and invalid periods are rejected', () async {
+  test('duplicate created fact is rejected', () async {
     await runtime.create(request());
     await expectLater(runtime.create(request()), throwsA(anything));
-    await expectLater(
-      runtime.create(request(itemId: 'empty-periods', periods: const {})),
-      throwsA(isA<RepositoryConstraintException>()),
-    );
     expect(
       await database.select(database.itemLifecycleEvents).get(),
       hasLength(1),
     );
+  });
+
+  test('creates Item and history with no management periods', () async {
+    const itemId = 'empty-periods';
+    await runtime.create(request(itemId: itemId, periods: const {}));
+
+    expect(await database.select(database.items).get(), hasLength(1));
+    expect(
+      await database.select(database.itemLifecycleEvents).get(),
+      hasLength(1),
+    );
+    expect(
+      await database.select(database.itemManagementPeriods).get(),
+      isEmpty,
+    );
+    expect(
+      await database.select(database.itemLifecycleEventPeriods).get(),
+      isEmpty,
+    );
+
+    final event = await runtime.findCreatedEvent(itemId);
+    expect(event, isNotNull);
+    expect(event!.managementPeriods, isEmpty);
+
+    final history = DriftHistoryProjectionRepository(
+      database: database,
+      attachments: repositories.attachments,
+    );
+    final projection = await history.projectForItem(itemId);
+    expect(projection.itemCreatedEntries, hasLength(1));
+    expect(
+      projection.itemCreatedEntries.single.event.managementPeriods,
+      isEmpty,
+    );
+  });
+
+  test('supports all six formal management periods', () async {
+    const periods = {
+      ItemManagementPeriod.year,
+      ItemManagementPeriod.halfYear,
+      ItemManagementPeriod.quarter,
+      ItemManagementPeriod.month,
+      ItemManagementPeriod.week,
+      ItemManagementPeriod.day,
+    };
+    expect(ItemManagementPeriod.values.toSet(), periods);
+    await runtime.create(request(periods: periods));
+
+    final event = await runtime.findCreatedEvent('item-created');
+    expect(event, isNotNull);
+    expect(event!.managementPeriods, periods);
+    expect(await runtime.listManagementPeriods('item-created'), periods);
   });
 
   test(
