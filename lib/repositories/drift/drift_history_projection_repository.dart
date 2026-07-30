@@ -3,6 +3,8 @@ import 'package:drift/drift.dart';
 import '../../database/app_database.dart';
 import '../../models/attachment.dart';
 import '../../models/history_projection.dart';
+import '../../models/item_lifecycle_event.dart';
+import '../../models/item_management_period.dart';
 import '../../models/maintenance_record.dart';
 import '../../models/milestone.dart';
 import '../../models/milestone_enums.dart';
@@ -28,6 +30,7 @@ class DriftHistoryProjectionRepository implements HistoryProjectionRepository {
   @override
   Future<HistoryProjection> projectForItem(String itemId) async {
     await _requireItem(itemId);
+    final itemCreatedEntries = await _itemCreatedEntries(itemId);
     final entries = <HistoryEntry>[];
     final consumedTaskIds = <String>{};
     final consumedMilestoneIds = <String>{};
@@ -154,11 +157,50 @@ class DriftHistoryProjectionRepository implements HistoryProjectionRepository {
     return HistoryProjection(
       itemId: itemId,
       entries: entries,
+      itemCreatedEntries: itemCreatedEntries,
       itemAttachments: await _attachments.listForOwner(
         AttachmentOwnerType.item,
         itemId,
       ),
     );
+  }
+
+  Future<List<ItemCreatedHistoryEntry>> _itemCreatedEntries(
+    String itemId,
+  ) async {
+    final query = _database.select(_database.itemLifecycleEvents)
+      ..where(
+        (table) =>
+            table.itemId.equals(itemId) &
+            table.eventType.equals(ItemLifecycleEventType.created.name),
+      );
+    final rows = await query.get();
+    final entries = <ItemCreatedHistoryEntry>[];
+    for (final row in rows) {
+      final periodQuery = _database.select(_database.itemLifecycleEventPeriods)
+        ..where((table) => table.eventId.equals(row.id));
+      final periods = (await periodQuery.get())
+          .map((period) => ItemManagementPeriod.values.byName(period.period))
+          .toSet();
+      entries.add(
+        ItemCreatedHistoryEntry(
+          ItemLifecycleEvent(
+            id: row.id,
+            itemId: row.itemId,
+            type: ItemLifecycleEventType.values.byName(row.eventType),
+            itemNameSnapshot: row.itemNameSnapshot,
+            categoryIdSnapshot: row.categoryIdSnapshot,
+            categorySystemCodeSnapshot: row.categorySystemCodeSnapshot,
+            categoryCustomNameSnapshot: row.categoryCustomNameSnapshot,
+            categoryDisplayNameSnapshot: row.categoryDisplayNameSnapshot,
+            occurredAt: row.occurredAt,
+            createdAt: row.createdAt,
+            managementPeriods: periods,
+          ),
+        ),
+      );
+    }
+    return entries;
   }
 
   Future<List<HistoryTaskSnapshot>> _relatedTasks(WorkCase workCase) async {

@@ -21,11 +21,14 @@ class DriftDatabaseBackupService {
   }) : _snapshotWriter = snapshotWriter ?? _writeSqliteSnapshot,
        _backupPromoter = backupPromoter ?? _promoteAtomically;
 
-  static const int formatVersion = 3;
+  static const int formatVersion = 4;
 
   static const Set<String> requiredTables = <String>{
     'item_categories',
     'items',
+    'item_management_periods',
+    'item_lifecycle_events',
+    'item_lifecycle_event_periods',
     'maintenance_plans',
     'maintenance_plan_steps',
     'general_reminders',

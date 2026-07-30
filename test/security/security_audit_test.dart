@@ -121,7 +121,12 @@ void main() {
     );
 
     expect((await repositories.items.findById(hostileId))?.id, hostileId);
-    expect(await repositories.itemCategories.listAll(), hasLength(1));
+    expect(
+      (await repositories.itemCategories.listAll()).map(
+        (category) => category.id,
+      ),
+      containsAll(['system-category-unclassified', 'category-security']),
+    );
     final tables = await database
         .customSelect("SELECT name FROM sqlite_master WHERE type = 'table'")
         .get();
