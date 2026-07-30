@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import '../../database/app_database.dart';
 import '../../models/attachment.dart';
+import '../../models/item_system_category.dart';
 import '../../models/maintenance_plan.dart';
 import '../../models/maintenance_plan_enums.dart';
 import '../../models/milestone.dart';
@@ -73,6 +74,12 @@ class DriftItemCategoryRepository {
       );
     }
     final existing = await findById(category.id);
+    if (existing?.id == ItemSystemCategory.unclassifiedId &&
+        existing != category) {
+      throw const RepositoryConstraintException(
+        'The unclassified system category is immutable.',
+      );
+    }
     if (existing?.status == 'archived' && existing != category) {
       throw const RepositoryConstraintException(
         'An archived ItemCategory is immutable.',
@@ -90,6 +97,11 @@ class DriftItemCategoryRepository {
   }
 
   Future<void> archive(String id, DateTime archivedAt) async {
+    if (id == ItemSystemCategory.unclassifiedId) {
+      throw const RepositoryConstraintException(
+        'The unclassified system category cannot be archived.',
+      );
+    }
     await _requireCategory(_database, id);
     await (_database.update(
       _database.itemCategories,
@@ -103,6 +115,11 @@ class DriftItemCategoryRepository {
   }
 
   Future<void> deleteUnused(String id) async {
+    if (id == ItemSystemCategory.unclassifiedId) {
+      throw const RepositoryConstraintException(
+        'The unclassified system category cannot be deleted.',
+      );
+    }
     await _database.transaction(() async {
       await _requireCategory(_database, id);
       final itemQuery = _database.select(_database.items)
@@ -1084,6 +1101,9 @@ Future<ScheduleRow?> _schedule(AppDatabase database, String? id) async {
 }
 
 Future<bool> _itemHasChildren(AppDatabase database, String itemId) async {
+  final lifecycleEvent = database.select(database.itemLifecycleEvents)
+    ..where((table) => table.itemId.equals(itemId))
+    ..limit(1);
   final plan = database.select(database.maintenancePlans)
     ..where((table) => table.itemId.equals(itemId))
     ..limit(1);
@@ -1110,7 +1130,8 @@ Future<bool> _itemHasChildren(AppDatabase database, String itemId) async {
       (table) => table.ownerType.equals('item') & table.ownerId.equals(itemId),
     )
     ..limit(1);
-  return await plan.getSingleOrNull() != null ||
+  return await lifecycleEvent.getSingleOrNull() != null ||
+      await plan.getSingleOrNull() != null ||
       await reminder.getSingleOrNull() != null ||
       await milestone.getSingleOrNull() != null ||
       await schedule.getSingleOrNull() != null ||

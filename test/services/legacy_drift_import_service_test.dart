@@ -377,7 +377,12 @@ void main() {
       throwsA(anything),
     );
 
-    expect(await database.select(database.itemCategories).get(), isEmpty);
+    expect(
+      (await database.select(database.itemCategories).get()).map(
+        (category) => category.id,
+      ),
+      ['system-category-unclassified'],
+    );
     expect(await database.select(database.items).get(), isEmpty);
     expect(await database.select(database.maintenancePlans).get(), isEmpty);
     expect(await database.select(database.generalReminders).get(), isEmpty);

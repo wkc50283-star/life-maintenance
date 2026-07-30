@@ -41,7 +41,7 @@ void main() {
     await database.close();
   });
 
-  test('schema v3 creates the formal life-management tables', () async {
+  test('schema v4 creates the formal life-management tables', () async {
     final rows = await database
         .customSelect(
           "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name",
@@ -49,12 +49,15 @@ void main() {
         .get();
     final names = rows.map((row) => row.read<String>('name')).toSet();
 
-    expect(database.schemaVersion, 3);
+    expect(database.schemaVersion, 4);
     expect(
       names,
       containsAll(<String>{
         'item_categories',
         'items',
+        'item_management_periods',
+        'item_lifecycle_events',
+        'item_lifecycle_event_periods',
         'maintenance_plans',
         'maintenance_plan_steps',
         'general_reminders',

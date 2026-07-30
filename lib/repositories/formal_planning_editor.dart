@@ -2,6 +2,7 @@ import '../app/app_composition_root.dart';
 import '../database/app_database.dart';
 import '../models/maintenance_plan.dart';
 import '../models/milestone.dart';
+import '../models/item_system_category.dart';
 
 /// Presentation-facing write boundary for the formal planning repositories.
 ///
@@ -20,17 +21,18 @@ class FormalPlanningEditor {
 
   Future<List<EditableCategory>> loadCategories() async => [
     for (final row in await _root.driftRepositories.itemCategories.listAll())
-      EditableCategory(
-        id: row.id,
-        systemCode: row.systemCode,
-        customName: row.customName,
-        displayName: row.displayName,
-        sortOrder: row.sortOrder,
-        status: row.status,
-        createdAt: row.createdAt,
-        updatedAt: row.updatedAt,
-        archivedAt: row.archivedAt,
-      ),
+      if (row.id != ItemSystemCategory.unclassifiedId)
+        EditableCategory(
+          id: row.id,
+          systemCode: row.systemCode,
+          customName: row.customName,
+          displayName: row.displayName,
+          sortOrder: row.sortOrder,
+          status: row.status,
+          createdAt: row.createdAt,
+          updatedAt: row.updatedAt,
+          archivedAt: row.archivedAt,
+        ),
   ];
 
   Future<List<EditableItem>> loadItems() async => [

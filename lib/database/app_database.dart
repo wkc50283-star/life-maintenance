@@ -4,6 +4,7 @@ import 'package:drift_flutter/drift_flutter.dart';
 import '../models/attachment.dart';
 import '../models/maintenance_plan.dart';
 import '../models/milestone.dart';
+import '../models/item_system_category.dart';
 import '../models/work_case.dart';
 import '../models/work_case_closure.dart';
 import '../models/work_case_enums.dart';
@@ -11,6 +12,9 @@ import '../models/work_case_update.dart';
 import 'tables/attachments.dart';
 import 'tables/general_reminders.dart';
 import 'tables/item_categories.dart';
+import 'tables/item_lifecycle_event_periods.dart';
+import 'tables/item_lifecycle_events.dart';
+import 'tables/item_management_periods.dart';
 import 'tables/items.dart';
 import 'tables/maintenance_plan_steps.dart';
 import 'tables/maintenance_plans.dart';
@@ -29,6 +33,9 @@ part 'app_database.g.dart';
   tables: [
     ItemCategories,
     Items,
+    ItemManagementPeriods,
+    ItemLifecycleEvents,
+    ItemLifecycleEventPeriods,
     MaintenancePlans,
     MaintenancePlanSteps,
     GeneralReminders,
@@ -58,29 +65,49 @@ class AppDatabase extends _$AppDatabase {
       );
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (migrator) async {
       await _createAllIdempotently(migrator);
+      await _createSchemaV4ImmutabilityTriggers();
+      await _ensureUnclassifiedCategory();
     },
     onUpgrade: (migrator, from, to) async {
-      if (from == 1 && to == 3) {
+      if (from == 1 && (to == 3 || to == 4)) {
         await customStatement('PRAGMA foreign_keys = OFF');
         await transaction(() async {
           await _migrateV1ToV2(migrator);
+          if (to == 4) {
+            await _createSchemaV4ImmutabilityTriggers();
+          }
+          await _ensureUnclassifiedCategory();
           await _throwIfForeignKeyViolations();
         });
         return;
       }
-      if (from == 2 && to == 3) {
+      if (from == 2 && (to == 3 || to == 4)) {
         await transaction(() async {
           await migrator.addColumn(workCases, workCases.sourceTaskId);
           await customStatement(
             'CREATE INDEX work_cases_source_task_idx '
             'ON work_cases (source_task_id)',
           );
+          if (to == 4) {
+            await _createSchemaV4(migrator);
+            await _createSchemaV4ImmutabilityTriggers();
+            await _ensureUnclassifiedCategory();
+          }
+          await _throwIfForeignKeyViolations();
+        });
+        return;
+      }
+      if (from == 3 && to == 4) {
+        await transaction(() async {
+          await _createSchemaV4(migrator);
+          await _createSchemaV4ImmutabilityTriggers();
+          await _ensureUnclassifiedCategory();
           await _throwIfForeignKeyViolations();
         });
         return;
@@ -121,6 +148,75 @@ class AppDatabase extends _$AppDatabase {
       }
       await customStatement(idempotentStatement);
     }
+  }
+
+  Future<void> _createSchemaV4(Migrator migrator) async {
+    await migrator.createTable(itemManagementPeriods);
+    await migrator.createTable(itemLifecycleEvents);
+    await migrator.createTable(itemLifecycleEventPeriods);
+    final index = allSchemaEntities.whereType<Index>().singleWhere(
+      (entity) =>
+          entity.entityName == 'item_lifecycle_events_item_type_unique_idx',
+    );
+    final statement = index.createStatementsByDialect[SqlDialect.sqlite];
+    if (statement == null) {
+      throw StateError('Missing SQLite definition for ${index.entityName}.');
+    }
+    await customStatement(statement);
+  }
+
+  Future<void> _createSchemaV4ImmutabilityTriggers() async {
+    await customStatement('''
+      CREATE TRIGGER IF NOT EXISTS item_lifecycle_events_no_update
+      BEFORE UPDATE ON item_lifecycle_events
+      BEGIN
+        SELECT RAISE(ABORT, 'Item lifecycle events are immutable');
+      END
+    ''');
+    await customStatement('''
+      CREATE TRIGGER IF NOT EXISTS item_lifecycle_events_no_delete
+      BEFORE DELETE ON item_lifecycle_events
+      BEGIN
+        SELECT RAISE(ABORT, 'Item lifecycle events are immutable');
+      END
+    ''');
+    await customStatement('''
+      CREATE TRIGGER IF NOT EXISTS item_lifecycle_event_periods_no_update
+      BEFORE UPDATE ON item_lifecycle_event_periods
+      BEGIN
+        SELECT RAISE(ABORT, 'Item lifecycle event periods are immutable');
+      END
+    ''');
+    await customStatement('''
+      CREATE TRIGGER IF NOT EXISTS item_lifecycle_event_periods_no_delete
+      BEFORE DELETE ON item_lifecycle_event_periods
+      BEGIN
+        SELECT RAISE(ABORT, 'Item lifecycle event periods are immutable');
+      END
+    ''');
+  }
+
+  Future<void> _ensureUnclassifiedCategory() async {
+    final categoryTable = await customSelect(
+      "SELECT 1 FROM sqlite_master WHERE type = 'table' "
+      "AND name = 'item_categories'",
+    ).getSingleOrNull();
+    if (categoryTable == null) {
+      return;
+    }
+    final now = DateTime.now().toUtc();
+    await into(itemCategories).insert(
+      ItemCategoriesCompanion.insert(
+        id: ItemSystemCategory.unclassifiedId,
+        systemCode: const Value(ItemSystemCategory.unclassifiedCode),
+        displayName: ItemSystemCategory.unclassifiedDisplayName,
+        sortOrder: const Value(-1000),
+        status: 'active',
+        createdAt: now,
+        updatedAt: now,
+      ),
+      mode: InsertMode.insertOrIgnore,
+    );
   }
 
   Future<void> _migrateV1ToV2(Migrator migrator) async {

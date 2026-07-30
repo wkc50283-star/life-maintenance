@@ -1,4 +1,5 @@
 import 'attachment.dart';
+import 'item_lifecycle_event.dart';
 import 'maintenance_record.dart';
 import 'milestone.dart';
 import 'work_case.dart';
@@ -15,12 +16,26 @@ class HistoryProjection {
     required this.itemId,
     required List<HistoryEntry> entries,
     required List<Attachment> itemAttachments,
+    List<ItemCreatedHistoryEntry> itemCreatedEntries = const [],
   }) : entries = List<HistoryEntry>.unmodifiable(entries),
-       itemAttachments = List<Attachment>.unmodifiable(itemAttachments);
+       itemAttachments = List<Attachment>.unmodifiable(itemAttachments),
+       itemCreatedEntries = List<ItemCreatedHistoryEntry>.unmodifiable(
+         itemCreatedEntries,
+       );
 
   final String itemId;
   final List<HistoryEntry> entries;
   final List<Attachment> itemAttachments;
+  final List<ItemCreatedHistoryEntry> itemCreatedEntries;
+}
+
+class ItemCreatedHistoryEntry {
+  const ItemCreatedHistoryEntry(this.event);
+
+  final ItemLifecycleEvent event;
+
+  DateTime get occurredAt => event.occurredAt;
+  String get sourceId => event.id;
 }
 
 sealed class HistoryEntry {

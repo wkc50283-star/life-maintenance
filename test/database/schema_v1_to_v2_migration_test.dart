@@ -19,11 +19,11 @@ void main() {
     final items = await database.select(database.items).get();
     final categories = await database.select(database.itemCategories).get();
 
-    expect(database.schemaVersion, 3);
+    expect(database.schemaVersion, 4);
     expect(cases, hasLength(2));
     expect(updates, hasLength(2));
     expect(items, hasLength(2));
-    expect(categories, hasLength(1));
+    expect(categories, hasLength(2));
 
     final firstCase = cases.singleWhere((row) => row.id == 'case-1');
     expect(firstCase.schemaVersion, 1);
@@ -95,7 +95,10 @@ void main() {
 
     expect(items.map((row) => row.id), containsAll(['item-1', 'item-2']));
     expect(items.every((row) => row.note!.contains('schema v1')), isTrue);
-    expect(categories.single.systemCode, 'legacyImported');
+    expect(
+      categories.map((category) => category.systemCode),
+      containsAll(['legacyImported', 'unclassified']),
+    );
 
     final legacyTables = await database.customSelect('''
       SELECT name FROM sqlite_master
@@ -134,7 +137,7 @@ void main() {
       addTearDown(database.close);
 
       final existing = await database.select(database.workCases).getSingle();
-      expect(database.schemaVersion, 3);
+      expect(database.schemaVersion, 4);
       expect(existing.id, 'case-v2');
       expect(existing.title, '既有案件');
       expect(existing.sourceTaskId, isNull);
@@ -203,7 +206,7 @@ void main() {
   );
 
   test('blocks unsupported schema versions', () async {
-    final fixture = await _createEmptyFixture(4);
+    final fixture = await _createEmptyFixture(5);
     addTearDown(fixture.dispose);
     final database = AppDatabase(NativeDatabase(fixture.file));
 
@@ -213,7 +216,7 @@ void main() {
         isA<UnsupportedError>().having(
           (error) => error.message,
           'message',
-          contains('schema 4 to 3'),
+          contains('schema 5 to 4'),
         ),
       ),
     );

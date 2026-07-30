@@ -29,7 +29,7 @@ void main() {
     }
   });
 
-  test('creates and validates a complete schema v3 SQLite backup', () async {
+  test('creates and validates a complete schema v4 SQLite backup', () async {
     final service = DriftDatabaseBackupService();
 
     final validation = await service.createBackup(
@@ -37,8 +37,11 @@ void main() {
       destination: backup,
     );
 
-    expect(validation.formatVersion, 3);
+    expect(validation.formatVersion, 4);
     expect(validation.rowCounts['items'], 1);
+    expect(validation.rowCounts['item_management_periods'], 1);
+    expect(validation.rowCounts['item_lifecycle_events'], 1);
+    expect(validation.rowCounts['item_lifecycle_event_periods'], 1);
     expect(await _itemNames(backup), ['來源資料']);
     expect(await File('${backup.path}.restore-staging').exists(), isFalse);
   });
@@ -239,6 +242,38 @@ Future<void> _writeDatabase(
           createdAt: now,
           updatedAt: now,
           status: 'active',
+        ),
+      );
+  await database
+      .into(database.itemManagementPeriods)
+      .insert(
+        ItemManagementPeriodsCompanion.insert(
+          itemId: itemId,
+          period: 'month',
+          createdAt: now,
+        ),
+      );
+  await database
+      .into(database.itemLifecycleEvents)
+      .insert(
+        ItemLifecycleEventsCompanion.insert(
+          id: 'item-created-$itemId',
+          itemId: itemId,
+          eventType: 'created',
+          itemNameSnapshot: itemName,
+          categoryIdSnapshot: 'category-$itemId',
+          categorySystemCodeSnapshot: const Value('other'),
+          categoryDisplayNameSnapshot: '其他',
+          occurredAt: now,
+          createdAt: now,
+        ),
+      );
+  await database
+      .into(database.itemLifecycleEventPeriods)
+      .insert(
+        ItemLifecycleEventPeriodsCompanion.insert(
+          eventId: 'item-created-$itemId',
+          period: 'month',
         ),
       );
   await database.close();
