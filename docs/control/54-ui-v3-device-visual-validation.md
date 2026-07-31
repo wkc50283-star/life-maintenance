@@ -1,9 +1,13 @@
 # UI v3 真機視覺驗收 Gate
 
-狀態：施工中，維持 Draft，禁止合併
+狀態：歷史 Gate 已完成；PR #242 已合併
 目標版本：v0.5.41
 適用 PR：#242
 日期：2026-07-25
+合併時間：2026-07-25
+Merge commit：`1510feca6decf3cf315411486cf86ebfb2ed3a53`
+
+本文件保存 PR #242 的歷史驗收證據，不是目前施工任務；目前任務以 [`CURRENT_TASK.md`](CURRENT_TASK.md) 為準。
 
 ## 1. 正式目的
 
@@ -22,9 +26,9 @@
 - 已安裝 `libimobiledevice` 截圖工具，但無線 CoreDevice 裝置未出現在 `idevice_id -n -l`，目前不能以 `idevicescreenshot` 擷取真機畫面。
 - Xcode CoreDevice 顯示裝置已配對、Developer Mode 開啟、DDI services 可用，具備安裝與啟動 App 的條件。
 
-## 3. 目前禁止宣告
+## 3. 合併前 Gate（歷史）
 
-在下列條件全部滿足前，不得宣告 PR 完成或 squash merge：
+PR #242 合併前要求下列條件全部滿足：
 
 1. 完成全站 UI v3 與所有指定頁面的一致性修正。
 2. 428×926、390×844、320×568 自動化與模擬器 Gate 通過。
@@ -97,6 +101,6 @@
 - 分類與生活項目完整新增流程：通過。
 - 標準 Dynamic Type 真機 XCUITest：通過。
 - 大型 Dynamic Type 真機流程：通過，作 accessibility 補充證據。
-- 董事長逐頁視覺簽核：等待中。
+- PR #242：已於 2026-07-25 合併。
 
-PR #242 必須維持 Draft；董事長未明確批准前不得解除 Draft 或合併。
+本節為合併前 Gate 的歷史紀錄；PR #242 已合併，後續不得再將其列為 Draft 或目前阻擋。
