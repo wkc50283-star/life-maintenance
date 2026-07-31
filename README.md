@@ -36,40 +36,9 @@
 
 ## 目前狀態
 
-`v0.5.40` 建立暖白、深藍與亮藍的 UI v3 Foundation，統一字級、間距、圓角、狀態色、邊框、低陰影與 120～260ms Motion，並提供正式共用頁首、底部導覽、卡片、按鈕、表單欄位、狀態標籤及步驟指示器。App Shell 移除重複的品牌／分頁雙層頁首，各頁仍使用原有 Screen、資料與功能流程。
+目前 main 為 `0.5.52+53`、AppDatabase Schema v4。正式現況以 [CURRENT_STATE](docs/control/CURRENT_STATE.md) 為準；目前施工任務以 [CURRENT_TASK](docs/control/CURRENT_TASK.md) 為準。
 
-已完成的資料與治理基礎：
-
-- 生活管理 App 產品定位與控制文件
-- PMS 文件退出正式規格
-- 舊 JSON 欄位與未知 enum 相容
-- 逐筆解析，保留可讀資料
-- 資料異常時全域禁止寫入
-- 啟動前資料完整性檢查
-- 不可變 `backup_v1_*` 原始 JSON 備份
-- WorkCase／WorkCaseUpdate 模型
-- Drift + SQLite 正式選型
-- Drift Schema v2、v1 → v2 migration 與 Repository 邊界
-- 舊資料只讀盤點、關聯稽核與遷移准入閘門
-- 正式 Runtime SharedPreferences 讀寫稽核與禁止雙寫規則
-- SharedPreferences → Drift v2 dry-run、原子匯入、重跑保護與 rollback 測試
-- Drift SQLite 備份完整性、格式／版本驗證、隔離還原與失敗 rollback 核心
-- Attachment 五種既有 Owner、metadata lifecycle、identifier 與 rollback 防回歸 Gate
-- AppDatabase、Drift Schema v2 Repository、現行 LocalRepository 與必要 Service 由單一 AppCompositionRoot 建立及注入
-- 啟動時受控匯入、失敗 rollback、重啟零寫入驗證與 ItemCategory／Item Drift 讀取切換
-- MaintenancePlan、GeneralReminder、Milestone、Schedule 的 Drift Runtime Repository、source contract、anchor policy 與 transaction 切換
-- 保養項目、排程、任務與案件的資料角色已重新分離
-- 正式唯讀 History Projection 與 Attachment managed identifier／owner／生命週期 Runtime
-- MaintenanceRecord 正式 Drift Runtime、簡單 Task 完成 transaction 與 WorkCaseClosure 邊界
-- Legacy Runtime 全量引用稽核、唯一 writer／冷啟動／rollback 防回歸 Gate
-- Items／History 的 MaintenanceRecord Drift read cutover 與啟動失敗 Drift 唯讀安全狀態
-- 正式 Runtime 的 LocalRepository／SharedPreferences 退休與 Drift 唯一資料來源 Gate
-- 正式 App Shell、五個生活管理入口、共用 Theme 與單一 Composition Root 注入邊界
-- 生活總覽的 Task、WorkCase、Milestone 與 History Projection 正式 Drift 真實資料投影
-- 生活項目清單與完整 Item 詳情頁的 Planning、WorkCase、History Projection、Attachment 真實資料投影
-- Flutter Analyze、Test、Web Build、Drift code generation 與 Web 資產自動 CI
-
-RC 仍明確保留的發行前限制：真實裝置匯入／唯讀來源預覽、Attachment 檔案內容跨裝置備份／還原，以及正式 UI／UX 改版，均不得由本版本文件冒充已完成。
+Issue #268／PR #270 目前仍為 Draft、未合併，不屬於 main 已完成功能。
 
 ## 支援週期
 
@@ -89,7 +58,7 @@ RC 仍明確保留的發行前限制：真實裝置匯入／唯讀來源預覽�
 - Dart
 - Material 3
 - SharedPreferences（受控匯入成功後永久唯讀保留為回復來源）
-- Drift + SQLite（Schema v2、Repository、安全 importer 與正式資料 Runtime）
+- Drift + SQLite（Schema v4、Repository、安全 importer 與正式資料 Runtime）
 - GitHub Actions
 - GitHub Pages（Web build）
 
@@ -105,7 +74,7 @@ Pages Drift 根因與驗收證據依 [Pages Drift Root Cause](docs/control/46-pa
 
 Attachment metadata 完整性依 [Attachment Metadata Integrity Validation](docs/control/48-attachment-metadata-integrity.md) 驗收；不得把 metadata 狀態驗收冒充實體檔案 storage 能力。
 
-Drift + SQLite Schema v2、v1 → v2 migration 與受控 importer 已建立；Runtime 只在完整驗證通過後切換，MaintenanceRecord 只承接不需要案件過程的簡單完成事實。
+Drift + SQLite Schema v4 與受控 importer 已建立；Runtime 只在完整驗證通過後切換，MaintenanceRecord 只承接不需要案件過程的簡單完成事實。
 
 ## 本機執行
 
@@ -131,6 +100,9 @@ flutter build web --release
 ## 正式控制文件
 
 開發前必須先閱讀：
+
+- [目前正式狀態](docs/control/CURRENT_STATE.md)
+- [目前正式任務](docs/control/CURRENT_TASK.md)
 
 1. [產品憲法](docs/control/01-product-constitution.md)
 2. [產品功能規格書](docs/control/02-product-specification.md)

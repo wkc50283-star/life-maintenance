@@ -4,6 +4,11 @@
 
 ## 使用規則
 
+- 最新 main 的正式狀態以 [`CURRENT_STATE.md`](CURRENT_STATE.md) 為準。
+- 目前進行中的正式任務以 [`CURRENT_TASK.md`](CURRENT_TASK.md) 為準。
+- 本文件保存歷史變更與決策，不得以舊條目的版本或施工狀態取代上述兩份即時控制文件。
+- Draft、Open 或尚未合併的 PR 不得記為 main 已完成功能。
+
 每一筆正式變更至少記錄：
 
 - 日期
