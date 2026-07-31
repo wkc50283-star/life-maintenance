@@ -64,6 +64,8 @@ void main() {
     await tester.tap(find.text('新增'));
     await tester.pumpAndSettle();
     expect(find.byType(AddScreen), findsOneWidget);
+    await tester.tapAt(const Offset(8, 8));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('史略'));
     await tester.pumpAndSettle();
@@ -97,6 +99,10 @@ void main() {
       await tester.tap(find.text(label));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: label);
+      if (label == '新增') {
+        await tester.tapAt(const Offset(8, 8));
+        await tester.pumpAndSettle();
+      }
     }
     await root.database.close();
   });

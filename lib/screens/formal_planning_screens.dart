@@ -3,12 +3,16 @@ import 'package:flutter/material.dart';
 import '../app/app_composition_root.dart';
 import '../app/ui_tokens.dart';
 import '../models/enums.dart';
+import '../models/item_lifecycle_event.dart';
+import '../models/item_management_period.dart';
+import '../models/item_system_category.dart';
 import '../models/maintenance_plan.dart';
 import '../models/maintenance_plan_enums.dart';
 import '../models/maintenance_plan_step.dart';
 import '../models/milestone.dart';
 import '../models/milestone_enums.dart';
 import '../repositories/formal_planning_editor.dart';
+import '../repositories/item_creation_runtime.dart';
 import '../widgets/ui_v2_components.dart';
 import 'item_detail_screen.dart';
 
@@ -222,6 +226,7 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
   DateTime? _warrantyDate;
   bool _saving = false;
   int _step = 0;
+  final Set<ItemManagementPeriod> _managementPeriods = {};
 
   @override
   void initState() {
@@ -250,7 +255,9 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
     if (!mounted) return;
     setState(() {
       _categories = values;
-      _categoryId ??= values.isEmpty ? null : values.first.id;
+      if (widget.value == null) {
+        _categoryId ??= ItemSystemCategory.unclassifiedId;
+      }
     });
   }
 
@@ -266,15 +273,18 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
   @override
   Widget build(BuildContext context) {
     final archived = widget.value?.status == 'archived';
+    if (widget.value == null) {
+      return _buildCreateForm();
+    }
     return _FormScaffold(
-      title: widget.value == null ? '新增生活項目' : '編輯生活項目',
+      title: '編輯生活項目',
       saving: _saving,
       primaryLabel: _step == 0 ? '下一步' : '儲存',
       primaryIcon: _step == 0
           ? Icons.arrow_forward_rounded
           : Icons.save_outlined,
       onBackStep: _step == 1 ? () => setState(() => _step = 0) : null,
-      onSave: archived || _categories == null || _categories!.isEmpty
+      onSave: archived || _categories == null
           ? null
           : _step == 0
           ? _nextStep
@@ -403,6 +413,94 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
     );
   }
 
+  Widget _buildCreateForm() => _FormScaffold(
+    title: '確認生活項目',
+    saving: _saving,
+    primaryLabel: '建立生活項目',
+    primaryIcon: Icons.check_rounded,
+    onSave: _categories == null || _saving ? null : _create,
+    child: _categories == null
+        ? const Center(child: CircularProgressIndicator())
+        : Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const _FormIntro(text: '先填名稱，分類與管理週期之後都還能調整。'),
+                TextFormField(
+                  key: const ValueKey('item-name'),
+                  controller: _name,
+                  enabled: !_saving,
+                  decoration: const InputDecoration(
+                    labelText: '名稱',
+                    hintText: '例如：客廳冷氣',
+                  ),
+                  validator: _requiredText,
+                ),
+                const SizedBox(height: UiSpace.sm),
+                DropdownButtonFormField<String>(
+                  key: const ValueKey('item-category'),
+                  initialValue: _categoryId,
+                  isExpanded: true,
+                  decoration: const InputDecoration(labelText: '分類'),
+                  items: [
+                    const DropdownMenuItem(
+                      value: ItemSystemCategory.unclassifiedId,
+                      child: Text(ItemSystemCategory.unclassifiedDisplayName),
+                    ),
+                    for (final category in _categories!)
+                      DropdownMenuItem(
+                        value: category.id,
+                        child: Text(
+                          category.displayName,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                  ],
+                  onChanged: _saving
+                      ? null
+                      : (value) => setState(() => _categoryId = value),
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    key: const ValueKey('create-item-category'),
+                    onPressed: _saving ? null : _createCategory,
+                    icon: const Icon(Icons.add_rounded),
+                    label: const Text('新增分類'),
+                  ),
+                ),
+                const SizedBox(height: UiSpace.xs),
+                Text('管理週期（可複選）', style: UiType.cardTitle),
+                const SizedBox(height: UiSpace.xs),
+                Wrap(
+                  spacing: UiSpace.xs,
+                  runSpacing: UiSpace.xs,
+                  children: [
+                    for (final period in ItemManagementPeriod.values)
+                      FilterChip(
+                        key: ValueKey('item-period-${period.name}'),
+                        label: Text(_managementPeriodLabel(period)),
+                        selected: _managementPeriods.contains(period),
+                        onSelected: _saving
+                            ? null
+                            : (selected) => setState(() {
+                                if (selected) {
+                                  _managementPeriods.add(period);
+                                } else {
+                                  _managementPeriods.remove(period);
+                                }
+                              }),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: UiSpace.xs),
+                Text('可先略過，之後再補充。', style: UiType.body),
+              ],
+            ),
+          ),
+  );
+
   void _nextStep() {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _step = 1);
@@ -478,15 +576,158 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
       if (mounted) setState(() => _saving = false);
     }
   }
+
+  Future<void> _create() async {
+    if (!_formKey.currentState!.validate() || _saving) return;
+    setState(() => _saving = true);
+    final now = DateTime.now();
+    final itemId = _newId('item');
+    try {
+      final runtime = AppCompositionScope.of(context).itemCreationRuntime;
+      if (runtime == null) throw StateError('正式生活項目建立服務目前無法使用。');
+      final result = await runtime.create(
+        ItemCreationRequest(
+          itemId: itemId,
+          name: _name.text.trim(),
+          categoryId: _categoryId == ItemSystemCategory.unclassifiedId
+              ? null
+              : _categoryId,
+          createdAt: now,
+          managementPeriods: _managementPeriods,
+        ),
+      );
+      if (!mounted) return;
+      final showItems = await Navigator.of(context).push<bool>(
+        MaterialPageRoute<bool>(
+          builder: (_) => ItemCreationSuccessScreen(
+            itemId: result.itemId,
+            event: result.createdEvent,
+          ),
+        ),
+      );
+      if (!mounted) return;
+      Navigator.pop(
+        context,
+        widget.usesTypedResult
+            ? ItemFormResult.created(
+                result.itemId,
+                showItems: showItems == true,
+              )
+            : true,
+      );
+    } catch (error) {
+      if (mounted) _showSaveError(context, error);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
 }
 
 class ItemFormResult {
-  const ItemFormResult.created(this.createdItemId) : changed = true;
+  const ItemFormResult.created(this.createdItemId, {this.showItems = false})
+    : changed = true;
 
-  const ItemFormResult.changed() : createdItemId = null, changed = true;
+  const ItemFormResult.changed()
+    : createdItemId = null,
+      changed = true,
+      showItems = false;
 
   final String? createdItemId;
   final bool changed;
+  final bool showItems;
+}
+
+class ItemCreationSuccessScreen extends StatelessWidget {
+  const ItemCreationSuccessScreen({
+    super.key,
+    required this.itemId,
+    required this.event,
+  });
+
+  final String itemId;
+  final ItemLifecycleEvent event;
+
+  @override
+  Widget build(BuildContext context) {
+    final periods = event.managementPeriods.toList()
+      ..sort((left, right) => left.index.compareTo(right.index));
+    return Scaffold(
+      appBar: AppBar(title: const Text('生活項目已建立')),
+      body: SafeArea(
+        child: ListView(
+          padding: UiInsets.pageCompact,
+          children: [
+            const UiCompactPageHeader(
+              icon: Icons.check_circle_outline_rounded,
+              title: '已建立生活項目',
+              description: '第一筆建立史略已經留下。',
+            ),
+            _ReadOnlyNotice('建立生活項目'),
+            const SizedBox(height: UiSpace.sm),
+            _CreationSummaryRow(label: '名稱', value: event.itemNameSnapshot),
+            _CreationSummaryRow(
+              label: '分類',
+              value: event.categoryDisplayNameSnapshot,
+            ),
+            _CreationSummaryRow(
+              label: '管理週期',
+              value: periods.isEmpty
+                  ? '尚未設定'
+                  : periods.map(_managementPeriodLabel).join('、'),
+            ),
+            _CreationSummaryRow(
+              label: '建立時間',
+              value: _formatDateTime(event.occurredAt),
+            ),
+            const SizedBox(height: UiSpace.md),
+            UiPrimaryButton(
+              key: const ValueKey('item-creation-complete'),
+              onPressed: () => Navigator.pop(context, true),
+              label: '完成',
+              icon: Icons.check_rounded,
+            ),
+            const SizedBox(height: UiSpace.xs),
+            OutlinedButton(
+              key: const ValueKey('item-creation-continue'),
+              onPressed: () => _continueEditing(context),
+              child: const Text('繼續補充資料'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _continueEditing(BuildContext context) async {
+    final value = await formalPlanningEditor(context)?.findItem(itemId);
+    if (!context.mounted) return;
+    if (value == null) {
+      _showSaveError(context, '無法讀取剛建立的生活項目。');
+      return;
+    }
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => ItemFormScreen(value: value)),
+    );
+  }
+}
+
+class _CreationSummaryRow extends StatelessWidget {
+  const _CreationSummaryRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: UiSpace.xs),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(width: 88, child: Text(label, style: UiType.body)),
+        Expanded(child: Text(value, style: UiType.cardTitle)),
+      ],
+    ),
+  );
 }
 
 class ItemManagementScreen extends StatefulWidget {
@@ -2729,6 +2970,15 @@ String _cycleLabel(String value) => switch (value) {
   _ => '自行指定',
 };
 
+String _managementPeriodLabel(ItemManagementPeriod value) => switch (value) {
+  ItemManagementPeriod.year => '年',
+  ItemManagementPeriod.halfYear => '半年',
+  ItemManagementPeriod.quarter => '季',
+  ItemManagementPeriod.month => '月',
+  ItemManagementPeriod.week => '週',
+  ItemManagementPeriod.day => '日',
+};
+
 String? _requiredText(String? value) =>
     (value ?? '').trim().isEmpty ? '請填寫這一欄' : null;
 String? _positiveOptionalInt(String? value) {
@@ -2752,6 +3002,8 @@ String _newId(String prefix) =>
     '$prefix-${DateTime.now().microsecondsSinceEpoch}';
 String _formatDate(DateTime date) =>
     '${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')}';
+String _formatDateTime(DateTime date) =>
+    '${_formatDate(date)} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
 
 void _showSaveError(BuildContext context, Object error) {
   ScaffoldMessenger.of(context).showSnackBar(

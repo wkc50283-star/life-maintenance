@@ -5,6 +5,7 @@ import '../app/ui_tokens.dart';
 import '../models/enums.dart';
 import '../models/history_projection.dart';
 import '../models/item.dart';
+import '../models/item_management_period.dart';
 import '../models/maintenance_record.dart';
 import '../models/milestone_enums.dart';
 import '../models/work_case_enums.dart';
@@ -210,15 +211,24 @@ List<_HistoryMonthSection> _historySectionsFrom(
   List<Item> items,
 ) {
   final groupedRecords = <String, List<_HistoryEntryData>>{};
-  final entries = [
-    for (final projection in projections)
-      for (final entry in projection.entries) entry,
+  final entries = <({DateTime occurredAt, Object entry})>[
+    for (final projection in projections) ...[
+      for (final entry in projection.entries)
+        (occurredAt: entry.occurredAt, entry: entry),
+      for (final entry in projection.itemCreatedEntries)
+        (occurredAt: entry.occurredAt, entry: entry),
+    ],
   ]..sort((a, b) => b.occurredAt.compareTo(a.occurredAt));
 
-  for (final entry in entries) {
-    final month = '${entry.occurredAt.year} 年 ${entry.occurredAt.month} 月';
+  for (final wrapped in entries) {
+    final entry = wrapped.entry;
+    final month = '${wrapped.occurredAt.year} 年 ${wrapped.occurredAt.month} 月';
     groupedRecords.putIfAbsent(month, () => []);
-    groupedRecords[month]!.add(_historyEntryForProjection(entry, items));
+    groupedRecords[month]!.add(
+      entry is ItemCreatedHistoryEntry
+          ? _historyEntryForItemCreated(entry)
+          : _historyEntryForProjection(entry as HistoryEntry, items),
+    );
   }
 
   return [
@@ -226,6 +236,35 @@ List<_HistoryMonthSection> _historySectionsFrom(
       _HistoryMonthSection(month: entry.key, records: entry.value),
   ];
 }
+
+_HistoryEntryData _historyEntryForItemCreated(ItemCreatedHistoryEntry entry) {
+  final periods = entry.event.managementPeriods.toList()
+    ..sort((left, right) => left.index.compareTo(right.index));
+  return _HistoryEntryData(
+    date: _formatShortDate(entry.occurredAt),
+    title: '建立生活項目',
+    itemName: entry.event.itemNameSnapshot,
+    recordType: '生活項目史略',
+    description: '分類：${entry.event.categoryDisplayNameSnapshot}',
+    detailLines: [
+      '管理週期：${periods.isEmpty ? '尚未設定' : periods.map(_itemManagementPeriodLabel).join('、')}',
+    ],
+    result: '已建立',
+    costLabel: null,
+    photoLabel: null,
+    icon: Icons.inventory_2_outlined,
+  );
+}
+
+String _itemManagementPeriodLabel(ItemManagementPeriod value) =>
+    switch (value) {
+      ItemManagementPeriod.year => '年',
+      ItemManagementPeriod.halfYear => '半年',
+      ItemManagementPeriod.quarter => '季',
+      ItemManagementPeriod.month => '月',
+      ItemManagementPeriod.week => '週',
+      ItemManagementPeriod.day => '日',
+    };
 
 _HistoryEntryData _historyEntryForProjection(
   HistoryEntry entry,

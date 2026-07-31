@@ -8,7 +8,6 @@ import 'package:life_maintenance/main.dart';
 import 'package:life_maintenance/repositories/formal_planning_editor.dart';
 import 'package:life_maintenance/screens/formal_planning_screens.dart';
 import 'package:life_maintenance/screens/item_detail_screen.dart';
-import 'package:life_maintenance/widgets/add_entry_card.dart';
 
 void main() {
   test('UI foundation exposes centralized visual and motion tokens', () {
@@ -21,7 +20,7 @@ void main() {
   });
 
   testWidgets(
-    'empty Item form provides an operable path to create a category',
+    'Item form provides unclassified and an operable path to create a category',
     (tester) async {
       final root = AppCompositionRoot(
         database: AppDatabase(NativeDatabase.memory()),
@@ -32,13 +31,13 @@ void main() {
 
       await _openNewItemForm(tester);
 
-      expect(find.text('目前還沒有可使用的分類。'), findsOneWidget);
+      expect(find.text('未分類'), findsOneWidget);
       expect(
-        find.byKey(const ValueKey('create-first-category')),
+        find.byKey(const ValueKey('create-item-category')),
         findsOneWidget,
       );
 
-      await tester.tap(find.byKey(const ValueKey('create-first-category')));
+      await tester.tap(find.byKey(const ValueKey('create-item-category')));
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const ValueKey('category-name')),
@@ -81,10 +80,6 @@ void main() {
         findsOneWidget,
       );
       await tester.enterText(find.byKey(const ValueKey('item-name')), '客廳沙發');
-      await tester.enterText(
-        find.widgetWithText(TextFormField, '放置位置'),
-        '一樓客廳',
-      );
       await tester.tap(find.byKey(const ValueKey('create-item-category')));
       await tester.pumpAndSettle();
       await tester.enterText(
@@ -105,20 +100,14 @@ void main() {
       expect(categoryFieldState.value, isNot('category-existing'));
       expect(find.text('家具用品'), findsOneWidget);
       expect(find.text('客廳沙發'), findsOneWidget);
-      expect(find.text('一樓客廳'), findsOneWidget);
 
-      await tester.tap(find.byKey(const ValueKey('item-form-next')));
-      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('save-form')));
       await tester.pumpAndSettle();
 
       final item = (await editor.loadItems()).single;
       expect(item.categoryId, createdCategory.id);
-      final detail = tester.widget<ItemDetailScreen>(
-        find.byType(ItemDetailScreen),
-      );
-      expect(detail.item.id, item.id);
-      expect(detail.item.name, '客廳沙發');
+      expect(find.byType(ItemCreationSuccessScreen), findsOneWidget);
+      expect(find.text('客廳沙發'), findsOneWidget);
     },
   );
 
@@ -155,7 +144,7 @@ void main() {
     final categoryField = tester.widget<DropdownButtonFormField<String>>(
       find.byKey(const ValueKey('item-category')),
     );
-    expect(categoryField.initialValue, 'category-existing');
+    expect(categoryField.initialValue, 'system-category-unclassified');
     expect(find.text('保留名稱'), findsOneWidget);
     expect(await editor.loadCategories(), hasLength(1));
   });
@@ -260,24 +249,14 @@ void main() {
       await tester.pumpAndSettle();
       await _openNewItemForm(tester);
 
-      await _advanceItemForm(tester, name: '客廳冷氣');
+      await tester.enterText(find.byKey(const ValueKey('item-name')), '客廳冷氣');
 
       tester.view.viewInsets = const FakeViewPadding(bottom: 280);
       await tester.pumpAndSettle();
 
       final saveRect = tester.getRect(find.byKey(const ValueKey('save-form')));
       expect(saveRect.bottom, lessThanOrEqualTo(568 - 280));
-      await tester.scrollUntilVisible(
-        find.text('備註'),
-        120,
-        scrollable: find
-            .descendant(
-              of: find.byKey(const ValueKey('item-form-scroll')),
-              matching: find.byType(Scrollable),
-            )
-            .first,
-      );
-      expect(find.text('備註'), findsOneWidget);
+      expect(find.text('管理週期（可複選）'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
@@ -299,7 +278,7 @@ void main() {
     await _openNewItemForm(tester);
 
     expect(tester.takeException(), isNull);
-    expect(find.byKey(const ValueKey('item-form-next')), findsOneWidget);
+    expect(find.byKey(const ValueKey('save-form')), findsOneWidget);
   });
 
   testWidgets('Item category selection changes the formal saved relation', (
@@ -336,8 +315,6 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('車輛').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('item-form-next')));
-    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('save-form')));
     await tester.pumpAndSettle();
 
@@ -346,7 +323,7 @@ void main() {
     expect(item.categoryId, 'category-vehicle');
   });
 
-  testWidgets('new Item save opens its formal detail and remains in Items', (
+  testWidgets('new Item save shows success and completes into Items', (
     tester,
   ) async {
     final root = AppCompositionRoot(
@@ -386,44 +363,11 @@ void main() {
 
     final formalItems = await root.itemReadRepository.loadItems();
     final createdItem = formalItems.singleWhere((item) => item.name == '新建立冷氣');
-    final detail = tester.widget<ItemDetailScreen>(
-      find.byType(ItemDetailScreen),
-    );
-    expect(detail.item.id, createdItem.id);
-    expect(detail.item.name, '新建立冷氣');
-    expect(detail.item.id, isNot('item-existing'));
+    expect(find.byType(ItemCreationSuccessScreen), findsOneWidget);
+    expect(find.text('建立生活項目'), findsOneWidget);
+    expect(createdItem.id, isNot('item-existing'));
     expect(find.text('新建立冷氣'), findsOneWidget);
-    final detailScroll = find
-        .descendant(
-          of: find.byType(ItemDetailScreen),
-          matching: find.byType(Scrollable),
-        )
-        .first;
-    for (final message in const [
-      '目前沒有保養項目。',
-      '目前沒有一般提醒。',
-      '目前沒有排程。',
-      '目前沒有階段性重點或大修。',
-      '目前沒有進行中的案件。',
-      '目前還沒有史略。',
-    ]) {
-      await tester.scrollUntilVisible(
-        find.text(message),
-        180,
-        scrollable: detailScroll,
-      );
-      expect(find.text(message), findsOneWidget);
-    }
-
-    await tester.pageBack();
-    await tester.pumpAndSettle();
-    expect(find.text('新增與整理'), findsOneWidget);
-    await tester.tap(
-      find.descendant(
-        of: find.byKey(const ValueKey('primary-navigation')),
-        matching: find.text('生活項目'),
-      ),
-    );
+    await tester.tap(find.byKey(const ValueKey('item-creation-complete')));
     await tester.pumpAndSettle();
     expect(find.text('新建立冷氣'), findsOneWidget);
   });
@@ -532,9 +476,7 @@ void main() {
       final formRect = tester.getRect(
         find.byKey(const ValueKey('item-form-scroll')),
       );
-      final saveRect = tester.getRect(
-        find.byKey(const ValueKey('item-form-next')),
-      );
+      final saveRect = tester.getRect(find.byKey(const ValueKey('save-form')));
       expect(formRect.left, greaterThanOrEqualTo(12), reason: '$size');
       expect(
         formRect.right,
@@ -560,8 +502,6 @@ Future<void> _advanceItemForm(
   required String name,
 }) async {
   await tester.enterText(find.byKey(const ValueKey('item-name')), name);
-  await tester.tap(find.byKey(const ValueKey('item-form-next')));
-  await tester.pumpAndSettle();
   expect(find.byKey(const ValueKey('save-form')), findsOneWidget);
 }
 
@@ -573,12 +513,9 @@ Future<void> _openNewItemForm(WidgetTester tester) async {
     ),
   );
   await tester.pumpAndSettle();
-  final itemEntry = find.widgetWithText(AddEntryCard, '生活項目');
-  await tester.ensureVisible(itemEntry);
+  await tester.tap(find.byKey(const ValueKey('item-create-by-text')));
   await tester.pumpAndSettle();
-  await tester.tap(itemEntry);
-  await tester.pumpAndSettle();
-  expect(find.text('新增生活項目'), findsOneWidget);
+  expect(find.text('確認生活項目'), findsOneWidget);
   expect(find.byKey(const ValueKey('item-name')), findsOneWidget);
   expect(find.text('生活項目是所有提醒、保養與階段重點的起點。'), findsNothing);
 }

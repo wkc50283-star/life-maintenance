@@ -42,6 +42,10 @@ void main() {
         await tester.tap(destination);
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull, reason: '${entry.key}: $label');
+        if (label == '新增') {
+          await tester.tapAt(const Offset(8, 8));
+          await tester.pumpAndSettle();
+        }
       }
 
       await tester.pumpWidget(const SizedBox.shrink());
@@ -70,6 +74,8 @@ void main() {
           matching: find.text('新增'),
         ),
       );
+      await tester.pumpAndSettle();
+      await tester.tapAt(const Offset(8, 8));
       await tester.pumpAndSettle();
       await tester.tap(find.text('分類'));
       await tester.pumpAndSettle();
