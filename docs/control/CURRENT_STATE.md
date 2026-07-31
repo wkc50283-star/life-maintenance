@@ -1,9 +1,9 @@
 # 生活管理 App 目前正式狀態
 
 狀態：正式控制文件
-最後核對日期：2026-07-31
+最後核對日期：2026-08-01
 核對分支：`main`
-核對 Commit：`2c3fa17b0e5563b03ed57524deb00f6d49ed083a`
+核對 Commit：`a214658fea5eda280a10d00ede292c2bf2fd3a86`
 
 ## 1. 正式版本與資料基線
 
@@ -32,9 +32,10 @@
 
 - `pubspec.yaml`
 - `lib/database/app_database.dart`
-- GitHub main commit `2c3fa17b0e5563b03ed57524deb00f6d49ed083a`
+- GitHub main commit `a214658fea5eda280a10d00ede292c2bf2fd3a86`
 - GitHub Actions 的 main commit checks
 - 已合併 PR #269：`Add item creation history foundation`
+- 已合併 PR #271：`Add formal current state and task controls`
 - Draft PR #270 的 GitHub 狀態
 
 ## 5. 更新規則

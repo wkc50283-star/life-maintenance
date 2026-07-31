@@ -1,7 +1,7 @@
 # 生活管理 App 目前正式任務
 
 狀態：正式控制文件
-最後核對日期：2026-07-31
+最後核對日期：2026-08-01
 
 ## 1. 任務識別
 
@@ -10,8 +10,10 @@
 - PR：#270
 - PR URL：<https://github.com/wkc50283-star/life-maintenance/pull/270>
 - Branch：`issue-268-one-minute-item-creation`
-- Base commit：`2c3fa17b0e5563b03ed57524deb00f6d49ed083a`
-- Head commit：`3ee2d53ebd96b3cf5150ee944d92a994841e344d`
+- Base commit：`a214658fea5eda280a10d00ede292c2bf2fd3a86`
+- Head branch：`issue-268-one-minute-item-creation` 的 GitHub `headRefOid`（本文件與最新 Head 同步提交，精確 SHA 以 PR metadata 為準）
+- 功能施工 commit：`3ee2d53ebd96b3cf5150ee944d92a994841e344d`
+- 同步 main commit：`a214658fea5eda280a10d00ede292c2bf2fd3a86`
 - PR 狀態：OPEN、Draft、未合併
 
 ## 2. 核准範圍
@@ -26,11 +28,9 @@
 
 ## 3. 驗證狀態
 
-- `quality`：SUCCESS
-- `android-build`：SUCCESS
-- `ios-simulator-build`：SUCCESS
-- PR quality job：396 tests passed
-- PR Head 與上述 checks 均對應 `3ee2d53ebd96b3cf5150ee944d92a994841e344d`
+- 同步前 Head `3ee2d53ebd96b3cf5150ee944d92a994841e344d` 的 `quality`、`android-build`、`ios-simulator-build` 均為 SUCCESS。
+- 同步最新 `main` 後，PR #270 最新 `headRefOid` 的 `quality`、`android-build`、`ios-simulator-build` 均為 SUCCESS；結果以 GitHub PR metadata 為準。
+- 同步前 PR quality job：396 tests passed。
 
 ## 4. 目前阻擋與完成條件
 
@@ -41,9 +41,10 @@
 ## 5. 證據來源
 
 - GitHub PR #270 metadata
-- GitHub Actions run `30598884661`
-- PR #270 Head commit `3ee2d53ebd96b3cf5150ee944d92a994841e344d`
-- main commit `2c3fa17b0e5563b03ed57524deb00f6d49ed083a`
+- GitHub Actions run `30598884661`（同步前 Head）
+- PR #270 GitHub metadata 的最新 `headRefOid` 與 checks
+- PR #270 功能施工 commit `3ee2d53ebd96b3cf5150ee944d92a994841e344d`
+- main commit `a214658fea5eda280a10d00ede292c2bf2fd3a86`
 
 ## 6. 更新規則
 
