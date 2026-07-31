@@ -2495,6 +2495,36 @@ PMS 方案只作視覺品質標準，不改產品定位；不修改各頁內容�
 
 ---
 
+## LM-070：v0.5.53 Issue #268 一分鐘建立生活項目與建立史略
+
+日期：2026-07-31
+狀態：施工完成，待 Draft PR 驗收
+
+### 變更內容
+
+- 正式「新增」入口開啟拍照／語音／輸入 bottom sheet；拍照與語音誠實標示尚未啟用，關閉後留在新增中心。
+- 「輸入」提供名稱、分類與年／半年／季／月／週／日管理週期多選的精簡建立流程。
+- 未指定分類時使用正式「未分類」；新增分類重用既有 `CategoryFormScreen` 並精準選取新分類。
+- 新 Item 只透過 `ItemCreationRuntime.create()` 建立，同一 transaction 自然建立唯一 created lifecycle event 與結構化週期快照。
+- 新增成功承接畫面，可完成並切換至既有生活項目清單，或進入同一 Item 的既有編輯表單繼續補充。
+- ItemDetail 與全域 History 正式投影 `ItemCreatedHistoryEntry`；沒有 created event 的舊 Item 不補造事件。
+- 版本更新為 `0.5.53+54`。
+
+### 明確未修改
+
+不修改 Model、Schema v4、Migration、Drift table、Repository 契約、`ItemCreationRuntime` 公開契約與核心 transaction，不建立 Task、Schedule、Reminder、MaintenancePlan、Milestone 或 WorkCase，不變更 Bottom Navigation 名稱與順序。
+
+### 驗收依據
+
+以 Issue #268 直接 Widget／Runtime／History 測試、Security Gate、Analyze、完整 Flutter tests 及 Web／Android／iOS build gates 為準；實際結果以 Draft PR 說明為準。
+
+### 追蹤
+
+- Issue #268
+- `docs/control/issues/issue-268-one-minute-item-creation.md`
+
+---
+
 ## 後續條目模板
 
 ```text

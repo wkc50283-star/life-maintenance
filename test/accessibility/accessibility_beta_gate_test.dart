@@ -80,6 +80,10 @@ void main() {
       await tester.tap(find.text(label));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: label);
+      if (label == '新增') {
+        await tester.tapAt(const Offset(8, 8));
+        await tester.pumpAndSettle();
+      }
     }
   });
 

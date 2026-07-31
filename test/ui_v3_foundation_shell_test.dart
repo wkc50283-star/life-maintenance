@@ -166,6 +166,10 @@ void main() {
         );
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull, reason: '$size / $label');
+        if (label == '新增') {
+          await tester.tapAt(const Offset(8, 8));
+          await tester.pumpAndSettle();
+        }
       }
 
       await tester.pumpWidget(const SizedBox.shrink());

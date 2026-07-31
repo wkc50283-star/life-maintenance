@@ -6,6 +6,7 @@ import '../models/attachment.dart';
 import '../models/enums.dart';
 import '../models/history_projection.dart';
 import '../models/item.dart';
+import '../models/item_management_period.dart';
 import '../models/maintenance_plan.dart';
 import '../models/maintenance_plan_enums.dart';
 import '../models/milestone.dart';
@@ -148,6 +149,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
       tasks.sort(_compareAttentionTasks);
       final historyEntries = [...?history?.entries]
         ..sort((left, right) => right.occurredAt.compareTo(left.occurredAt));
+      final itemCreatedEntries = [...?history?.itemCreatedEntries]
+        ..sort((left, right) => right.occurredAt.compareTo(left.occurredAt));
       final uniqueAttachments =
           <String, Attachment>{
               for (final attachment in attachments) attachment.id: attachment,
@@ -164,6 +167,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
           milestones: milestones,
           cases: caseSummaries,
           historyEntries: historyEntries,
+          itemCreatedEntries: itemCreatedEntries,
           attachments: uniqueAttachments,
         );
       });
@@ -501,10 +505,20 @@ class _ItemDetailBody extends StatelessWidget {
           child: _DetailSection(
             title: '史略',
             icon: Icons.history_rounded,
-            child: snapshot.historyEntries.isEmpty
+            child:
+                snapshot.historyEntries.isEmpty &&
+                    snapshot.itemCreatedEntries.isEmpty
                 ? const _EmptyMessage('目前還沒有史略。')
                 : Column(
                     children: [
+                      for (final entry in snapshot.itemCreatedEntries)
+                        _FactCard(
+                          key: ValueKey('item-created-${entry.sourceId}'),
+                          title: '建立生活項目',
+                          subtitle: entry.event.itemNameSnapshot,
+                          detail: _itemCreatedHistoryDetail(entry),
+                          status: _formatDate(entry.occurredAt),
+                        ),
                       for (final entry in snapshot.historyEntries)
                         _FactCard(
                           title: _historyTitle(entry),
@@ -909,6 +923,7 @@ class _ItemDetailSnapshot {
     required this.milestones,
     required this.cases,
     required this.historyEntries,
+    required this.itemCreatedEntries,
     required this.attachments,
   });
 
@@ -919,6 +934,7 @@ class _ItemDetailSnapshot {
   final List<Milestone> milestones;
   final List<_CaseSummary> cases;
   final List<HistoryEntry> historyEntries;
+  final List<ItemCreatedHistoryEntry> itemCreatedEntries;
   final List<Attachment> attachments;
 }
 
@@ -1033,6 +1049,25 @@ String _historyDetail(HistoryEntry entry) => switch (entry) {
     _nullableText(milestone.description) ??
         _milestoneStatusLabel(milestone.status),
 };
+
+String _itemCreatedHistoryDetail(ItemCreatedHistoryEntry entry) {
+  final periods = entry.event.managementPeriods.toList()
+    ..sort((left, right) => left.index.compareTo(right.index));
+  final periodLabel = periods.isEmpty
+      ? '尚未設定'
+      : periods.map(_itemManagementPeriodLabel).join('、');
+  return '分類：${entry.event.categoryDisplayNameSnapshot} · 管理週期：$periodLabel';
+}
+
+String _itemManagementPeriodLabel(ItemManagementPeriod value) =>
+    switch (value) {
+      ItemManagementPeriod.year => '年',
+      ItemManagementPeriod.halfYear => '半年',
+      ItemManagementPeriod.quarter => '季',
+      ItemManagementPeriod.month => '月',
+      ItemManagementPeriod.week => '週',
+      ItemManagementPeriod.day => '日',
+    };
 
 String _attachmentName(Attachment attachment) =>
     _nullableText(attachment.originalFileName) ?? '未命名附件';

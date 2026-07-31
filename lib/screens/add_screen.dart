@@ -10,19 +10,35 @@ import '../widgets/maintenance_record_preview_sheet.dart';
 import '../widgets/reminder_list_sheet.dart';
 import '../widgets/ui_v2_components.dart';
 import 'formal_planning_screens.dart';
-import 'item_detail_screen.dart';
 import 'maintenance_record_screens.dart';
 import 'work_case_screens.dart';
 
-class AddScreen extends StatelessWidget {
-  const AddScreen({super.key});
+class AddScreen extends StatefulWidget {
+  const AddScreen({super.key, this.onShowItems});
+
+  final VoidCallback? onShowItems;
+
+  @override
+  State<AddScreen> createState() => AddScreenState();
+}
+
+class AddScreenState extends State<AddScreen> {
+  Future<void> showItemCreationMenu() async {
+    final action = await showModalBottomSheet<_ItemCreationMethod>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => const _ItemCreationMethodSheet(),
+    );
+    if (!mounted || action != _ItemCreationMethod.text) return;
+    await _openItemForm();
+  }
 
   @override
   Widget build(BuildContext context) {
     final formalEditor = formalPlanningEditor(context);
 
     if (formalEditor != null) {
-      return const _FormalAddScreen();
+      return _FormalAddScreen(onCreateItem: showItemCreationMenu);
     }
 
     return SingleChildScrollView(
@@ -66,10 +82,22 @@ class AddScreen extends StatelessWidget {
       ),
     );
   }
+
+  Future<void> _openItemForm() async {
+    final result = await Navigator.of(context).push<ItemFormResult>(
+      MaterialPageRoute<ItemFormResult>(
+        builder: (_) => const ItemFormScreen(usesTypedResult: true),
+      ),
+    );
+    if (!mounted || result?.createdItemId == null) return;
+    if (result!.showItems) widget.onShowItems?.call();
+  }
 }
 
 class _FormalAddScreen extends StatelessWidget {
-  const _FormalAddScreen();
+  const _FormalAddScreen({required this.onCreateItem});
+
+  final VoidCallback onCreateItem;
 
   @override
   Widget build(BuildContext context) {
@@ -99,7 +127,7 @@ class _FormalAddScreen extends StatelessWidget {
             title: '生活項目',
             description: '新增或修改家電、車輛、房屋、文件、健康與其他生活項目。',
             emphasized: true,
-            onTap: () => _openItemForm(context),
+            onTap: onCreateItem,
           ),
           AddEntryCard(
             icon: Icons.category_outlined,
@@ -257,41 +285,6 @@ class _FormalAddScreen extends StatelessWidget {
     }
   }
 
-  Future<void> _openItemForm(BuildContext context) async {
-    final result = await Navigator.of(context).push<ItemFormResult>(
-      MaterialPageRoute<ItemFormResult>(
-        builder: (_) => const ItemFormScreen(usesTypedResult: true),
-      ),
-    );
-    final createdItemId = result?.createdItemId;
-    if (!context.mounted || createdItemId == null) return;
-
-    try {
-      final items = await AppCompositionScope.of(
-        context,
-      ).itemReadRepository.loadItems();
-      if (!context.mounted) return;
-      final createdItems = items.where((item) => item.id == createdItemId);
-      if (createdItems.isEmpty) {
-        _showItemReadFailure(context);
-        return;
-      }
-      await Navigator.of(context).push<bool>(
-        MaterialPageRoute<bool>(
-          builder: (_) => ItemDetailScreen(item: createdItems.single),
-        ),
-      );
-    } catch (_) {
-      if (context.mounted) _showItemReadFailure(context);
-    }
-  }
-
-  void _showItemReadFailure(BuildContext context) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('暫時無法讀取生活項目。')));
-  }
-
   void _showWorkCaseReadFailure(BuildContext context) {
     ScaffoldMessenger.of(
       context,
@@ -306,6 +299,67 @@ class _FormalAddScreen extends StatelessWidget {
 
   String _formatRecordDate(DateTime value) =>
       '${value.year}/${value.month.toString().padLeft(2, '0')}/${value.day.toString().padLeft(2, '0')}';
+}
+
+enum _ItemCreationMethod { text }
+
+class _ItemCreationMethodSheet extends StatelessWidget {
+  const _ItemCreationMethodSheet();
+
+  @override
+  Widget build(BuildContext context) => SafeArea(
+    child: SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          UiSpace.md,
+          UiSpace.xs,
+          UiSpace.md,
+          UiSpace.lg,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('新增生活項目', style: UiType.sectionTitle),
+            const SizedBox(height: UiSpace.xs),
+            Text('選擇一種方式開始。', style: UiType.body),
+            const SizedBox(height: UiSpace.md),
+            const _UnavailableCreationMethod(
+              icon: Icons.photo_camera_outlined,
+              title: '拍照',
+            ),
+            const SizedBox(height: UiSpace.xs),
+            const _UnavailableCreationMethod(
+              icon: Icons.mic_none_outlined,
+              title: '語音',
+            ),
+            const SizedBox(height: UiSpace.xs),
+            UiPrimaryButton(
+              key: const ValueKey('item-create-by-text'),
+              onPressed: () => Navigator.pop(context, _ItemCreationMethod.text),
+              label: '輸入',
+              icon: Icons.keyboard_outlined,
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class _UnavailableCreationMethod extends StatelessWidget {
+  const _UnavailableCreationMethod({required this.icon, required this.title});
+
+  final IconData icon;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) => ListTile(
+    enabled: false,
+    leading: Icon(icon),
+    title: Text(title),
+    subtitle: const Text('尚未啟用'),
+  );
 }
 
 class _AddSectionHeader extends StatelessWidget {
