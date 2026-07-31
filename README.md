@@ -1,6 +1,6 @@
 # 生活管理 App
 
-目前版本：**v0.5.40 UI v3 Foundation & Formal App Shell**
+目前版本：**v0.5.53+54 一分鐘建立生活項目**
 
 `life-maintenance` 是一個 Flutter 生活管理 App，目標是管理生活項目、固定週期、到期提醒、階段性重點、突發事項與工程，並保存每一次處理從開始到結束的完整史略。
 
@@ -36,9 +36,9 @@
 
 ## 目前狀態
 
-目前 main 為 `0.5.52+53`、AppDatabase Schema v4。正式現況以 [CURRENT_STATE](docs/control/CURRENT_STATE.md) 為準；目前施工任務以 [CURRENT_TASK](docs/control/CURRENT_TASK.md) 為準。
+目前 main 為 `0.5.53+54`、AppDatabase Schema v4。正式現況以 [CURRENT_STATE](docs/control/CURRENT_STATE.md) 為準；目前施工任務以 [CURRENT_TASK](docs/control/CURRENT_TASK.md) 為準。
 
-Issue #268／PR #270 目前仍為 Draft、未合併，不屬於 main 已完成功能。
+Issue #268／PR #270 已合併，main 已具備「一分鐘建立生活項目」流程與第一筆建立史略。拍照、語音與 AI 自動填欄位尚未啟用。
 
 ## 支援週期
 
