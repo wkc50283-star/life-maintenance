@@ -2498,7 +2498,7 @@ PMS 方案只作視覺品質標準，不改產品定位；不修改各頁內容�
 ## LM-070：v0.5.53 Issue #268 一分鐘建立生活項目與建立史略
 
 日期：2026-07-31
-狀態：施工完成，待 Draft PR 驗收
+狀態：已合併
 
 ### 變更內容
 
@@ -2516,11 +2516,13 @@ PMS 方案只作視覺品質標準，不改產品定位；不修改各頁內容�
 
 ### 驗收依據
 
-以 Issue #268 直接 Widget／Runtime／History 測試、Security Gate、Analyze、完整 Flutter tests 及 Web／Android／iOS build gates 為準；實際結果以 Draft PR 說明為準。
+以 Issue #268 直接 Widget／Runtime／History 測試、Security Gate、Analyze、完整 Flutter tests 及 Web／Android／iOS build gates 為準；實際結果以 PR #270 說明、GitHub Actions run `30647489700` 與 merge commit `7a2f4c35e5211d4fea9f83a185867c1bc6a4d149` 為準。
 
 ### 追蹤
 
 - Issue #268
+- PR #270
+- merge commit `7a2f4c35e5211d4fea9f83a185867c1bc6a4d149`
 - `docs/control/issues/issue-268-one-minute-item-creation.md`
 
 ---
