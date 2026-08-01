@@ -414,10 +414,12 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
   }
 
   Widget _buildCreateForm() => _FormScaffold(
-    title: '確認生活項目',
+    title: '建立生活項目',
     saving: _saving,
     primaryLabel: '建立生活項目',
     primaryIcon: Icons.check_rounded,
+    primaryHeight: 56,
+    primaryTextStyle: UiType.button.copyWith(fontSize: 16),
     onSave: _categories == null || _saving ? null : _create,
     child: _categories == null
         ? const Center(child: CircularProgressIndicator())
@@ -432,7 +434,7 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
                   controller: _name,
                   enabled: !_saving,
                   decoration: const InputDecoration(
-                    labelText: '名稱',
+                    labelText: '名稱（必填）',
                     hintText: '例如：客廳冷氣',
                   ),
                   validator: _requiredText,
@@ -442,7 +444,7 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
                   key: const ValueKey('item-category'),
                   initialValue: _categoryId,
                   isExpanded: true,
-                  decoration: const InputDecoration(labelText: '分類'),
+                  decoration: const InputDecoration(labelText: '分類（選填）'),
                   items: [
                     const DropdownMenuItem(
                       value: ItemSystemCategory.unclassifiedId,
@@ -471,7 +473,7 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
                   ),
                 ),
                 const SizedBox(height: UiSpace.xs),
-                Text('管理週期（可複選）', style: UiType.cardTitle),
+                Text('管理週期（選填，可複選）', style: UiType.cardTitle),
                 const SizedBox(height: UiSpace.xs),
                 Wrap(
                   spacing: UiSpace.xs,
@@ -2350,6 +2352,8 @@ class _FormScaffold extends StatelessWidget {
     this.primaryIcon = Icons.save_outlined,
     this.onBackStep,
     this.showPrimary = true,
+    this.primaryHeight = 46,
+    this.primaryTextStyle,
   });
 
   final String title;
@@ -2360,6 +2364,8 @@ class _FormScaffold extends StatelessWidget {
   final IconData primaryIcon;
   final VoidCallback? onBackStep;
   final bool showPrimary;
+  final double primaryHeight;
+  final TextStyle? primaryTextStyle;
 
   @override
   Widget build(BuildContext context) {
@@ -2421,6 +2427,8 @@ class _FormScaffold extends StatelessWidget {
                   icon: primaryIcon,
                   onPressed: onSave,
                   loading: saving,
+                  height: primaryHeight,
+                  textStyle: primaryTextStyle,
                 ),
               ),
             ),

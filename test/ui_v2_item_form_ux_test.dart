@@ -256,7 +256,8 @@ void main() {
 
       final saveRect = tester.getRect(find.byKey(const ValueKey('save-form')));
       expect(saveRect.bottom, lessThanOrEqualTo(568 - 280));
-      expect(find.text('管理週期（可複選）'), findsOneWidget);
+      expect(saveRect.height, 56);
+      expect(find.text('管理週期（選填，可複選）'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
@@ -279,6 +280,7 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.byKey(const ValueKey('save-form')), findsOneWidget);
+    expect(tester.getSize(find.byKey(const ValueKey('save-form'))).height, 56);
   });
 
   testWidgets('Item category selection changes the formal saved relation', (
@@ -515,7 +517,7 @@ Future<void> _openNewItemForm(WidgetTester tester) async {
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('item-create-by-text')));
   await tester.pumpAndSettle();
-  expect(find.text('確認生活項目'), findsOneWidget);
+  expect(find.text('建立生活項目'), findsNWidgets(2));
   expect(find.byKey(const ValueKey('item-name')), findsOneWidget);
   expect(find.text('生活項目是所有提醒、保養與階段重點的起點。'), findsNothing);
 }

@@ -1,9 +1,9 @@
 # 生活管理 App 目前正式狀態
 
 狀態：正式控制文件
-最後核對日期：2026-08-01
+最後核對日期：2026-08-02
 核對分支：`main`
-核對 Commit：`7a2f4c35e5211d4fea9f83a185867c1bc6a4d149`
+核對 Commit：`435156d2eeedac381552b549fec4c643125dc3c7`
 
 ## 1. 正式版本與資料基線
 
@@ -32,16 +32,18 @@
 - 拍照辨識、語音辨識、AI 自動填欄位與自動建立排程尚未啟用。
 - Issue #268 合併不代表 iPhone 或 Android 實體裝置人工驗收已完成。
 - 既有舊 Item 沒有 created event 時不補造建立史略。
-- 目前沒有進行中的正式施工任務；下一個任務以 [`CURRENT_TASK.md`](CURRENT_TASK.md) 為準。
+- 「一分鐘建立頁簡化」正在 `codex/simplify-one-minute-item-creation` 分支施工，尚未合併，不得視為 main 已完成能力。
+- 進行中任務的正式範圍與完成條件以 [`CURRENT_TASK.md`](CURRENT_TASK.md) 為準。
 
 ## 4. 證據來源
 
 - `pubspec.yaml`
 - `lib/database/app_database.dart`
-- GitHub main commit `7a2f4c35e5211d4fea9f83a185867c1bc6a4d149`
+- GitHub main commit `435156d2eeedac381552b549fec4c643125dc3c7`
 - 已合併 PR #269：`Add item creation history foundation`
 - 已合併 PR #270：`Issue #268: Add one-minute item creation flow`
 - 已合併 PR #271：`Add formal current state and task controls`
+- 已合併 PR #272：`Sync controls after PR 270 merge`
 - GitHub Actions run `30647489700`：`quality`、`android-build`、`ios-simulator-build` 成功
 
 ## 5. 更新規則

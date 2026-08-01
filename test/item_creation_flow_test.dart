@@ -49,10 +49,14 @@ void main() {
       await _pumpApp(tester, root);
       await _openTextForm(tester);
 
-      expect(find.text('確認生活項目'), findsOneWidget);
+      expect(find.text('建立生活項目'), findsNWidgets(2));
       expect(find.text('放置位置'), findsNothing);
       expect(find.text('預計管理年限'), findsNothing);
       expect(find.text('備註'), findsNothing);
+      expect(find.text('名稱（必填）'), findsOneWidget);
+      expect(find.text('分類（選填）'), findsOneWidget);
+      expect(find.text('管理週期（選填，可複選）'), findsOneWidget);
+      expect(find.byType(DropdownButtonFormField<String>), findsOneWidget);
       expect(
         tester
             .widget<DropdownButtonFormField<String>>(

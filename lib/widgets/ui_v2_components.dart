@@ -268,20 +268,25 @@ class UiPrimaryButton extends StatelessWidget {
     required this.icon,
     required this.onPressed,
     this.loading = false,
+    this.height = 46,
+    this.textStyle,
   });
 
   final String label;
   final IconData icon;
   final VoidCallback? onPressed;
   final bool loading;
+  final double height;
+  final TextStyle? textStyle;
 
   @override
   Widget build(BuildContext context) => UiPressFeedback(
     enabled: !loading && onPressed != null,
     child: SizedBox(
       width: double.infinity,
-      height: 46,
+      height: height,
       child: FilledButton.icon(
+        style: FilledButton.styleFrom(textStyle: textStyle),
         onPressed: loading ? null : onPressed,
         icon: loading
             ? const SizedBox.square(

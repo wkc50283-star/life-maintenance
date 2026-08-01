@@ -1,11 +1,18 @@
 # 生活管理 App 目前正式任務
 
 狀態：正式控制文件
-最後核對日期：2026-08-01
+最後核對日期：2026-08-02
 
 ## 1. 目前任務狀態
 
-目前沒有進行中的正式施工任務。
+目前進行中的正式施工任務：
+
+- 任務名稱：一分鐘建立頁簡化
+- Branch：`codex/simplify-one-minute-item-creation`
+- Base commit：`435156d2eeedac381552b549fec4c643125dc3c7`
+- 目標版本：`0.5.54+55`
+- 狀態：施工中，尚未合併
+- 目標：簡化 Issue #268 已存在的建立表單，不修改資料契約與生命週期。
 
 最近完成任務：
 
@@ -44,13 +51,13 @@
 - 拍照、語音與 AI 自動填欄位不屬於 Issue #268 已完成功能。
 - 下一個功能 PR 施工前，必須先建立新的 CURRENT_TASK 條目並明確批准範圍。
 
-## 5. 建議後續施工項目
+## 5. 本任務完成條件
 
-1. 同步本機正式開發目錄到 main commit `7a2f4c35e5211d4fea9f83a185867c1bc6a4d149`，並確認工作樹乾淨。
-2. 執行 iOS／Android／Flutter 基本 Gate：`flutter pub get`、`flutter analyze`、`flutter test`、`flutter build ios --debug --no-codesign`、`flutter build apk --debug`。
-3. 進行一分鐘建立生活項目的 iPhone／Android 實體裝置人工驗收。
-4. 若實機驗收通過，以單一文件 PR 回寫 Device Validation 與 CURRENT_STATE／CURRENT_TASK。
-5. 實機 Gate 完成後，才規劃下一個功能或 Figma／首頁視覺任務。
+1. 新建 Item 表單明確呈現必填名稱、選填單一分類與可 0／1／多選的六種管理週期。
+2. 小螢幕、鍵盤開啟與 200% 文字下主要按鈕可見且可點擊。
+3. 只透過 `ItemCreationRuntime.create()` 新建，保留 Loading、錯誤處理、防重複送出、成功承接與唯一 created event。
+4. Format、Analyze、全部 Flutter tests、Web／Android／iOS build gates 通過。
+5. Draft PR 建立後維持 Draft，等待人工驗收，不自行合併。
 
 ## 6. 證據來源
 

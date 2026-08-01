@@ -2527,6 +2527,28 @@ PMS 方案只作視覺品質標準，不改產品定位；不修改各頁內容�
 
 ---
 
+## LM-071：v0.5.54 一分鐘建立頁簡化
+
+日期：2026-08-02
+狀態：Draft 候選
+
+### 變更內容
+
+- 新建 Item 表單明確標示必填名稱、選填單一分類與選填管理週期。
+- 保留年／半年／季／月／週／日六種管理週期的 0／1／多選能力。
+- 「建立生活項目」主要按鈕放大為 56pt，按鈕文字放大為 16pt，其他頁面沿用原有預設。
+- 版本候選更新為 `0.5.54+55`。
+
+### 明確未修改
+
+不修改 Model、Schema v4、Migration、Drift table、Repository、`ItemCreationRuntime` 契約與 transaction，不修改成功畫面、ItemDetail、History、拍照或語音狀態。
+
+### 驗收依據
+
+以直接 Item creation Widget tests、小螢幕鍵盤、200% 文字、Analyze、完整 Flutter tests 及 Web／Android／iOS build gates 為準；Draft PR 不取代人工驗收。
+
+---
+
 ## 後續條目模板
 
 ```text
