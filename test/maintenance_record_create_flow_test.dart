@@ -281,7 +281,10 @@ Future<void> _pickYesterday(WidgetTester tester) async {
   await tester.tap(find.byKey(const ValueKey('maintenance-record-date')));
   await tester.pumpAndSettle();
   final yesterday = _dateOnly(DateTime.now().subtract(const Duration(days: 1)));
-  await tester.tap(find.text('${yesterday.day}').last);
+  tester
+      .widget<CalendarDatePicker>(find.byType(CalendarDatePicker))
+      .onDateChanged(yesterday);
+  await tester.pumpAndSettle();
   final confirm = find.text('確定').evaluate().isNotEmpty
       ? find.text('確定')
       : find.text('OK');
