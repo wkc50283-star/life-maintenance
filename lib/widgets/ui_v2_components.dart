@@ -468,19 +468,19 @@ class UiBottomNavigation extends StatelessWidget {
   final Key? navigationKey;
 
   @override
-  Widget build(BuildContext context) => DecoratedBox(
-    decoration: const BoxDecoration(
-      color: UiColors.surface,
-      border: Border(top: BorderSide(color: UiColors.border)),
-      boxShadow: UiShadow.navigation,
-    ),
-    child: SafeArea(
-      top: false,
-      child: MediaQuery.withClampedTextScaling(
-        maxScaleFactor: 1.3,
+  Widget build(BuildContext context) {
+    final scaledLabelHeight = MediaQuery.textScalerOf(context).scale(12);
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: UiColors.surface,
+        border: Border(top: BorderSide(color: UiColors.border)),
+        boxShadow: UiShadow.navigation,
+      ),
+      child: SafeArea(
+        top: false,
         child: NavigationBar(
           key: navigationKey,
-          height: 60,
+          height: 60 + (scaledLabelHeight - 12).clamp(0, 52),
           selectedIndex: currentIndex,
           onDestinationSelected: onSelected,
           destinations: [
@@ -500,8 +500,8 @@ class UiBottomNavigation extends StatelessWidget {
           ],
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _NavigationIcon extends StatelessWidget {

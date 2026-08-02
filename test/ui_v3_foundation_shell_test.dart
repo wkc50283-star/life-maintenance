@@ -6,6 +6,9 @@ import 'package:life_maintenance/app/app_theme.dart';
 import 'package:life_maintenance/app/ui_tokens.dart';
 import 'package:life_maintenance/database/app_database.dart';
 import 'package:life_maintenance/main.dart';
+import 'package:life_maintenance/widgets/add_entry_card.dart';
+import 'package:life_maintenance/widgets/history_record_card.dart';
+import 'package:life_maintenance/widgets/product_item_card.dart';
 import 'package:life_maintenance/widgets/ui_v2_components.dart';
 
 void main() {
@@ -126,7 +129,7 @@ void main() {
     addTearDown(tester.view.resetPadding);
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
 
-    for (final scale in const [1.0, 1.5, 2.0]) {
+    for (final scale in const [1.0, 1.5, 2.0, 3.2]) {
       tester.platformDispatcher.textScaleFactorTestValue = scale;
       for (final size in const [
         Size(320, 568),
@@ -192,6 +195,91 @@ void main() {
       }
     }
   });
+
+  testWidgets(
+    'content cards remain readable and operable at dynamic type sizes',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+      for (final scale in const [1.0, 1.5, 2.0, 3.2]) {
+        tester.platformDispatcher.textScaleFactorTestValue = scale;
+        for (final size in const [
+          Size(320, 568),
+          Size(390, 844),
+          Size(428, 926),
+        ]) {
+          tester.view.physicalSize = size;
+          var itemTapped = false;
+          var entryTapped = false;
+          var historyTapped = false;
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Scaffold(
+                body: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      ProductItemCard(
+                        title: '測試冷氣與極長生活項目名稱',
+                        categoryLabel: '家電',
+                        statusLabel: '正常追蹤',
+                        location: '客廳與主要生活空間',
+                        dateLine: '建立日期：2026/08/02　購買日期：2020/01/15',
+                        icon: Icons.ac_unit_outlined,
+                        onTap: () => itemTapped = true,
+                      ),
+                      AddEntryCard(
+                        icon: Icons.category_outlined,
+                        title: '分類',
+                        description: '用自己熟悉的名稱整理生活項目。',
+                        onTap: () => entryTapped = true,
+                      ),
+                      HistoryRecordCard(
+                        date: '2026/08/02',
+                        title: '建立生活項目',
+                        itemName: '測試冷氣與極長生活項目名稱',
+                        recordType: '生活項目履歷',
+                        description: '建立時的正式資料快照。',
+                        result: '已建立',
+                        costLabel: null,
+                        photoLabel: null,
+                        icon: Icons.history_rounded,
+                        onTap: () => historyTapped = true,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          final date = tester.widget<Text>(
+            find.byKey(const ValueKey('product-item-date')),
+          );
+          expect(date.overflow, isNot(TextOverflow.ellipsis));
+          expect(date.maxLines, isNull);
+          expect(tester.takeException(), isNull, reason: '$size / $scale');
+
+          final itemTitle = find.text('測試冷氣與極長生活項目名稱').first;
+          await tester.ensureVisible(itemTitle);
+          await tester.tap(itemTitle);
+          final category = find.text('分類');
+          await tester.ensureVisible(category);
+          await tester.tap(category);
+          final historyTitle = find.text('建立生活項目');
+          await tester.ensureVisible(historyTitle);
+          await tester.tap(historyTitle);
+          expect(itemTapped, isTrue);
+          expect(entryTapped, isTrue);
+          expect(historyTapped, isTrue);
+          expect(tester.takeException(), isNull, reason: '$size / $scale');
+        }
+      }
+    },
+  );
 
   testWidgets('Reduce Motion disables Shell and common motion components', (
     tester,
