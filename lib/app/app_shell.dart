@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../diagnostics/runtime_diagnostics.dart';
-import '../screens/add_screen.dart';
 import '../screens/history_screen.dart';
 import '../screens/items_screen.dart';
+import '../screens/quick_add_screen.dart';
 import '../screens/settings_screen.dart';
 import '../screens/today_screen.dart';
 import '../widgets/ui_v2_components.dart';
@@ -37,7 +37,7 @@ class _AppShellState extends State<AppShell> {
       selectedIcon: Icons.add_circle,
     ),
     _AppShellDestination(
-      title: '史略',
+      title: '履歷',
       icon: Icons.history_outlined,
       selectedIcon: Icons.history,
     ),
@@ -49,7 +49,7 @@ class _AppShellState extends State<AppShell> {
   ];
 
   int _currentIndex = 0;
-  final _addScreenKey = GlobalKey<AddScreenState>();
+  final _quickAddScreenKey = GlobalKey<QuickAddScreenState>();
   bool _runtimeReady = false;
   Object? _initializationError;
 
@@ -134,13 +134,15 @@ class _AppShellState extends State<AppShell> {
 
   void _selectDestination(int index) {
     if (index == _currentIndex) {
-      if (index == 2) _addScreenKey.currentState?.showItemCreationMenu();
+      if (index == 2) {
+        _quickAddScreenKey.currentState?.showItemCreationMenu();
+      }
       return;
     }
     setState(() => _currentIndex = index);
     if (index == 2) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _addScreenKey.currentState?.showItemCreationMenu();
+        _quickAddScreenKey.currentState?.showItemCreationMenu();
       });
     }
   }
@@ -148,8 +150,8 @@ class _AppShellState extends State<AppShell> {
   Widget _destinationScreen(int index) => switch (index) {
     0 => TodayScreen(onQuickAdd: () => _selectDestination(2)),
     1 => const ItemsScreen(),
-    2 => AddScreen(
-      key: _addScreenKey,
+    2 => QuickAddScreen(
+      key: _quickAddScreenKey,
       onShowItems: () => _selectDestination(1),
     ),
     3 => const HistoryScreen(),
