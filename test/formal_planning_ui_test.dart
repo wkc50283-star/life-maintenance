@@ -151,7 +151,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('生活項目'), findsOneWidget);
+    expect(find.text('現在需要記住或處理什麼？'), findsOneWidget);
+    expect(find.text('拍照'), findsOneWidget);
+    expect(find.text('語音'), findsOneWidget);
+    expect(find.text('輸入'), findsOneWidget);
+    expect(find.text('分類'), findsNothing);
+    await _expandMoreMethods(tester);
     expect(find.text('分類'), findsOneWidget);
     expect(find.text('保養項目與步驟'), findsOneWidget);
     expect(find.text('一般提醒'), findsOneWidget);
@@ -348,7 +353,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('分類'));
+    await _openAdvancedEntry(tester, '分類');
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('add-entry')));
     await tester.pumpAndSettle();
@@ -379,7 +384,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('保養項目與步驟'));
+    await _openAdvancedEntry(tester, '保養項目與步驟');
     await tester.pumpAndSettle();
     expect(find.byType(PlanningContentScreen), findsOneWidget);
     tester
@@ -532,7 +537,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('一般提醒'));
+      await _openAdvancedEntry(tester, '一般提醒');
       await tester.pumpAndSettle();
       expect(find.byType(PlanningContentScreen), findsOneWidget);
       tester
@@ -700,7 +705,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('階段性重點'));
+      await _openAdvancedEntry(tester, '階段性重點');
       await tester.pumpAndSettle();
       tester
           .widget<DropdownButtonFormField<String>>(
@@ -1154,7 +1159,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('提醒排程'));
+    await _openAdvancedEntry(tester, '提醒排程');
     await tester.pumpAndSettle();
     tester
         .widget<DropdownButtonFormField<String>>(
@@ -1226,7 +1231,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('提醒排程'));
+      await _openAdvancedEntry(tester, '提醒排程');
       await tester.pumpAndSettle();
       tester
           .widget<DropdownButtonFormField<String>>(
@@ -1324,7 +1329,17 @@ Future<void> _selectMilestoneDate(WidgetTester tester) async {
 }
 
 Future<void> _openManualWorkCaseForm(WidgetTester tester) async {
-  final entry = find.text('突發事項／工程');
+  await _openAdvancedEntry(tester, '突發事項／工程');
+}
+
+Future<void> _expandMoreMethods(WidgetTester tester) async {
+  await tester.tap(find.byKey(const ValueKey('add-more-methods')));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _openAdvancedEntry(WidgetTester tester, String label) async {
+  await _expandMoreMethods(tester);
+  final entry = find.text(label);
   await tester.scrollUntilVisible(
     entry,
     200,

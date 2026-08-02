@@ -32,11 +32,15 @@ void main() {
   ) async {
     await _pumpAddScreen(tester, root);
 
+    expect(find.text('補登完成紀錄'), findsNothing);
+    await _expandMoreMethods(tester);
     expect(find.text('補登完成紀錄'), findsOneWidget);
     expect(find.text('突發事項／工程'), findsOneWidget);
     expect(find.text('一般提醒'), findsOneWidget);
 
-    await _openForm(tester);
+    await tester.scrollUntilVisible(find.text('補登完成紀錄'), 150);
+    await tester.tap(find.text('補登完成紀錄'));
+    await tester.pumpAndSettle();
 
     expect(find.byType(ManualMaintenanceRecordFormScreen), findsOneWidget);
     expect(find.text('目前還沒有生活項目'), findsOneWidget);
@@ -264,9 +268,15 @@ Future<void> _pumpAddScreen(
 }
 
 Future<void> _openForm(WidgetTester tester) async {
+  await _expandMoreMethods(tester);
   final entry = find.text('補登完成紀錄');
   await tester.scrollUntilVisible(entry, 150);
   await tester.tap(entry);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _expandMoreMethods(WidgetTester tester) async {
+  await tester.tap(find.byKey(const ValueKey('add-more-methods')));
   await tester.pumpAndSettle();
 }
 

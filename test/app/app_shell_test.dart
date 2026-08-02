@@ -53,7 +53,7 @@ void main() {
       navigation.destinations.cast<NavigationDestination>().map(
         (destination) => destination.label,
       ),
-      const ['生活總覽', '生活項目', '新增', '史略', '設定'],
+      const ['生活總覽', '生活項目', '新增', '履歷', '設定'],
     );
     expect(find.byType(TodayScreen), findsOneWidget);
 
@@ -67,7 +67,7 @@ void main() {
     await tester.tapAt(const Offset(8, 8));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('史略'));
+    await tester.tap(find.text('履歷'));
     await tester.pumpAndSettle();
     expect(find.byType(HistoryScreen), findsOneWidget);
 
@@ -95,7 +95,7 @@ void main() {
     await tester.pumpWidget(LifeMaintenanceApp(compositionRoot: root));
     await tester.pumpAndSettle();
 
-    for (final label in const ['生活項目', '新增', '史略', '設定', '生活總覽']) {
+    for (final label in const ['生活項目', '新增', '履歷', '設定', '生活總覽']) {
       await tester.tap(find.text(label));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: label);
@@ -135,7 +135,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('暫時無法讀取生活總覽。'), findsOneWidget);
 
-    await tester.tap(find.text('史略'));
+    await tester.tap(find.text('履歷'));
     await tester.pumpAndSettle();
     expect(find.text('暫時無法讀取史略。'), findsOneWidget);
     await root.database.close();

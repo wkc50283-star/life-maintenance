@@ -76,7 +76,7 @@ void main() {
     );
     expect(MediaQuery.textScalerOf(shellContext).scale(1), 1);
 
-    for (final label in const ['生活項目', '新增', '史略', '設定', '生活總覽']) {
+    for (final label in const ['生活項目', '新增', '履歷', '設定', '生活總覽']) {
       await tester.tap(find.text(label));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: label);
@@ -95,7 +95,7 @@ void main() {
     await tester.pumpWidget(LifeMaintenanceApp(compositionRoot: root));
     await tester.pumpAndSettle();
 
-    for (final label in const ['生活總覽', '生活項目', '新增', '史略', '設定']) {
+    for (final label in const ['生活總覽', '生活項目', '新增', '履歷', '設定']) {
       final target = find.descendant(
         of: find.byKey(const ValueKey('primary-navigation')),
         matching: find.text(label),

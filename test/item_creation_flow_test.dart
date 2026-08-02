@@ -20,7 +20,7 @@ void main() {
 
   tearDown(() => database.close());
 
-  testWidgets('capture sheet is honest and dismisses to the Add center', (
+  testWidgets('direct capture entries are honest and stay in the Add center', (
     tester,
   ) async {
     await _pumpApp(tester, root);
@@ -29,13 +29,20 @@ void main() {
     expect(find.text('拍照'), findsOneWidget);
     expect(find.text('語音'), findsOneWidget);
     expect(find.text('輸入'), findsOneWidget);
-    expect(find.text('尚未啟用'), findsNWidgets(2));
+    expect(find.text('分類'), findsNothing);
+    expect(find.text('一般提醒'), findsNothing);
+    expect(find.text('突發事項／工程'), findsNothing);
+    expect(find.text('補登完成紀錄'), findsNothing);
 
-    await tester.tapAt(const Offset(8, 8));
+    await tester.tap(find.byKey(const ValueKey('item-create-by-photo')));
     await tester.pumpAndSettle();
+    expect(find.text('拍照建立尚未啟用，先使用輸入建立。'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('item-create-by-voice')));
+    await tester.pumpAndSettle();
+    expect(find.text('語音建立尚未啟用，先使用輸入建立。'), findsOneWidget);
 
-    expect(find.text('新增與整理'), findsOneWidget);
-    expect(find.text('生活項目'), findsWidgets);
+    expect(find.text('現在需要記住或處理什麼？'), findsOneWidget);
+    await _expandMoreMethods(tester);
     expect(find.text('分類'), findsOneWidget);
     expect(find.text('一般提醒'), findsOneWidget);
     expect(find.text('突發事項／工程'), findsOneWidget);
@@ -109,7 +116,7 @@ void main() {
       await tester.tap(
         find.descendant(
           of: find.byKey(const ValueKey('primary-navigation')),
-          matching: find.text('史略'),
+          matching: find.text('履歷'),
         ),
       );
       await tester.pumpAndSettle();
@@ -192,4 +199,9 @@ Future<void> _openTextForm(WidgetTester tester) async {
   await tester.tap(find.byKey(const ValueKey('item-create-by-text')));
   await tester.pumpAndSettle();
   expect(find.byType(ItemFormScreen), findsOneWidget);
+}
+
+Future<void> _expandMoreMethods(WidgetTester tester) async {
+  await tester.tap(find.byKey(const ValueKey('add-more-methods')));
+  await tester.pumpAndSettle();
 }

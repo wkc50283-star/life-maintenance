@@ -33,7 +33,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(AppShell), findsOneWidget, reason: entry.key);
-      for (final label in const ['生活項目', '新增', '史略', '設定', '生活總覽']) {
+      for (final label in const ['生活項目', '新增', '履歷', '設定', '生活總覽']) {
         final destination = find.descendant(
           of: find.byKey(const ValueKey('primary-navigation')),
           matching: find.text(label),
@@ -75,7 +75,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tapAt(const Offset(8, 8));
+      await tester.tap(find.byKey(const ValueKey('add-more-methods')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('分類'));
       await tester.pumpAndSettle();

@@ -26,7 +26,7 @@ void main() {
     expect(mainSource, contains('AppCompositionRoot.production()'));
     expect(mainSource, contains('AppShell('));
     expect(mainSource, isNot(contains('PrototypeReviewApp')));
-    for (final destination in const ['生活總覽', '生活項目', '新增', '史略', '設定']) {
+    for (final destination in const ['生活總覽', '生活項目', '新增', '履歷', '設定']) {
       expect(shellSource, contains(destination), reason: destination);
     }
   });
