@@ -33,7 +33,7 @@ void main() {
     expect(find.text('提醒與排程'), findsOneWidget);
     expect(find.text('階段性重點與大修'), findsOneWidget);
     expect(find.text('進行中案件'), findsOneWidget);
-    expect(find.text('史略'), findsOneWidget);
+    expect(find.text('履歷'), findsOneWidget);
     expect(find.text('基本資料'), findsOneWidget);
   });
 

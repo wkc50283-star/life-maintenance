@@ -35,7 +35,7 @@ class HistoryRecordCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return UiActionCard(
       onTap: onTap,
-      semanticLabel: onTap == null ? null : '開啟史略：$title',
+      semanticLabel: onTap == null ? null : '開啟履歷：$title',
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(

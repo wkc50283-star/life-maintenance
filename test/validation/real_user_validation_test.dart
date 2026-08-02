@@ -261,7 +261,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('冷氣濾網清潔'), findsOneWidget);
-    expect(find.text('案件史略'), findsOneWidget);
+    expect(find.text('案件履歷'), findsOneWidget);
     expect(find.text('濾網已清洗、裝回並測試'), findsOneWidget);
     expect(find.text('處理進度：1 筆'), findsOneWidget);
     expect(find.text('運轉正常'), findsOneWidget);

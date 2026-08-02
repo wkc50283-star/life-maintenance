@@ -7,6 +7,7 @@ import 'package:life_maintenance/app/ui_tokens.dart';
 import 'package:life_maintenance/database/app_database.dart';
 import 'package:life_maintenance/main.dart';
 import 'package:life_maintenance/screens/add_screen.dart';
+import 'package:life_maintenance/screens/formal_planning_screens.dart';
 import 'package:life_maintenance/widgets/ui_v2_components.dart';
 
 void main() {
@@ -36,6 +37,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(navigation.selectedIndex, 0);
+      expect(find.byType(ItemFormScreen), findsOneWidget);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
       expect(find.byType(AddScreen), findsOneWidget);
       expect(
         tester
@@ -78,6 +82,44 @@ void main() {
       );
     },
   );
+
+  testWidgets('home quick capture is content-sized above navigation', (
+    tester,
+  ) async {
+    final root = AppCompositionRoot(
+      database: AppDatabase(NativeDatabase.memory()),
+    );
+    addTearDown(root.database.close);
+
+    await tester.pumpWidget(LifeMaintenanceApp(compositionRoot: root));
+    await tester.pumpAndSettle();
+
+    final section = find.byKey(const ValueKey('overview-capture-section'));
+    final navigation = find.byKey(const ValueKey('primary-navigation'));
+    final textButton = find.byKey(const ValueKey('overview-capture-text'));
+    expect(section, findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('overview-capture-photo')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('overview-capture-voice')),
+      findsOneWidget,
+    );
+    expect(textButton, findsOneWidget);
+    expect(
+      tester.getRect(section).bottom,
+      lessThanOrEqualTo(tester.getRect(navigation).top),
+    );
+    expect(
+      tester.getRect(navigation).top - tester.getRect(section).bottom,
+      lessThanOrEqualTo(UiSpace.sm),
+    );
+    expect(
+      tester.getSize(section).height,
+      closeTo(tester.getSize(textButton).height + UiSpace.md, 0.1),
+    );
+  });
 
   testWidgets('reduce motion disables decorative shell and section animation', (
     tester,
@@ -146,11 +188,18 @@ void main() {
     expect(find.text('拍照'), findsOneWidget);
     expect(find.text('說一句'), findsOneWidget);
     expect(find.text('輸入'), findsOneWidget);
+    final section = find.byKey(const ValueKey('overview-capture-section'));
     expect(
-      tester
-          .getSize(find.byKey(const ValueKey('overview-capture-section')))
-          .height,
-      lessThan(140),
+      tester.getSize(section).height,
+      closeTo(
+        tester
+                .getSize(
+                  find.descendant(of: section, matching: find.byType(Row)),
+                )
+                .height +
+            UiSpace.md,
+        0.1,
+      ),
     );
     expect(tester.takeException(), isNull);
   });

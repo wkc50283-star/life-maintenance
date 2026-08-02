@@ -38,15 +38,6 @@ class _LifeMaintenanceAppState extends State<LifeMaintenanceApp> {
         title: '生活管理',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
-        builder: (context, child) {
-          final mediaQuery = MediaQuery.of(context);
-          return MediaQuery(
-            data: mediaQuery.copyWith(
-              textScaler: mediaQuery.textScaler.clamp(maxScaleFactor: 1),
-            ),
-            child: child!,
-          );
-        },
         home: AppShell(compositionRoot: _compositionRoot),
       ),
     );

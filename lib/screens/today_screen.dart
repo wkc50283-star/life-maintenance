@@ -22,10 +22,16 @@ class TodayScreen extends StatefulWidget {
     super.key,
     ScheduleRepository? scheduleRepository,
     this.onQuickAdd,
+    this.onQuickPhoto,
+    this.onQuickVoice,
+    this.onQuickText,
   }) : _scheduleRepositoryOverride = scheduleRepository;
 
   final ScheduleRepository? _scheduleRepositoryOverride;
   final VoidCallback? onQuickAdd;
+  final VoidCallback? onQuickPhoto;
+  final VoidCallback? onQuickVoice;
+  final VoidCallback? onQuickText;
 
   @override
   State<TodayScreen> createState() => _TodayScreenState();
@@ -219,15 +225,23 @@ class _TodayScreenState extends State<TodayScreen> {
             ],
           ),
         ),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(
-            UiSpace.md,
-            0,
-            UiSpace.md,
-            UiSpace.sm,
-          ),
-          sliver: SliverToBoxAdapter(
-            child: _QuickCaptureActions(onQuickAdd: widget.onQuickAdd),
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                UiSpace.md,
+                0,
+                UiSpace.md,
+                UiSpace.sm,
+              ),
+              child: _QuickCaptureActions(
+                onPhoto: widget.onQuickPhoto ?? widget.onQuickAdd,
+                onVoice: widget.onQuickVoice ?? widget.onQuickAdd,
+                onText: widget.onQuickText ?? widget.onQuickAdd,
+              ),
+            ),
           ),
         ),
       ],
@@ -411,9 +425,15 @@ class _OverviewHeader extends StatelessWidget {
 }
 
 class _QuickCaptureActions extends StatelessWidget {
-  const _QuickCaptureActions({required this.onQuickAdd});
+  const _QuickCaptureActions({
+    required this.onPhoto,
+    required this.onVoice,
+    required this.onText,
+  });
 
-  final VoidCallback? onQuickAdd;
+  final VoidCallback? onPhoto;
+  final VoidCallback? onVoice;
+  final VoidCallback? onText;
 
   @override
   Widget build(BuildContext context) => UiSurfaceCard(
@@ -430,7 +450,7 @@ class _QuickCaptureActions extends StatelessWidget {
             buttonKey: const ValueKey('overview-capture-photo'),
             icon: Icons.photo_camera_outlined,
             label: '拍照',
-            onPressed: onQuickAdd,
+            onPressed: onPhoto,
           ),
         ),
         const SizedBox(width: UiSpace.xs),
@@ -439,7 +459,7 @@ class _QuickCaptureActions extends StatelessWidget {
             buttonKey: const ValueKey('overview-capture-voice'),
             icon: Icons.mic_none_rounded,
             label: '說一句',
-            onPressed: onQuickAdd,
+            onPressed: onVoice,
           ),
         ),
         const SizedBox(width: UiSpace.xs),
@@ -448,7 +468,7 @@ class _QuickCaptureActions extends StatelessWidget {
             buttonKey: const ValueKey('overview-capture-text'),
             icon: Icons.keyboard_outlined,
             label: '輸入',
-            onPressed: onQuickAdd,
+            onPressed: onText,
           ),
         ),
       ],

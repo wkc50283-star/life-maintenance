@@ -152,11 +152,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('現在需要記住或處理什麼？'), findsOneWidget);
-    expect(find.text('拍照'), findsOneWidget);
-    expect(find.text('語音'), findsOneWidget);
-    expect(find.text('輸入'), findsOneWidget);
-    expect(find.text('分類'), findsNothing);
-    await _expandMoreMethods(tester);
+    expect(find.byKey(const ValueKey('item-create-by-photo')), findsNothing);
+    expect(find.byKey(const ValueKey('item-create-by-voice')), findsNothing);
+    expect(find.byKey(const ValueKey('item-create-by-text')), findsNothing);
+    expect(find.text('更多建立方式'), findsOneWidget);
     expect(find.text('分類'), findsOneWidget);
     expect(find.text('保養項目與步驟'), findsOneWidget);
     expect(find.text('一般提醒'), findsOneWidget);
@@ -1332,13 +1331,7 @@ Future<void> _openManualWorkCaseForm(WidgetTester tester) async {
   await _openAdvancedEntry(tester, '突發事項／工程');
 }
 
-Future<void> _expandMoreMethods(WidgetTester tester) async {
-  await tester.tap(find.byKey(const ValueKey('add-more-methods')));
-  await tester.pumpAndSettle();
-}
-
 Future<void> _openAdvancedEntry(WidgetTester tester, String label) async {
-  await _expandMoreMethods(tester);
   final entry = find.text(label);
   await tester.scrollUntilVisible(
     entry,

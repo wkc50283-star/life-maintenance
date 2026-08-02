@@ -506,14 +506,7 @@ Future<void> _advanceItemForm(
 }
 
 Future<void> _openNewItemForm(WidgetTester tester) async {
-  await tester.tap(
-    find.descendant(
-      of: find.byKey(const ValueKey('primary-navigation')),
-      matching: find.text('新增'),
-    ),
-  );
-  await tester.pumpAndSettle();
-  await tester.tap(find.byKey(const ValueKey('item-create-by-text')));
+  await tester.tap(find.byKey(const ValueKey('overview-quick-add')));
   await tester.pumpAndSettle();
   expect(find.text('確認生活項目'), findsOneWidget);
   expect(find.byKey(const ValueKey('item-name')), findsOneWidget);

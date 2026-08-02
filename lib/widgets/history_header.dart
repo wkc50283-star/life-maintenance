@@ -8,7 +8,7 @@ class HistoryHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const UiCompactPageHeader(
-      title: '史略',
+      title: '履歷',
       description: '處理過程、結果與後續注意都完整保留。',
     );
   }

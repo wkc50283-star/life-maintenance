@@ -49,6 +49,7 @@ class _AppShellState extends State<AppShell> {
   ];
 
   int _currentIndex = 0;
+  final _addScreenKey = GlobalKey<AddScreenState>();
   bool _runtimeReady = false;
   Object? _initializationError;
 
@@ -132,13 +133,34 @@ class _AppShellState extends State<AppShell> {
   }
 
   Widget _destinationScreen(int index) => switch (index) {
-    0 => TodayScreen(onQuickAdd: () => _selectDestination(2)),
+    0 => TodayScreen(
+      onQuickAdd: _openItemCreation,
+      onQuickPhoto: () => _showUnavailable('拍照建立尚未啟用，先使用輸入建立。'),
+      onQuickVoice: () => _showUnavailable('語音建立尚未啟用，先使用輸入建立。'),
+      onQuickText: _openItemCreation,
+    ),
     1 => const ItemsScreen(),
-    2 => AddScreen(onShowItems: () => _selectDestination(1)),
+    2 => AddScreen(
+      key: _addScreenKey,
+      onShowItems: () => _selectDestination(1),
+    ),
     3 => const HistoryScreen(),
     4 => const SettingsScreen(),
     _ => const SizedBox.shrink(),
   };
+
+  void _openItemCreation() {
+    _selectDestination(2);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _addScreenKey.currentState?.showItemCreationMenu();
+    });
+  }
+
+  void _showUnavailable(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
 }
 
 class _RuntimeLoadFailure extends StatelessWidget {

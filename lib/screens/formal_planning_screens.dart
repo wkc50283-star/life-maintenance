@@ -660,7 +660,7 @@ class ItemCreationSuccessScreen extends StatelessWidget {
             const UiCompactPageHeader(
               icon: Icons.check_circle_outline_rounded,
               title: '已建立生活項目',
-              description: '第一筆建立史略已經留下。',
+              description: '第一筆建立履歷已經留下。',
             ),
             _ReadOnlyNotice('建立生活項目'),
             const SizedBox(height: UiSpace.sm),
