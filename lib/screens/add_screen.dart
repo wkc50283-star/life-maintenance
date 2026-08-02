@@ -23,60 +23,77 @@ class AddScreen extends StatefulWidget {
 }
 
 class AddScreenState extends State<AddScreen> {
-  Future<void> showItemCreationMenu() async {
-    final action = await showModalBottomSheet<_ItemCreationMethod>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => const _ItemCreationMethodSheet(),
-    );
-    if (!mounted || action != _ItemCreationMethod.text) return;
-    await _openItemForm();
-  }
+  Future<void> showItemCreationMenu() => _openItemForm();
 
   @override
   Widget build(BuildContext context) {
     final formalEditor = formalPlanningEditor(context);
 
     if (formalEditor != null) {
-      return _FormalAddScreen(onCreateItem: showItemCreationMenu);
+      return _FormalAddScreen(
+        onCreateItem: _openItemForm,
+        onUnavailable: _showUnavailableMessage,
+      );
     }
 
     return SingleChildScrollView(
+      key: const ValueKey('add-screen-scroll'),
       padding: UiInsets.pageCompact,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const UiCompactPageHeader(
             icon: Icons.add_rounded,
-            title: '你要新增什麼？',
-            description: '新增生活項目、提醒或完成紀錄，方便之後查看與管理。',
+            title: '現在需要記住或處理什麼？',
+            description: '先用最方便的方式開始，其他功能需要時再展開。',
           ),
-          AddEntryCard(
-            icon: Icons.add_a_photo_outlined,
-            title: '新增生活項目',
-            description: '建立家電、車輛、房屋、證件或其他生活項目。',
-            onTap: () => showAddItemPreviewSheet(context),
+          _DirectEntryRow(
+            onPhoto: () => _showUnavailableMessage('拍照建立尚未啟用，先使用輸入建立。'),
+            onVoice: () => _showUnavailableMessage('語音建立尚未啟用，先使用輸入建立。'),
+            onText: _openItemForm,
           ),
-          AddEntryCard(
-            icon: Icons.event_available_outlined,
-            title: '新增提醒',
-            description: '設定到期日、保固、證件、合約或其他日期提醒。',
-            onTap: () => showExpiryReminderPreviewSheet(context),
+          const SizedBox(height: UiSpace.sm),
+          Text(
+            '例如：客廳冷氣漏水、下週四晚上七點看牙。',
+            style: UiType.body,
+            textAlign: TextAlign.center,
           ),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: () => showReminderListSheet(context),
-              icon: const Icon(Icons.event_note_outlined),
-              label: const Text('查看已建立的提醒'),
-            ),
-          ),
-          const SizedBox(height: 8),
-          AddEntryCard(
-            icon: Icons.construction_outlined,
-            title: '補登完成紀錄',
-            description: '記錄已完成的保養、修理、辦理事項、費用與結果。',
-            onTap: () => showMaintenanceRecordPreviewSheet(context),
+          const SizedBox(height: UiSpace.md),
+          ExpansionTile(
+            key: const ValueKey('add-more-methods'),
+            tilePadding: const EdgeInsets.symmetric(horizontal: UiSpace.xs),
+            childrenPadding: const EdgeInsets.only(bottom: UiSpace.sm),
+            leading: const Icon(Icons.tune_rounded),
+            title: const Text('更多建立方式'),
+            subtitle: const Text('提醒與完成紀錄仍保留在這裡'),
+            children: [
+              AddEntryCard(
+                icon: Icons.add_a_photo_outlined,
+                title: '新增生活項目',
+                description: '建立家電、車輛、房屋、證件或其他生活項目。',
+                onTap: () => showAddItemPreviewSheet(context),
+              ),
+              AddEntryCard(
+                icon: Icons.event_available_outlined,
+                title: '新增提醒',
+                description: '設定到期日、保固、證件、合約或其他日期提醒。',
+                onTap: () => showExpiryReminderPreviewSheet(context),
+              ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: () => showReminderListSheet(context),
+                  icon: const Icon(Icons.event_note_outlined),
+                  label: const Text('查看已建立的提醒'),
+                ),
+              ),
+              AddEntryCard(
+                icon: Icons.construction_outlined,
+                title: '補登完成紀錄',
+                description: '記錄已完成的保養、修理、辦理事項、費用與結果。',
+                onTap: () => showMaintenanceRecordPreviewSheet(context),
+              ),
+            ],
           ),
         ],
       ),
@@ -92,116 +109,123 @@ class AddScreenState extends State<AddScreen> {
     if (!mounted || result?.createdItemId == null) return;
     if (result!.showItems) widget.onShowItems?.call();
   }
+
+  void _showUnavailableMessage(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
 }
 
 class _FormalAddScreen extends StatelessWidget {
-  const _FormalAddScreen({required this.onCreateItem});
+  const _FormalAddScreen({
+    required this.onCreateItem,
+    required this.onUnavailable,
+  });
 
   final VoidCallback onCreateItem;
+  final ValueChanged<String> onUnavailable;
 
   @override
   Widget build(BuildContext context) {
     void open(Widget screen) {
-      Navigator.of(
-        context,
-      ).push(MaterialPageRoute<void>(builder: (_) => screen));
+      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => screen));
     }
 
     return SingleChildScrollView(
+      key: const ValueKey('add-screen-scroll'),
       padding: UiInsets.pageCompact,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const UiCompactPageHeader(
             icon: Icons.add_rounded,
-            title: '新增與整理',
-            description: '先建立生活項目，再加入需要長期管理的保養、提醒、階段重點與排程。',
+            title: '現在需要記住或處理什麼？',
+            description: '先選擇最方便的方式開始，系統功能會在需要時出現。',
           ),
-          const _AddSectionHeader(
-            step: '1',
-            title: '先建立要管理的生活項目',
-            description: '第一次使用，從這裡開始就好。',
-          ),
-          AddEntryCard(
-            icon: Icons.inventory_2_outlined,
-            title: '生活項目',
-            description: '新增或修改家電、車輛、房屋、文件、健康與其他生活項目。',
-            emphasized: true,
-            onTap: onCreateItem,
-          ),
-          AddEntryCard(
-            icon: Icons.category_outlined,
-            title: '分類',
-            description: '用自己熟悉的名稱整理生活項目，不必一開始就分得很細。',
-            onTap: () => open(const CategoryManagementScreen()),
+          _DirectEntryRow(
+            onPhoto: () => onUnavailable('拍照建立尚未啟用，先使用輸入建立。'),
+            onVoice: () => onUnavailable('語音建立尚未啟用，先使用輸入建立。'),
+            onText: onCreateItem,
           ),
           const SizedBox(height: UiSpace.sm),
-          const _AddSectionHeader(
-            step: '2',
-            title: '再安排需要長期記住的事',
-            description: '保養、提醒與重要階段都會隸屬於生活項目。',
+          Text(
+            '例如：客廳冷氣漏水、下週四晚上七點看牙。',
+            style: UiType.body,
+            textAlign: TextAlign.center,
           ),
-          AddEntryCard(
-            icon: Icons.home_repair_service_outlined,
-            title: '保養項目與步驟',
-            description: '建立長期保養內容與標準步驟，不代表某一次已完成。',
-            onTap: () => open(
-              const PlanningContentScreen(
-                kind: PlanningContentKind.maintenancePlan,
-                handoffCreatedMaintenancePlan: true,
+          const SizedBox(height: UiSpace.md),
+          ExpansionTile(
+            key: const ValueKey('add-more-methods'),
+            tilePadding: const EdgeInsets.symmetric(horizontal: UiSpace.xs),
+            childrenPadding: const EdgeInsets.only(bottom: UiSpace.sm),
+            leading: const Icon(Icons.tune_rounded),
+            title: const Text('更多建立方式'),
+            subtitle: const Text('保養、提醒、排程、案件與完成紀錄'),
+            children: [
+              AddEntryCard(
+                icon: Icons.category_outlined,
+                title: '分類',
+                description: '用自己熟悉的名稱整理生活項目。',
+                onTap: () => open(const CategoryManagementScreen()),
               ),
-            ),
-          ),
-          AddEntryCard(
-            icon: Icons.notifications_none_rounded,
-            title: '一般提醒',
-            description: '管理保固、合約、證件、繳費或健康檢查等提醒。',
-            onTap: () => open(
-              const PlanningContentScreen(
-                kind: PlanningContentKind.reminder,
-                handoffCreatedReminder: true,
+              AddEntryCard(
+                icon: Icons.home_repair_service_outlined,
+                title: '保養項目與步驟',
+                description: '建立長期保養內容與標準步驟。',
+                onTap: () => open(
+                  const PlanningContentScreen(
+                    kind: PlanningContentKind.maintenancePlan,
+                    handoffCreatedMaintenancePlan: true,
+                  ),
+                ),
               ),
-            ),
-          ),
-          AddEntryCard(
-            icon: Icons.flag_outlined,
-            title: '階段性重點',
-            description: '安排大修、汰換評估或達到條件後才需要注意的事情。',
-            onTap: () => open(
-              const PlanningContentScreen(
-                kind: PlanningContentKind.milestone,
-                handoffCreatedMilestone: true,
+              AddEntryCard(
+                icon: Icons.notifications_none_rounded,
+                title: '一般提醒',
+                description: '管理保固、合約、證件、繳費或健康檢查等提醒。',
+                onTap: () => open(
+                  const PlanningContentScreen(
+                    kind: PlanningContentKind.reminder,
+                    handoffCreatedReminder: true,
+                  ),
+                ),
               ),
-            ),
-          ),
-          AddEntryCard(
-            icon: Icons.event_repeat_outlined,
-            title: '提醒排程',
-            description: '替既有內容設定週期、日期與完成後重新計算方式。',
-            onTap: () => open(
-              const PlanningContentScreen(
-                kind: PlanningContentKind.schedule,
-                handoffCreatedSchedule: true,
+              AddEntryCard(
+                icon: Icons.flag_outlined,
+                title: '階段性重點',
+                description: '安排達到條件後才需要注意的事情。',
+                onTap: () => open(
+                  const PlanningContentScreen(
+                    kind: PlanningContentKind.milestone,
+                    handoffCreatedMilestone: true,
+                  ),
+                ),
               ),
-            ),
-          ),
-          const SizedBox(height: UiSpace.sm),
-          const _AddSectionHeader(
-            step: '3',
-            title: '開始處理正在發生的事情',
-            description: '突發狀況、維修或工程，可以從案件持續留下處理過程。',
-          ),
-          AddEntryCard(
-            icon: Icons.handyman_outlined,
-            title: '突發事項／工程',
-            description: '建立仍在處理中的突發狀況、修繕、維修或工程案件。',
-            onTap: () => _openManualWorkCase(context),
-          ),
-          AddEntryCard(
-            icon: Icons.fact_check_outlined,
-            title: '補登完成紀錄',
-            description: '已經完成的事情，可以補留下正式紀錄。',
-            onTap: () => _openManualMaintenanceRecord(context),
+              AddEntryCard(
+                icon: Icons.event_repeat_outlined,
+                title: '提醒排程',
+                description: '替既有內容設定週期、日期與重新計算方式。',
+                onTap: () => open(
+                  const PlanningContentScreen(
+                    kind: PlanningContentKind.schedule,
+                    handoffCreatedSchedule: true,
+                  ),
+                ),
+              ),
+              AddEntryCard(
+                icon: Icons.handyman_outlined,
+                title: '突發事項／工程',
+                description: '建立仍在處理中的突發狀況、修繕或工程案件。',
+                onTap: () => _openManualWorkCase(context),
+              ),
+              AddEntryCard(
+                icon: Icons.fact_check_outlined,
+                title: '補登完成紀錄',
+                description: '已完成的事情，可以補留下正式紀錄。',
+                onTap: () => _openManualMaintenanceRecord(context),
+              ),
+            ],
           ),
         ],
       ),
@@ -218,9 +242,7 @@ class _FormalAddScreen extends StatelessWidget {
     if (!context.mounted || result == null) return;
 
     try {
-      final repository = AppCompositionScope.of(
-        context,
-      ).maintenanceRecordRepository;
+      final repository = AppCompositionScope.of(context).maintenanceRecordRepository;
       final record = await repository.findById(result.recordId);
       if (!context.mounted) return;
       if (record == null ||
@@ -264,9 +286,7 @@ class _FormalAddScreen extends StatelessWidget {
         throw StateError('無法讀取剛建立的案件。');
       }
       final items = await root.itemReadRepository.loadItems();
-      final matchingItems = items.where(
-        (item) => item.id == createdCase.itemId,
-      );
+      final matchingItems = items.where((item) => item.id == createdCase.itemId);
       if (!context.mounted) return;
       if (matchingItems.length != 1) {
         _showWorkCaseReadFailure(context);
@@ -286,121 +306,123 @@ class _FormalAddScreen extends StatelessWidget {
   }
 
   void _showWorkCaseReadFailure(BuildContext context) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('暫時無法讀取剛建立的案件。')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('暫時無法讀取剛建立的案件。')),
+    );
   }
 
   void _showMaintenanceRecordReadFailure(BuildContext context) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('無法讀取剛建立的紀錄。')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('無法讀取剛建立的紀錄。')),
+    );
   }
 
   String _formatRecordDate(DateTime value) =>
       '${value.year}/${value.month.toString().padLeft(2, '0')}/${value.day.toString().padLeft(2, '0')}';
 }
 
-enum _ItemCreationMethod { text }
-
-class _ItemCreationMethodSheet extends StatelessWidget {
-  const _ItemCreationMethodSheet();
-
-  @override
-  Widget build(BuildContext context) => SafeArea(
-    child: SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          UiSpace.md,
-          UiSpace.xs,
-          UiSpace.md,
-          UiSpace.lg,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('新增生活項目', style: UiType.sectionTitle),
-            const SizedBox(height: UiSpace.xs),
-            Text('選擇一種方式開始。', style: UiType.body),
-            const SizedBox(height: UiSpace.md),
-            const _UnavailableCreationMethod(
-              icon: Icons.photo_camera_outlined,
-              title: '拍照',
-            ),
-            const SizedBox(height: UiSpace.xs),
-            const _UnavailableCreationMethod(
-              icon: Icons.mic_none_outlined,
-              title: '語音',
-            ),
-            const SizedBox(height: UiSpace.xs),
-            UiPrimaryButton(
-              key: const ValueKey('item-create-by-text'),
-              onPressed: () => Navigator.pop(context, _ItemCreationMethod.text),
-              label: '輸入',
-              icon: Icons.keyboard_outlined,
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
-class _UnavailableCreationMethod extends StatelessWidget {
-  const _UnavailableCreationMethod({required this.icon, required this.title});
-
-  final IconData icon;
-  final String title;
-
-  @override
-  Widget build(BuildContext context) => ListTile(
-    enabled: false,
-    leading: Icon(icon),
-    title: Text(title),
-    subtitle: const Text('尚未啟用'),
-  );
-}
-
-class _AddSectionHeader extends StatelessWidget {
-  const _AddSectionHeader({
-    required this.step,
-    required this.title,
-    required this.description,
+class _DirectEntryRow extends StatelessWidget {
+  const _DirectEntryRow({
+    required this.onPhoto,
+    required this.onVoice,
+    required this.onText,
   });
 
-  final String step;
-  final String title;
-  final String description;
+  final VoidCallback onPhoto;
+  final VoidCallback onVoice;
+  final VoidCallback onText;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: UiSpace.sm),
-    child: Row(
+  Widget build(BuildContext context) {
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 28,
-          height: 28,
-          alignment: Alignment.center,
-          decoration: const BoxDecoration(
-            color: UiColors.primary,
-            shape: BoxShape.circle,
-          ),
-          child: Text(step, style: UiType.button.copyWith(color: Colors.white)),
-        ),
-        const SizedBox(width: 10),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: UiType.sectionTitle),
-              const SizedBox(height: UiSpace.xxs),
-              Text(description, style: UiType.body),
-            ],
+          child: _DirectEntryButton(
+            buttonKey: const ValueKey('item-create-by-photo'),
+            icon: Icons.photo_camera_outlined,
+            label: '拍照',
+            onPressed: onPhoto,
+          ),
+        ),
+        const SizedBox(width: UiSpace.xs),
+        Expanded(
+          child: _DirectEntryButton(
+            buttonKey: const ValueKey('item-create-by-voice'),
+            icon: Icons.mic_none_rounded,
+            label: '語音',
+            onPressed: onVoice,
+          ),
+        ),
+        const SizedBox(width: UiSpace.xs),
+        Expanded(
+          child: _DirectEntryButton(
+            buttonKey: const ValueKey('item-create-by-text'),
+            icon: Icons.keyboard_outlined,
+            label: '輸入',
+            emphasized: true,
+            onPressed: onText,
           ),
         ),
       ],
-    ),
-  );
+    );
+  }
+}
+
+class _DirectEntryButton extends StatelessWidget {
+  const _DirectEntryButton({
+    required this.buttonKey,
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+    this.emphasized = false,
+  });
+
+  final Key buttonKey;
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+  final bool emphasized;
+
+  @override
+  Widget build(BuildContext context) {
+    final child = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon),
+        const SizedBox(height: UiSpace.xxs),
+        Text(label, textAlign: TextAlign.center),
+      ],
+    );
+
+    return Semantics(
+      button: true,
+      label: '$label開始',
+      child: emphasized
+          ? FilledButton(
+              key: buttonKey,
+              onPressed: onPressed,
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(72),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: UiSpace.xs,
+                  vertical: UiSpace.sm,
+                ),
+              ),
+              child: child,
+            )
+          : OutlinedButton(
+              key: buttonKey,
+              onPressed: onPressed,
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(72),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: UiSpace.xs,
+                  vertical: UiSpace.sm,
+                ),
+              ),
+              child: child,
+            ),
+    );
+  }
 }
