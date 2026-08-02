@@ -28,7 +28,7 @@ void main() {
         navigation.destinations.cast<NavigationDestination>().map(
           (destination) => destination.label,
         ),
-        const ['生活總覽', '生活項目', '新增', '史略', '設定'],
+        const ['生活總覽', '生活項目', '新增', '履歷', '設定'],
       );
       expect(find.byKey(const ValueKey('overview-quick-add')), findsOneWidget);
 
@@ -133,7 +133,8 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.textContaining('安，國政'), findsOneWidget);
     expect(find.text('還沒有生活項目'), findsOneWidget);
-    expect(find.text('拍一張、說一句或輸入名稱開始'), findsOneWidget);
+    expect(find.text('今天發生了什麼？'), findsNothing);
+    expect(find.text('記錄生活，AI 幫你整理'), findsNothing);
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('overview-capture-text')),
       160,
@@ -145,6 +146,12 @@ void main() {
     expect(find.text('拍照'), findsOneWidget);
     expect(find.text('說一句'), findsOneWidget);
     expect(find.text('輸入'), findsOneWidget);
+    expect(
+      tester
+          .getSize(find.byKey(const ValueKey('overview-capture-section')))
+          .height,
+      lessThan(140),
+    );
     expect(tester.takeException(), isNull);
   });
 }

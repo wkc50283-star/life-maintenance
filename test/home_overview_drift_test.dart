@@ -35,7 +35,8 @@ void main() {
     expect(find.textContaining('安，國政'), findsOneWidget);
     expect(find.textContaining('星期'), findsOneWidget);
     expect(find.text('還沒有生活項目'), findsOneWidget);
-    expect(find.text('拍一張、說一句或輸入名稱開始'), findsOneWidget);
+    expect(find.text('今天發生了什麼？'), findsNothing);
+    expect(find.text('記錄生活，AI 幫你整理'), findsNothing);
     expect(find.text('新增生活項目'), findsOneWidget);
     expect(
       tester.getSize(find.byKey(const ValueKey('overview-empty-items'))).height,
@@ -77,15 +78,15 @@ void main() {
     expect(find.text('拍照'), findsOneWidget);
     expect(find.text('說一句'), findsOneWidget);
     expect(find.text('輸入'), findsOneWidget);
+    expect(
+      tester
+          .getSize(find.byKey(const ValueKey('overview-capture-section')))
+          .height,
+      lessThan(140),
+    );
     expect(find.text('拍一張照片'), findsNothing);
     expect(find.text('語音說一段話'), findsNothing);
     expect(find.text('打幾個字'), findsNothing);
-    expect(
-      tester
-          .widget<SliverFillRemaining>(find.byType(SliverFillRemaining))
-          .hasScrollBody,
-      isFalse,
-    );
     expect(
       tester
           .getTopLeft(find.byKey(const ValueKey('overview-capture-section')))

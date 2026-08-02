@@ -113,7 +113,7 @@ void main() {
       navigation.destinations.cast<NavigationDestination>().map(
         (destination) => destination.label,
       ),
-      const ['生活總覽', '生活項目', '新增', '史略', '設定'],
+      const ['生活總覽', '生活項目', '新增', '履歷', '設定'],
     );
   });
 
@@ -157,7 +157,7 @@ void main() {
         reason: '$size',
       );
 
-      for (final label in const ['生活項目', '新增', '史略', '設定', '生活總覽']) {
+      for (final label in const ['生活項目', '新增', '履歷', '設定', '生活總覽']) {
         await tester.tap(
           find.descendant(
             of: find.byKey(const ValueKey('primary-navigation')),

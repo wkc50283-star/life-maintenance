@@ -37,7 +37,7 @@ class _AppShellState extends State<AppShell> {
       selectedIcon: Icons.add_circle,
     ),
     _AppShellDestination(
-      title: '史略',
+      title: '履歷',
       icon: Icons.history_outlined,
       selectedIcon: Icons.history,
     ),
@@ -49,7 +49,6 @@ class _AppShellState extends State<AppShell> {
   ];
 
   int _currentIndex = 0;
-  final _addScreenKey = GlobalKey<AddScreenState>();
   bool _runtimeReady = false;
   Object? _initializationError;
 
@@ -74,13 +73,8 @@ class _AppShellState extends State<AppShell> {
       return;
     }
 
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _runtimeReady = true;
-    });
+    if (!mounted) return;
+    setState(() => _runtimeReady = true);
   }
 
   @override
@@ -133,25 +127,14 @@ class _AppShellState extends State<AppShell> {
   }
 
   void _selectDestination(int index) {
-    if (index == _currentIndex) {
-      if (index == 2) _addScreenKey.currentState?.showItemCreationMenu();
-      return;
-    }
+    if (index == _currentIndex) return;
     setState(() => _currentIndex = index);
-    if (index == 2) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _addScreenKey.currentState?.showItemCreationMenu();
-      });
-    }
   }
 
   Widget _destinationScreen(int index) => switch (index) {
     0 => TodayScreen(onQuickAdd: () => _selectDestination(2)),
     1 => const ItemsScreen(),
-    2 => AddScreen(
-      key: _addScreenKey,
-      onShowItems: () => _selectDestination(1),
-    ),
+    2 => AddScreen(onShowItems: () => _selectDestination(1)),
     3 => const HistoryScreen(),
     4 => const SettingsScreen(),
     _ => const SizedBox.shrink(),

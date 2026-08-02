@@ -17,7 +17,7 @@ void main() {
     expect(find.text('生活總覽'), findsWidgets);
     expect(find.text('生活項目'), findsOneWidget);
     expect(find.text('新增'), findsOneWidget);
-    expect(find.text('史略'), findsOneWidget);
+    expect(find.text('履歷'), findsOneWidget);
     expect(find.text('設定'), findsOneWidget);
     expect(find.text('還沒有生活項目'), findsOneWidget);
     expect(find.text('軍規邏輯，民用保養'), findsNothing);
