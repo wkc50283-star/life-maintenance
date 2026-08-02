@@ -162,86 +162,82 @@ class _TodayScreenState extends State<TodayScreen> {
 
     final hasItems = localItems.isNotEmpty;
 
-    return CustomScrollView(
-      key: const ValueKey('overview-scroll'),
-      slivers: [
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(
-            UiSpace.md,
-            UiSpace.xs,
-            UiSpace.md,
-            0,
-          ),
-          sliver: SliverList.list(
-            children: [
-              UiMotionEntrance(
-                duration: UiMotion.standard,
-                child: _OverviewHeader(
-                  onQuickAdd: widget.onQuickAdd,
-                  onViewReminders: _runtime.taskReminderRuntime == null
-                      ? null
-                      : _openReminderList,
-                ),
-              ),
-              if (!hasItems)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: UiSpace.lg),
-                  child: UiEmptyState(
-                    key: const ValueKey('overview-empty-items'),
-                    icon: Icons.inventory_2_outlined,
-                    title: '還沒有生活項目',
-                    description: '拍一張、說一句或輸入名稱開始',
-                    action: widget.onQuickAdd == null
-                        ? null
-                        : UiPrimaryButton(
-                            onPressed: widget.onQuickAdd,
-                            label: '新增生活項目',
-                            icon: Icons.add_rounded,
-                          ),
-                  ),
-                ),
-              if (reminders.isNotEmpty)
-                UiMotionEntrance(
-                  key: const ValueKey('overview-section-reminders'),
-                  duration: UiMotion.standard,
-                  child: _TodayTasksSection(
-                    tasks: reminders,
-                    items: localItems,
-                    onViewAll: _runtime.taskReminderRuntime == null
-                        ? null
-                        : _openReminderList,
-                    onOpenTask: _openTaskDetail,
-                  ),
-                ),
-              if (_recentCompletions.isNotEmpty)
-                UiMotionEntrance(
-                  key: const ValueKey('overview-section-completions'),
-                  duration: UiMotion.emphasized,
-                  child: _RecentCompletionsSection(
-                    completions: _recentCompletions,
-                  ),
-                ),
-              const _AiSuggestionsSection(),
-            ],
-          ),
-        ),
-        SliverFillRemaining(
-          hasScrollBody: false,
-          child: Align(
-            alignment: Alignment.bottomCenter,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(
+    final largeText = MediaQuery.textScalerOf(context).scale(14) >= 21;
+    return Stack(
+      children: [
+        CustomScrollView(
+          key: const ValueKey('overview-scroll'),
+          slivers: [
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(
                 UiSpace.md,
-                0,
+                UiSpace.xs,
                 UiSpace.md,
-                UiSpace.sm,
+                largeText ? 160 : 112,
               ),
-              child: _QuickCaptureActions(
-                onPhoto: widget.onQuickPhoto ?? widget.onQuickAdd,
-                onVoice: widget.onQuickVoice ?? widget.onQuickAdd,
-                onText: widget.onQuickText ?? widget.onQuickAdd,
+              sliver: SliverList.list(
+                children: [
+                  UiMotionEntrance(
+                    duration: UiMotion.standard,
+                    child: _OverviewHeader(
+                      onViewReminders: _runtime.taskReminderRuntime == null
+                          ? null
+                          : _openReminderList,
+                    ),
+                  ),
+                  if (!hasItems)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: UiSpace.lg),
+                      child: UiEmptyState(
+                        key: const ValueKey('overview-empty-items'),
+                        icon: Icons.inventory_2_outlined,
+                        title: '還沒有生活項目',
+                        description: '拍一張、說一句或輸入名稱開始',
+                        action: widget.onQuickAdd == null
+                            ? null
+                            : UiPrimaryButton(
+                                onPressed: widget.onQuickAdd,
+                                label: '新增生活項目',
+                                icon: Icons.add_rounded,
+                              ),
+                      ),
+                    ),
+                  if (reminders.isNotEmpty)
+                    UiMotionEntrance(
+                      key: const ValueKey('overview-section-reminders'),
+                      duration: UiMotion.standard,
+                      child: _TodayTasksSection(
+                        tasks: reminders,
+                        items: localItems,
+                        onViewAll: _runtime.taskReminderRuntime == null
+                            ? null
+                            : _openReminderList,
+                        onOpenTask: _openTaskDetail,
+                      ),
+                    ),
+                  if (_recentCompletions.isNotEmpty)
+                    UiMotionEntrance(
+                      key: const ValueKey('overview-section-completions'),
+                      duration: UiMotion.emphasized,
+                      child: _RecentCompletionsSection(
+                        completions: _recentCompletions,
+                      ),
+                    ),
+                  const _AiSuggestionsSection(),
+                  const _TodayFocusSection(),
+                ],
               ),
             ),
+          ],
+        ),
+        Positioned(
+          left: UiSpace.md,
+          right: UiSpace.md,
+          bottom: UiSpace.sm,
+          child: _QuickCaptureActions(
+            onPhoto: widget.onQuickPhoto ?? widget.onQuickAdd,
+            onVoice: widget.onQuickVoice ?? widget.onQuickAdd,
+            onText: widget.onQuickText ?? widget.onQuickAdd,
           ),
         ),
       ],
@@ -360,9 +356,8 @@ class _RecentCompletion {
 }
 
 class _OverviewHeader extends StatelessWidget {
-  const _OverviewHeader({this.onQuickAdd, this.onViewReminders});
+  const _OverviewHeader({this.onViewReminders});
 
-  final VoidCallback? onQuickAdd;
   final VoidCallback? onViewReminders;
 
   @override
@@ -406,17 +401,6 @@ class _OverviewHeader extends StatelessWidget {
               tooltip: '查看全部提醒',
               onPressed: onViewReminders,
               icon: const Icon(Icons.notifications_none_rounded),
-            ),
-          if (onQuickAdd != null)
-            IconButton.filled(
-              key: const ValueKey('overview-quick-add'),
-              tooltip: '新增生活項目',
-              onPressed: onQuickAdd,
-              style: IconButton.styleFrom(
-                backgroundColor: UiColors.success,
-                foregroundColor: UiColors.surface,
-              ),
-              icon: const Icon(Icons.add_rounded),
             ),
         ],
       ),
@@ -647,14 +631,39 @@ class _AiSuggestionsSection extends StatelessWidget {
   );
 }
 
+class _TodayFocusSection extends StatelessWidget {
+  const _TodayFocusSection();
+
+  @override
+  Widget build(BuildContext context) => const _HomeListSection(
+    sectionKey: ValueKey('overview-today-focus'),
+    title: '今日焦點',
+    children: [
+      Padding(
+        padding: EdgeInsets.symmetric(vertical: UiSpace.sm),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _HomeListIcon(icon: Icons.center_focus_strong_outlined),
+            SizedBox(width: UiSpace.sm),
+            Expanded(child: Text('今天沒有需要優先處理的事項', style: UiType.body)),
+          ],
+        ),
+      ),
+    ],
+  );
+}
+
 class _HomeListSection extends StatelessWidget {
   const _HomeListSection({
+    this.sectionKey,
     required this.title,
     required this.children,
     this.actionLabel,
     this.onAction,
   });
 
+  final Key? sectionKey;
   final String title;
   final List<Widget> children;
   final String? actionLabel;
@@ -662,6 +671,7 @@ class _HomeListSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
+    key: sectionKey,
     padding: const EdgeInsets.only(bottom: UiSpace.lg),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
