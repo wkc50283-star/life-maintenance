@@ -1,69 +1,79 @@
 # 生活管理 App 目前正式任務
 
 狀態：正式控制文件
-最後核對日期：2026-08-01
+最後核對日期：2026-08-02
 
 ## 1. 目前任務狀態
 
-目前沒有進行中的正式施工任務。
+目前進行中的正式任務：
 
-最近完成任務：
+- 任務名稱：AI 引導化繁為簡與資訊層級規劃
+- Branch：`codex/ai-guided-simplification-plan`
+- Base：`main`
+- 狀態：施工前規劃文件已建立，尚未進入功能程式修改
+- 正式規劃：`docs/control/issues/issue-ai-guided-simplification-plan.md`
+- 目標：保留全部正式功能與資料角色，重新區分第一層、情境層與進階層，讓使用者快速建立、快速找到既有資料，並為未來 AI 需求辨識建立安全接線方式。
 
-- Issue：#268
-- 任務名稱：一分鐘建立生活項目並自動產生第一筆史略
-- PR：#270
-- PR URL：<https://github.com/wkc50283-star/life-maintenance/pull/270>
-- Branch：`issue-268-one-minute-item-creation`
-- Base commit：`a214658fea5eda280a10d00ede292c2bf2fd3a86`
-- Head commit：`aa5e26b5d17b0a14ffe7fefa020aebba65a53633`
-- Merge commit：`7a2f4c35e5211d4fea9f83a185867c1bc6a4d149`
-- PR 狀態：CLOSED、Merged、已進入 main
-- App version：`0.5.53+54`
+## 2. 本任務範圍
 
-## 2. Issue #268 完成內容
+- 盤點並保留 Item、MaintenancePlan、Schedule、Task、WorkCase、WorkCaseUpdate、MaintenanceRecord、History。
+- 定義首頁、新增入口、生活項目詳情、搜尋與履歷的可見層級。
+- 定義 AI 僅負責理解、整理、建議與導頁；正式 Runtime／Repository／transaction 仍負責資料寫入。
+- 定義施工拆分、明確非目標與驗收條件。
+- 第一個功能施工 PR 僅做入口與資訊層級收斂，不接真實 AI、不改 Schema、不改資料契約。
 
-- 「＋新增」開啟拍照／語音／輸入 bottom sheet。
-- 拍照與語音誠實顯示尚未啟用，不寫入正式資料。
-- 輸入流程以名稱、分類與管理週期建立 Item。
-- 只呼叫正式 `ItemCreationRuntime.create()`，自然建立唯一 created lifecycle event。
-- 成功畫面、ItemDetail 與全域 History 承接 `ItemCreatedHistoryEntry`。
-- 完整範圍以 main 內的 `docs/control/issues/issue-268-one-minute-item-creation.md` 為準。
+## 3. 明確禁止
 
-## 3. 驗證狀態
+- 不刪除既有正式功能。
+- 不合併正式資料角色。
+- 不自行修改 Schema、Migration、Repository 或 Runtime 契約。
+- 不把首頁改成大型聊天室。
+- 不讓 AI 未經確認直接寫入資料。
+- 不同時維持兩條互相重疊的 UI 施工線。
+- 未處理 PR #273 前，不建立重疊的首頁／新增 UI 功能 PR。
 
-- PR #270 合併前 Head `aa5e26b5d17b0a14ffe7fefa020aebba65a53633` 的 GitHub Actions run `30647489700` 完成且成功。
-- `quality`：SUCCESS。
-- `android-build`：SUCCESS。
-- `ios-simulator-build`：SUCCESS。
-- PR 說明記錄：`flutter test` 396 tests passed，Web build、Android debug APK build、iOS debug no-codesign build PASS。
+## 4. PR #273 狀態與阻擋
 
-## 4. 尚未完成的驗收與限制
+- PR #273：`Simplify one-minute item creation`
+- 狀態：OPEN／Draft／Mergeable，尚未合併。
+- 程式與 CI 已通過，但 iPhone 實機產品驗收顯示完整操作超過五分鐘，分類與功能入口不夠直覺。
+- PR #273 不得直接視為產品驗收通過。
+- 開始第一個入口收斂功能 PR 前，必須先選擇：關閉 PR #273 並重用可接受變更，或重新定義 PR #273 為新的入口收斂範圍。
 
-- iPhone 實體裝置人工驗收尚未在本文件中記錄為完成。
-- Android 實體裝置人工驗收尚未在本文件中記錄為完成。
-- 拍照、語音與 AI 自動填欄位不屬於 Issue #268 已完成功能。
-- 下一個功能 PR 施工前，必須先建立新的 CURRENT_TASK 條目並明確批准範圍。
+## 5. 第一個功能施工 PR
 
-## 5. 建議後續施工項目
+名稱：入口與資訊層級收斂
 
-1. 同步本機正式開發目錄到 main commit `7a2f4c35e5211d4fea9f83a185867c1bc6a4d149`，並確認工作樹乾淨。
-2. 執行 iOS／Android／Flutter 基本 Gate：`flutter pub get`、`flutter analyze`、`flutter test`、`flutter build ios --debug --no-codesign`、`flutter build apk --debug`。
-3. 進行一分鐘建立生活項目的 iPhone／Android 實體裝置人工驗收。
-4. 若實機驗收通過，以單一文件 PR 回寫 Device Validation 與 CURRENT_STATE／CURRENT_TASK。
-5. 實機 Gate 完成後，才規劃下一個功能或 Figma／首頁視覺任務。
+範圍：
 
-## 6. 證據來源
+1. 首頁提供輕量快速入口：拍照／語音／輸入。
+2. 新增頁由功能目錄改成單一需求入口與 AI 不確定時的備援分流。
+3. 保留全部正式功能，但第一層只顯示當下必要入口。
+4. 使用本機可替換解析介面驗證 UI 與導航，不串接真實 AI。
+5. 不改 Schema、Runtime、Repository、Migration 或正式資料角色。
 
-- GitHub PR #270 metadata
-- GitHub Actions run `30647489700`
-- PR #270 Head commit `aa5e26b5d17b0a14ffe7fefa020aebba65a53633`
-- PR #270 merge commit `7a2f4c35e5211d4fea9f83a185867c1bc6a4d149`
-- main `pubspec.yaml`
-- main `docs/control/issues/issue-268-one-minute-item-creation.md`
+完成條件：
+
+- 第一次使用者 5 秒內知道從哪裡開始。
+- 既有全部正式功能仍可到達。
+- 主要需求最多三個畫面完成確認。
+- 30 秒內找到最近建立資料。
+- 60 秒內完成一筆簡單建立或安排。
+- 小螢幕、鍵盤與 200% 文字可操作。
+- Analyze、完整 tests、Android build、iOS build 全部通過。
+
+## 6. 施工順序
+
+1. 完成本規劃文件與控制文件 PR。
+2. 處理 PR #273，避免重疊施工線。
+3. 從最新 main 建立「入口與資訊層級收斂」功能 branch。
+4. 施工、測試、建立 Draft PR。
+5. iPhone／Android 實機驗收。
+6. 驗收通過後才進入搜尋、詳情引導與 AI 影子模式。
 
 ## 7. 更新規則
 
 - 有新的正式施工任務時，必須在動工前更新本文件。
 - PR Head、Draft 狀態、CI、阻擋或完成條件改變時，必須同步本文件。
-- PR 合併或關閉後，必須在同一文件更新任務結果；若沒有進行中任務，明寫「目前沒有進行中的正式施工任務」。
-- 本文件不得把 Draft 或 Open PR 描述成 main 已完成功能。
+- Draft 或 Open PR 不得描述成 main 已完成功能。
+- 未經使用者明確批准，不得擴張下一個 PR 的產品或資料範圍。
