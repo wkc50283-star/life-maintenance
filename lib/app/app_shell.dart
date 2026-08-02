@@ -37,7 +37,7 @@ class _AppShellState extends State<AppShell> {
       selectedIcon: Icons.add_circle,
     ),
     _AppShellDestination(
-      title: '史略',
+      title: '履歷',
       icon: Icons.history_outlined,
       selectedIcon: Icons.history,
     ),
