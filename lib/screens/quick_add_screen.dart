@@ -119,10 +119,13 @@ class QuickAddScreenState extends State<QuickAddScreen> {
     switch (method) {
       case _QuickEntryMethod.text:
         await _openItemForm();
+        return;
       case _QuickEntryMethod.photo:
         _showUnavailableMessage('拍照建立尚未啟用，先使用輸入建立。');
+        return;
       case _QuickEntryMethod.voice:
         _showUnavailableMessage('語音建立尚未啟用，先使用輸入建立。');
+        return;
     }
   }
 
