@@ -21,6 +21,32 @@ class AddEntryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final largeText = MediaQuery.textScalerOf(context).scale(14) >= 21;
+    final entryIcon = Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: emphasized ? UiColors.accent : UiColors.iconSurface,
+        borderRadius: BorderRadius.circular(UiRadius.control),
+      ),
+      child: Icon(
+        icon,
+        color: emphasized ? Colors.white : UiColors.primary,
+        size: 20,
+      ),
+    );
+    final copy = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: UiType.cardTitle),
+        const SizedBox(height: UiSpace.xxs),
+        Text(description, style: UiType.body),
+      ],
+    );
+    final chevron = Icon(
+      Icons.chevron_right,
+      color: emphasized ? UiColors.accent : UiColors.iconMuted,
+    );
     return UiActionCard(
       semanticLabel: '$title。$description',
       onTap:
@@ -34,40 +60,34 @@ class AddEntryCard extends StatelessWidget {
             );
           },
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: emphasized ? UiColors.accent : UiColors.iconSurface,
-                borderRadius: BorderRadius.circular(UiRadius.control),
-              ),
-              child: Icon(
-                icon,
-                color: emphasized ? Colors.white : UiColors.primary,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: UiSpace.sm),
-            Expanded(
-              child: Column(
+        padding: EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: largeText ? UiSpace.xs : UiSpace.sm,
+        ),
+        child: largeText
+            ? Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: UiType.cardTitle),
-                  const SizedBox(height: UiSpace.xxs),
-                  Text(description, style: UiType.body),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      entryIcon,
+                      const SizedBox(width: UiSpace.sm),
+                      Expanded(child: copy),
+                    ],
+                  ),
+                  Align(alignment: Alignment.centerRight, child: chevron),
+                ],
+              )
+            : Row(
+                children: [
+                  entryIcon,
+                  const SizedBox(width: UiSpace.sm),
+                  Expanded(child: copy),
+                  const SizedBox(width: UiSpace.xs),
+                  chevron,
                 ],
               ),
-            ),
-            const SizedBox(width: UiSpace.xs),
-            Icon(
-              Icons.chevron_right,
-              color: emphasized ? UiColors.accent : UiColors.iconMuted,
-            ),
-          ],
-        ),
       ),
     );
   }

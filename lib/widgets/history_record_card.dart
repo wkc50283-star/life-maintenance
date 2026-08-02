@@ -33,6 +33,32 @@ class HistoryRecordCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final largeText = MediaQuery.textScalerOf(context).scale(14) >= 21;
+    final iconWidget = Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: UiColors.iconSurface,
+        borderRadius: BorderRadius.circular(UiRadius.control),
+      ),
+      child: Icon(icon, color: UiColors.primary, size: 20),
+    );
+    final heading = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: UiType.cardTitle),
+        const SizedBox(height: 5),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          children: [
+            _SoftTag(label: date),
+            _SoftTag(label: recordType),
+            _SoftTag(label: itemName),
+          ],
+        ),
+      ],
+    );
     return UiActionCard(
       onTap: onTap,
       semanticLabel: onTap == null ? null : '開啟履歷：$title',
@@ -41,40 +67,27 @@ class HistoryRecordCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: UiColors.iconSurface,
-                    borderRadius: BorderRadius.circular(UiRadius.control),
-                  ),
-                  child: Icon(icon, color: UiColors.primary, size: 20),
-                ),
-                const SizedBox(width: UiSpace.sm),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title, style: UiType.cardTitle),
-                      const SizedBox(height: 5),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 6,
-                        children: [
-                          _SoftTag(label: date),
-                          _SoftTag(label: recordType),
-                          _SoftTag(label: itemName),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                Flexible(child: _ResultTag(label: result)),
-              ],
-            ),
+            if (largeText) ...[
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  iconWidget,
+                  const SizedBox(width: UiSpace.sm),
+                  Expanded(child: heading),
+                ],
+              ),
+              const SizedBox(height: UiSpace.xs),
+              _ResultTag(label: result),
+            ] else
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  iconWidget,
+                  const SizedBox(width: UiSpace.sm),
+                  Expanded(child: heading),
+                  Flexible(child: _ResultTag(label: result)),
+                ],
+              ),
             const SizedBox(height: UiSpace.sm),
             Text(
               description,

@@ -2374,10 +2374,7 @@ class _FormScaffold extends StatelessWidget {
                 onPressed: onBackStep,
                 icon: const Icon(Icons.arrow_back_rounded),
               ),
-        title: MediaQuery.withClampedTextScaling(
-          maxScaleFactor: 1.4,
-          child: Text(title),
-        ),
+        title: Text(title),
       ),
       body: SafeArea(
         bottom: false,

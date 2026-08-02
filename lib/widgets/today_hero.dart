@@ -40,9 +40,36 @@ class TodayHero extends StatelessWidget {
       ),
       Text('今天是 ${_todayLabel()}', style: UiType.pageIntro),
       const SizedBox(height: UiSpace.md),
-      MediaQuery.withClampedTextScaling(
-        maxScaleFactor: 1.25,
-        child: Row(
+      if (MediaQuery.textScalerOf(context).scale(14) >= 21)
+        Column(
+          children: [
+            _StatusCard(
+              cardKey: const ValueKey('overview-status-reminders'),
+              icon: Icons.notifications_none_rounded,
+              label: '今日提醒',
+              count: reminderCount,
+              unit: '項提醒',
+            ),
+            const SizedBox(height: UiSpace.xs),
+            _StatusCard(
+              cardKey: const ValueKey('overview-status-cases'),
+              icon: Icons.home_repair_service_outlined,
+              label: '進行中案件',
+              count: openCaseCount,
+              unit: '件',
+            ),
+            const SizedBox(height: UiSpace.xs),
+            _StatusCard(
+              cardKey: const ValueKey('overview-status-milestones'),
+              icon: Icons.flag_outlined,
+              label: '階段性重點',
+              count: milestoneCount,
+              unit: '項',
+            ),
+          ],
+        )
+      else
+        Row(
           children: [
             Expanded(
               child: _StatusCard(
@@ -75,7 +102,6 @@ class TodayHero extends StatelessWidget {
             ),
           ],
         ),
-      ),
       if (onQuickAdd != null) ...[
         const SizedBox(height: UiSpace.md),
         const Text('快速操作', style: UiType.sectionTitle),
