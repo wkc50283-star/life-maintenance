@@ -159,6 +159,11 @@ class _TodayScreenState extends State<TodayScreen> {
     final reminders = (_localTasks ?? const <maintenance_task.Task>[])
         .where((task) => _needsAttention(task, today))
         .toList(growable: false);
+    final upcomingFocusItems = _upcomingFocusItems(
+      _localTasks ?? const <maintenance_task.Task>[],
+      localItems,
+      today,
+    );
 
     final hasItems = localItems.isNotEmpty;
 
@@ -224,7 +229,10 @@ class _TodayScreenState extends State<TodayScreen> {
                       ),
                     ),
                   const _AiSuggestionsSection(),
-                  const _TodayFocusSection(),
+                  _UpcomingFocusSection(
+                    items: upcomingFocusItems,
+                    today: today,
+                  ),
                 ],
               ),
             ),
@@ -319,6 +327,56 @@ bool _needsAttention(maintenance_task.Task task, DateTime today) {
     return false;
   }
   return !_dateOnly(task.dueDate).isAfter(today);
+}
+
+List<_UpcomingFocusItem> _upcomingFocusItems(
+  List<maintenance_task.Task> tasks,
+  List<Item> items,
+  DateTime today,
+) {
+  final lastDay = today.add(const Duration(days: 7));
+  final itemNames = {for (final item in items) item.id: item.name};
+  final upcoming = tasks
+      .where(
+        (task) =>
+            task.status == TaskStatus.pending &&
+            !_dateOnly(task.dueDate).isBefore(today) &&
+            !_dateOnly(task.dueDate).isAfter(lastDay),
+      )
+      .map(
+        (task) => _UpcomingFocusItem(
+          id: task.id,
+          dueDate: _dateOnly(task.dueDate),
+          itemName: itemNames[task.itemId] ?? '未命名生活項目',
+        ),
+      )
+      .toList();
+  upcoming.sort((left, right) {
+    final byDate = left.dueDate.compareTo(right.dueDate);
+    return byDate != 0 ? byDate : left.id.compareTo(right.id);
+  });
+  return upcoming.take(4).toList(growable: false);
+}
+
+String _relativeFocusDate(DateTime dueDate, DateTime today) {
+  final difference = _dateOnly(dueDate).difference(today).inDays;
+  if (difference == 0) return '今天';
+  if (difference == 1) return '明天';
+  final endOfWeek = today.add(Duration(days: 7 - today.weekday));
+  if (!dueDate.isAfter(endOfWeek)) return '這週';
+  return '${dueDate.month}月${dueDate.day}日';
+}
+
+class _UpcomingFocusItem {
+  const _UpcomingFocusItem({
+    required this.id,
+    required this.dueDate,
+    required this.itemName,
+  });
+
+  final String id;
+  final DateTime dueDate;
+  final String itemName;
 }
 
 bool _isCompletedHistoryEntry(HistoryEntry entry) {
@@ -631,26 +689,94 @@ class _AiSuggestionsSection extends StatelessWidget {
   );
 }
 
-class _TodayFocusSection extends StatelessWidget {
-  const _TodayFocusSection();
+class _UpcomingFocusSection extends StatelessWidget {
+  const _UpcomingFocusSection({required this.items, required this.today});
+
+  final List<_UpcomingFocusItem> items;
+  final DateTime today;
 
   @override
-  Widget build(BuildContext context) => const _HomeListSection(
-    sectionKey: ValueKey('overview-today-focus'),
-    title: '今日焦點',
-    children: [
-      Padding(
-        padding: EdgeInsets.symmetric(vertical: UiSpace.sm),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _HomeListIcon(icon: Icons.center_focus_strong_outlined),
-            SizedBox(width: UiSpace.sm),
-            Expanded(child: Text('今天沒有需要優先處理的事項', style: UiType.body)),
+  Widget build(BuildContext context) => _HomeListSection(
+    sectionKey: const ValueKey('overview-upcoming-focus'),
+    title: '近期需要注意',
+    children: items.isEmpty
+        ? const [
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: UiSpace.sm),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _HomeListIcon(icon: Icons.center_focus_strong_outlined),
+                  SizedBox(width: UiSpace.sm),
+                  Expanded(child: Text('近期沒有需要注意的事情', style: UiType.body)),
+                ],
+              ),
+            ),
+          ]
+        : [
+            for (var index = 0; index < items.length; index++) ...[
+              _UpcomingFocusRow(item: items[index], today: today),
+              if (index != items.length - 1) const Divider(height: 1),
+            ],
           ],
-        ),
-      ),
-    ],
+  );
+}
+
+class _UpcomingFocusRow extends StatelessWidget {
+  const _UpcomingFocusRow({required this.item, required this.today});
+
+  final _UpcomingFocusItem item;
+  final DateTime today;
+
+  @override
+  Widget build(BuildContext context) {
+    final date = _FocusTag(label: _relativeFocusDate(item.dueDate, today));
+    const type = _FocusTag(label: '提醒');
+    final name = Text(item.itemName, style: UiType.cardTitle);
+    final largeText = MediaQuery.textScalerOf(context).scale(14) >= 21;
+    return Padding(
+      key: ValueKey('overview-focus-${item.id}'),
+      padding: const EdgeInsets.symmetric(vertical: UiSpace.sm),
+      child: largeText
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                date,
+                const SizedBox(height: UiSpace.xs),
+                name,
+                const SizedBox(height: UiSpace.xs),
+                type,
+              ],
+            )
+          : Row(
+              children: [
+                date,
+                const SizedBox(width: UiSpace.sm),
+                Expanded(child: name),
+                const SizedBox(width: UiSpace.xs),
+                type,
+              ],
+            ),
+    );
+  }
+}
+
+class _FocusTag extends StatelessWidget {
+  const _FocusTag({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(
+      horizontal: UiSpace.xs,
+      vertical: UiSpace.xxs,
+    ),
+    decoration: BoxDecoration(
+      color: UiColors.iconSurface,
+      borderRadius: BorderRadius.circular(UiRadius.pill),
+    ),
+    child: Text(label, style: UiType.caption),
   );
 }
 

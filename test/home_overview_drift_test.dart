@@ -48,8 +48,8 @@ void main() {
     expect(find.text('最近完成'), findsNothing);
     expect(find.text('AI 建議管理'), findsOneWidget);
     expect(find.text('AI 建議功能尚未啟用'), findsOneWidget);
-    expect(find.text('今日焦點'), findsOneWidget);
-    expect(find.text('今天沒有需要優先處理的事項'), findsOneWidget);
+    expect(find.text('近期需要注意'), findsOneWidget);
+    expect(find.text('近期沒有需要注意的事情'), findsOneWidget);
     expect(find.byKey(const ValueKey('overview-quick-add')), findsNothing);
     expect(find.text('系統建議你今天清潔冷氣'), findsNothing);
     expect(
@@ -91,7 +91,7 @@ void main() {
     expect(find.text('語音說一段話'), findsNothing);
     expect(find.text('打幾個字'), findsNothing);
     final aiTop = tester.getTopLeft(find.text('AI 建議管理')).dy;
-    final focusTop = tester.getTopLeft(find.text('今日焦點')).dy;
+    final focusTop = tester.getTopLeft(find.text('近期需要注意')).dy;
     final captureTop = tester
         .getTopLeft(find.byKey(const ValueKey('overview-capture-section')))
         .dy;
@@ -199,8 +199,12 @@ void main() {
     expect(find.text('最近完成'), findsOneWidget);
     expect(find.text('AI 建議管理'), findsOneWidget);
     expect(find.text('AI 建議功能尚未啟用'), findsOneWidget);
-    expect(find.text('今日焦點'), findsOneWidget);
-    expect(find.text('今天沒有需要優先處理的事項'), findsOneWidget);
+    expect(find.text('近期需要注意'), findsOneWidget);
+    expect(find.text('近期沒有需要注意的事情'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('overview-focus-task-today')),
+      findsOneWidget,
+    );
     expect(find.byKey(const ValueKey('overview-quick-add')), findsNothing);
     expect(find.text('確認冷氣運轉'), findsOneWidget);
     expect(find.text('已安排'), findsOneWidget);
@@ -219,7 +223,7 @@ void main() {
     final reminderTop = tester.getTopLeft(find.text('今天需要處理（1）')).dy;
     final completionTop = tester.getTopLeft(find.text('最近完成')).dy;
     final aiTop = tester.getTopLeft(find.text('AI 建議管理')).dy;
-    final focusTop = tester.getTopLeft(find.text('今日焦點')).dy;
+    final focusTop = tester.getTopLeft(find.text('近期需要注意')).dy;
     final captureTop = tester
         .getTopLeft(find.byKey(const ValueKey('overview-capture-section')))
         .dy;
@@ -227,6 +231,78 @@ void main() {
     expect(completionTop, lessThan(aiTop));
     expect(aiTop, lessThan(focusTop));
     expect(focusTop, lessThan(captureTop));
+    await database.close();
+  });
+
+  testWidgets('upcoming focus uses only the next seven days and caps at four', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(430, 2400);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    final database = AppDatabase(NativeDatabase.memory());
+    final root = AppCompositionRoot(database: database);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day, 9);
+    await _seedItem(root, today);
+    for (final task in [
+      ('focus-past', -1, TaskStatus.pending),
+      ('focus-0', 0, TaskStatus.pending),
+      ('focus-1', 1, TaskStatus.pending),
+      ('focus-2', 2, TaskStatus.pending),
+      ('focus-3', 3, TaskStatus.pending),
+      ('focus-4', 4, TaskStatus.pending),
+      ('focus-7', 7, TaskStatus.pending),
+      ('focus-8', 8, TaskStatus.pending),
+      ('focus-completed', 1, TaskStatus.completed),
+      ('focus-paused', 1, TaskStatus.postponed),
+    ]) {
+      await root.driftRepositories.tasks.save(
+        TaskRow(
+          id: task.$1,
+          itemId: 'item-1',
+          sourceType: 'manual',
+          title: task.$1,
+          dueDate: today.add(Duration(days: task.$2)),
+          status: task.$3.name,
+          createdAt: today,
+          updatedAt: today,
+        ),
+      );
+    }
+
+    await tester.pumpWidget(
+      AppCompositionScope(
+        root: root,
+        child: const MaterialApp(home: Scaffold(body: TodayScreen())),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    for (final id in const ['focus-0', 'focus-1', 'focus-2', 'focus-3']) {
+      expect(find.byKey(ValueKey('overview-focus-$id')), findsOneWidget);
+    }
+    for (final id in const [
+      'focus-past',
+      'focus-4',
+      'focus-7',
+      'focus-8',
+      'focus-completed',
+      'focus-paused',
+    ]) {
+      expect(find.byKey(ValueKey('overview-focus-$id')), findsNothing);
+    }
+    final tops = [
+      for (final id in const ['focus-0', 'focus-1', 'focus-2', 'focus-3'])
+        tester.getTopLeft(find.byKey(ValueKey('overview-focus-$id'))).dy,
+    ];
+    expect(tops, orderedEquals([...tops]..sort()));
+    expect(find.text('今天'), findsOneWidget);
+    expect(find.text('明天'), findsOneWidget);
+    expect(find.text('提醒'), findsNWidgets(4));
+    expect(tester.takeException(), isNull);
     await database.close();
   });
 }
