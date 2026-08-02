@@ -224,14 +224,10 @@ class _TodayScreenState extends State<TodayScreen> {
             UiSpace.md,
             0,
             UiSpace.md,
-            UiSpace.lg,
+            UiSpace.sm,
           ),
-          sliver: SliverFillRemaining(
-            hasScrollBody: false,
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: _QuickCaptureActions(onQuickAdd: widget.onQuickAdd),
-            ),
+          sliver: SliverToBoxAdapter(
+            child: _QuickCaptureActions(onQuickAdd: widget.onQuickAdd),
           ),
         ),
       ],
@@ -420,51 +416,42 @@ class _QuickCaptureActions extends StatelessWidget {
   final VoidCallback? onQuickAdd;
 
   @override
-  Widget build(BuildContext context) => Padding(
+  Widget build(BuildContext context) => UiSurfaceCard(
     key: const ValueKey('overview-capture-section'),
-    padding: const EdgeInsets.only(bottom: UiSpace.sm),
-    child: UiSurfaceCard(
-      padding: const EdgeInsets.all(UiSpace.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('今天發生了什麼？', style: UiType.sectionTitle),
-          const SizedBox(height: UiSpace.xxs),
-          Text('記錄生活，AI 幫你整理', style: UiType.body),
-          const SizedBox(height: UiSpace.md),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _QuickCaptureButton(
-                  buttonKey: const ValueKey('overview-capture-photo'),
-                  icon: Icons.photo_camera_outlined,
-                  label: '拍照',
-                  onPressed: onQuickAdd,
-                ),
-              ),
-              const SizedBox(width: UiSpace.xs),
-              Expanded(
-                child: _QuickCaptureButton(
-                  buttonKey: const ValueKey('overview-capture-voice'),
-                  icon: Icons.mic_none_rounded,
-                  label: '說一句',
-                  onPressed: onQuickAdd,
-                ),
-              ),
-              const SizedBox(width: UiSpace.xs),
-              Expanded(
-                child: _QuickCaptureButton(
-                  buttonKey: const ValueKey('overview-capture-text'),
-                  icon: Icons.keyboard_outlined,
-                  label: '輸入',
-                  onPressed: onQuickAdd,
-                ),
-              ),
-            ],
+    padding: const EdgeInsets.symmetric(
+      horizontal: UiSpace.sm,
+      vertical: UiSpace.xs,
+    ),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: _QuickCaptureButton(
+            buttonKey: const ValueKey('overview-capture-photo'),
+            icon: Icons.photo_camera_outlined,
+            label: '拍照',
+            onPressed: onQuickAdd,
           ),
-        ],
-      ),
+        ),
+        const SizedBox(width: UiSpace.xs),
+        Expanded(
+          child: _QuickCaptureButton(
+            buttonKey: const ValueKey('overview-capture-voice'),
+            icon: Icons.mic_none_rounded,
+            label: '說一句',
+            onPressed: onQuickAdd,
+          ),
+        ),
+        const SizedBox(width: UiSpace.xs),
+        Expanded(
+          child: _QuickCaptureButton(
+            buttonKey: const ValueKey('overview-capture-text'),
+            icon: Icons.keyboard_outlined,
+            label: '輸入',
+            onPressed: onQuickAdd,
+          ),
+        ),
+      ],
     ),
   );
 }
@@ -490,16 +477,17 @@ class _QuickCaptureButton extends StatelessWidget {
       key: buttonKey,
       onPressed: onPressed,
       style: OutlinedButton.styleFrom(
+        minimumSize: const Size.fromHeight(68),
         padding: const EdgeInsets.symmetric(
           horizontal: UiSpace.xs,
-          vertical: UiSpace.md,
+          vertical: UiSpace.sm,
         ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 30, color: UiColors.success),
-          const SizedBox(height: UiSpace.xs),
+          Icon(icon, size: 26, color: UiColors.success),
+          const SizedBox(height: UiSpace.xxs),
           Text(label, style: UiType.cardTitle, textAlign: TextAlign.center),
         ],
       ),
