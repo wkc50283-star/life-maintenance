@@ -121,60 +121,75 @@ void main() {
     tester,
   ) async {
     tester.view.devicePixelRatio = 1;
-    tester.platformDispatcher.textScaleFactorTestValue = 2;
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetPadding);
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
 
-    for (final size in const [Size(320, 568), Size(390, 844), Size(428, 926)]) {
-      tester.view.physicalSize = size;
-      tester.view.padding = const FakeViewPadding(
-        left: 10,
-        right: 10,
-        bottom: 24,
-      );
-      final root = AppCompositionRoot(
-        database: AppDatabase(NativeDatabase.memory()),
-      );
-      await tester.pumpWidget(LifeMaintenanceApp(compositionRoot: root));
-      await tester.pumpAndSettle();
-
-      final shellRect = tester.getRect(find.byKey(const ValueKey('app-shell')));
-      final navRect = tester.getRect(
-        find.byKey(const ValueKey('primary-navigation')),
-      );
-      expect(shellRect.left, greaterThanOrEqualTo(0), reason: '$size');
-      expect(navRect.left, greaterThanOrEqualTo(10), reason: '$size');
-      expect(
-        navRect.right,
-        lessThanOrEqualTo(size.width - 10),
-        reason: '$size',
-      );
-      expect(
-        navRect.bottom,
-        lessThanOrEqualTo(size.height - 24),
-        reason: '$size',
-      );
-
-      for (final label in const ['生活項目', '新增', '履歷', '設定', '生活總覽']) {
-        await tester.tap(
-          find.descendant(
-            of: find.byKey(const ValueKey('primary-navigation')),
-            matching: find.text(label),
-          ),
+    for (final scale in const [1.0, 1.5, 2.0]) {
+      tester.platformDispatcher.textScaleFactorTestValue = scale;
+      for (final size in const [
+        Size(320, 568),
+        Size(390, 844),
+        Size(428, 926),
+      ]) {
+        tester.view.physicalSize = size;
+        tester.view.padding = const FakeViewPadding(
+          left: 10,
+          right: 10,
+          bottom: 24,
         );
+        final root = AppCompositionRoot(
+          database: AppDatabase(NativeDatabase.memory()),
+        );
+        await tester.pumpWidget(LifeMaintenanceApp(compositionRoot: root));
         await tester.pumpAndSettle();
-        expect(tester.takeException(), isNull, reason: '$size / $label');
-        if (label == '新增') {
-          await tester.tapAt(const Offset(8, 8));
-          await tester.pumpAndSettle();
-        }
-      }
 
-      await tester.pumpWidget(const SizedBox.shrink());
-      await tester.pump();
-      await root.database.close();
+        final shellRect = tester.getRect(
+          find.byKey(const ValueKey('app-shell')),
+        );
+        final navRect = tester.getRect(
+          find.byKey(const ValueKey('primary-navigation')),
+        );
+        expect(
+          MediaQuery.textScalerOf(
+            tester.element(find.byKey(const ValueKey('app-shell'))),
+          ).scale(1),
+          scale,
+          reason: '$size / $scale',
+        );
+        expect(shellRect.left, greaterThanOrEqualTo(0), reason: '$size');
+        expect(navRect.left, greaterThanOrEqualTo(10), reason: '$size');
+        expect(
+          navRect.right,
+          lessThanOrEqualTo(size.width - 10),
+          reason: '$size',
+        );
+        expect(
+          navRect.bottom,
+          lessThanOrEqualTo(size.height - 24),
+          reason: '$size',
+        );
+
+        for (final label in const ['生活項目', '新增', '履歷', '設定', '生活總覽']) {
+          await tester.tap(
+            find.descendant(
+              of: find.byKey(const ValueKey('primary-navigation')),
+              matching: find.text(label),
+            ),
+          );
+          await tester.pumpAndSettle();
+          expect(
+            tester.takeException(),
+            isNull,
+            reason: '$size / $scale / $label',
+          );
+        }
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump();
+        await root.database.close();
+      }
     }
   });
 

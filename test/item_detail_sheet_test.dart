@@ -99,7 +99,7 @@ void main() {
 
     await tester.drag(find.byType(ListView), const Offset(0, 10000));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('item-detail-jump-史略')));
+    await tester.tap(find.byKey(const ValueKey('item-detail-jump-履歷')));
     await tester.pumpAndSettle();
     expect(find.text('完成冷氣濾網清潔'), findsOneWidget);
 
@@ -316,7 +316,7 @@ void main() {
       '階段性重點／大修',
       '進行中案件',
       '已結案件',
-      '史略',
+      '履歷',
       '附件',
       '基本資料',
     ];
@@ -386,7 +386,7 @@ void main() {
       '階段性重點／大修',
       '進行中案件',
       '已結案件',
-      '史略',
+      '履歷',
       '附件',
       '基本資料',
     ];

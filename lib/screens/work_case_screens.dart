@@ -722,7 +722,7 @@ class _WorkCaseClosureFormScreenState extends State<WorkCaseClosureFormScreen> {
           children: [
             const _FormIntro(
               title: '留下完整結果',
-              description: '結案後案件與進度會保持唯讀，並由正式資料投影進入史略。',
+              description: '結案後案件與進度會保持唯讀，並由正式資料投影進入履歷。',
             ),
             _FormSection(
               title: '結案結果',

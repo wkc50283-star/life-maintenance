@@ -137,7 +137,7 @@ void main() {
 
     await tester.tap(find.text('履歷'));
     await tester.pumpAndSettle();
-    expect(find.text('暫時無法讀取史略。'), findsOneWidget);
+    expect(find.text('暫時無法讀取履歷。'), findsOneWidget);
     await root.database.close();
   });
 }

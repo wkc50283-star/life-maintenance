@@ -25,24 +25,27 @@ void main() {
   ) async {
     await _pumpApp(tester, root);
 
-    await _openAdd(tester);
-    expect(find.text('拍照'), findsOneWidget);
-    expect(find.text('語音'), findsOneWidget);
-    expect(find.text('輸入'), findsOneWidget);
-    expect(find.text('分類'), findsNothing);
-    expect(find.text('一般提醒'), findsNothing);
-    expect(find.text('突發事項／工程'), findsNothing);
-    expect(find.text('補登完成紀錄'), findsNothing);
-
-    await tester.tap(find.byKey(const ValueKey('item-create-by-photo')));
+    expect(
+      find.byKey(const ValueKey('overview-capture-photo')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('overview-capture-voice')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('overview-capture-text')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('overview-capture-photo')));
     await tester.pumpAndSettle();
     expect(find.text('拍照建立尚未啟用，先使用輸入建立。'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('item-create-by-voice')));
+    await tester.tap(find.byKey(const ValueKey('overview-capture-voice')));
     await tester.pumpAndSettle();
     expect(find.text('語音建立尚未啟用，先使用輸入建立。'), findsOneWidget);
 
+    await _openAdd(tester);
+    expect(find.text('拍照'), findsNothing);
+    expect(find.text('說一句'), findsNothing);
+    expect(find.text('輸入'), findsNothing);
     expect(find.text('現在需要記住或處理什麼？'), findsOneWidget);
-    await _expandMoreMethods(tester);
     expect(find.text('分類'), findsOneWidget);
     expect(find.text('一般提醒'), findsOneWidget);
     expect(find.text('突發事項／工程'), findsOneWidget);
@@ -121,7 +124,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('建立生活項目'), findsOneWidget);
-      expect(find.text('生活項目史略'), findsOneWidget);
+      expect(find.text('生活項目履歷'), findsOneWidget);
 
       await tester.tap(
         find.descendant(
@@ -195,13 +198,7 @@ Future<void> _openAdd(WidgetTester tester) async {
 }
 
 Future<void> _openTextForm(WidgetTester tester) async {
-  await _openAdd(tester);
-  await tester.tap(find.byKey(const ValueKey('item-create-by-text')));
+  await tester.tap(find.byKey(const ValueKey('overview-capture-text')));
   await tester.pumpAndSettle();
   expect(find.byType(ItemFormScreen), findsOneWidget);
-}
-
-Future<void> _expandMoreMethods(WidgetTester tester) async {
-  await tester.tap(find.byKey(const ValueKey('add-more-methods')));
-  await tester.pumpAndSettle();
 }

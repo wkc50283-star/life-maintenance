@@ -29,7 +29,7 @@ const _itemDetailJumpSections = [
   '階段性重點／大修',
   '進行中案件',
   '已結案件',
-  '史略',
+  '履歷',
   '附件',
   '基本資料',
 ];
@@ -501,14 +501,14 @@ class _ItemDetailBody extends StatelessWidget {
           ),
         ),
         KeyedSubtree(
-          key: sectionKeys['史略'],
+          key: sectionKeys['履歷'],
           child: _DetailSection(
-            title: '史略',
+            title: '履歷',
             icon: Icons.history_rounded,
             child:
                 snapshot.historyEntries.isEmpty &&
                     snapshot.itemCreatedEntries.isEmpty
-                ? const _EmptyMessage('目前還沒有史略。')
+                ? const _EmptyMessage('目前還沒有履歷。')
                 : Column(
                     children: [
                       for (final entry in snapshot.itemCreatedEntries)
@@ -1032,7 +1032,7 @@ String _historyTitle(HistoryEntry entry) => switch (entry) {
 };
 
 String _historyTypeLabel(HistoryEntry entry) => switch (entry) {
-  WorkCaseHistoryEntry() => '案件史略',
+  WorkCaseHistoryEntry() => '案件履歷',
   MaintenanceRecordHistoryEntry() => '保養／處理紀錄',
   TaskHistoryEntry() => '提醒紀錄',
   MilestoneHistoryEntry() => '階段性重點',

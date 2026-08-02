@@ -266,7 +266,7 @@ void main() {
       expect(find.widgetWithText(FilledButton, '開始處理'), findsOneWidget);
       expect(find.text('完成提醒'), findsNothing);
       expect(find.text('正式結案'), findsNothing);
-      expect(find.text('寫入史略'), findsNothing);
+      expect(find.text('寫入履歷'), findsNothing);
 
       await tester.tap(find.widgetWithText(FilledButton, '開始處理'));
       await tester.pumpAndSettle();

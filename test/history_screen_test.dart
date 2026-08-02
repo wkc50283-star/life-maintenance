@@ -163,14 +163,14 @@ void main() {
     await tester.pumpWidget(_historyApp(root));
     await tester.pumpAndSettle();
 
-    expect(find.text('暫時無法讀取史略。'), findsOneWidget);
+    expect(find.text('暫時無法讀取履歷。'), findsOneWidget);
     expect(find.text('護照換發提醒'), findsNothing);
 
     await tester.tap(find.text('重新讀取'));
     await tester.pumpAndSettle();
 
     expect(history.attempts, 2);
-    expect(find.text('暫時無法讀取史略。'), findsNothing);
+    expect(find.text('暫時無法讀取履歷。'), findsNothing);
     expect(find.text('護照換發提醒'), findsOneWidget);
     expect(find.text('家庭文件'), findsOneWidget);
   });

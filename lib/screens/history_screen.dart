@@ -44,7 +44,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final historyRepository = root.historyProjectionRepository;
     _dependenciesInitialized = true;
     if (historyRepository == null) {
-      _loadError = StateError('正式史略服務目前無法使用。');
+      _loadError = StateError('正式履歷服務目前無法使用。');
       return;
     }
     _historyRepository = historyRepository;
@@ -160,7 +160,7 @@ class _HistoryLoadFailure extends StatelessWidget {
         padding: const EdgeInsets.all(UiSpace.md),
         child: UiEmptyState(
           icon: Icons.history_toggle_off_outlined,
-          title: '暫時無法讀取史略。',
+          title: '暫時無法讀取履歷。',
           description: '資料仍完整保留，可以稍後再次讀取。',
           action: OutlinedButton(onPressed: onRetry, child: const Text('重新讀取')),
         ),
@@ -244,7 +244,7 @@ _HistoryEntryData _historyEntryForItemCreated(ItemCreatedHistoryEntry entry) {
     date: _formatShortDate(entry.occurredAt),
     title: '建立生活項目',
     itemName: entry.event.itemNameSnapshot,
-    recordType: '生活項目史略',
+    recordType: '生活項目履歷',
     description: '分類：${entry.event.categoryDisplayNameSnapshot}',
     detailLines: [
       '管理週期：${periods.isEmpty ? '尚未設定' : periods.map(_itemManagementPeriodLabel).join('、')}',
@@ -313,7 +313,7 @@ _HistoryEntryData _historyEntryForWorkCase(
     date: _formatShortDate(entry.occurredAt),
     title: workCase.title,
     itemName: _itemName(workCase.itemId, items),
-    recordType: '案件史略',
+    recordType: '案件履歷',
     description:
         _nullableText(closure?.completionSummary) ??
         _nullableText(latestUpdate?.description) ??

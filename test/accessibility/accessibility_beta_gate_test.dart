@@ -29,9 +29,7 @@ void main() {
     );
   });
 
-  testWidgets('runtime caps system text scaling at standard size', (
-    tester,
-  ) async {
+  testWidgets('runtime preserves system text scaling', (tester) async {
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     final root = AppCompositionRoot(
       database: AppDatabase(NativeDatabase.memory()),
@@ -48,7 +46,7 @@ void main() {
       );
       expect(
         MediaQuery.textScalerOf(shellContext).scale(1),
-        1,
+        systemScale,
         reason: 'system text scale $systemScale',
       );
     }
@@ -74,7 +72,7 @@ void main() {
     final shellContext = tester.element(
       find.byKey(const ValueKey('app-shell')),
     );
-    expect(MediaQuery.textScalerOf(shellContext).scale(1), 1);
+    expect(MediaQuery.textScalerOf(shellContext).scale(1), 2);
 
     for (final label in const ['生活項目', '新增', '履歷', '設定', '生活總覽']) {
       await tester.tap(find.text(label));
