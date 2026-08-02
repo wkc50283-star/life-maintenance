@@ -506,7 +506,10 @@ Future<void> _advanceItemForm(
 }
 
 Future<void> _openNewItemForm(WidgetTester tester) async {
-  await tester.tap(find.byKey(const ValueKey('overview-quick-add')));
+  final textEntry = find.byKey(const ValueKey('overview-capture-text'));
+  await Scrollable.ensureVisible(tester.element(textEntry), alignment: 0.5);
+  await tester.pumpAndSettle();
+  await tester.tap(textEntry);
   await tester.pumpAndSettle();
   expect(find.text('確認生活項目'), findsOneWidget);
   expect(find.byKey(const ValueKey('item-name')), findsOneWidget);

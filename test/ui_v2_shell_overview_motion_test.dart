@@ -31,9 +31,12 @@ void main() {
         ),
         const ['生活總覽', '生活項目', '新增', '履歷', '設定'],
       );
-      expect(find.byKey(const ValueKey('overview-quick-add')), findsOneWidget);
+      expect(find.byKey(const ValueKey('overview-quick-add')), findsNothing);
 
-      await tester.tap(find.byKey(const ValueKey('overview-quick-add')));
+      final textEntry = find.byKey(const ValueKey('overview-capture-text'));
+      await Scrollable.ensureVisible(tester.element(textEntry), alignment: 0.5);
+      await tester.pumpAndSettle();
+      await tester.tap(textEntry);
       await tester.pumpAndSettle();
 
       expect(navigation.selectedIndex, 0);
