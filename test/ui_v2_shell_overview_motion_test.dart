@@ -32,6 +32,13 @@ void main() {
         const ['生活總覽', '生活項目', '新增', '履歷', '設定'],
       );
       expect(find.byKey(const ValueKey('overview-quick-add')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('overview-capture-section')),
+        findsNothing,
+      );
+
+      await tester.tap(find.text('新增'));
+      await tester.pumpAndSettle();
 
       final textEntry = find.byKey(const ValueKey('overview-capture-text'));
       await Scrollable.ensureVisible(tester.element(textEntry), alignment: 0.5);
@@ -99,6 +106,11 @@ void main() {
 
     final section = find.byKey(const ValueKey('overview-capture-section'));
     final navigation = find.byKey(const ValueKey('primary-navigation'));
+    expect(section, findsNothing);
+
+    await tester.tap(find.text('新增'));
+    await tester.pumpAndSettle();
+
     final textButton = find.byKey(const ValueKey('overview-capture-text'));
     expect(section, findsOneWidget);
     expect(
@@ -110,6 +122,15 @@ void main() {
       findsOneWidget,
     );
     expect(textButton, findsOneWidget);
+    final voice = find.byKey(const ValueKey('overview-capture-voice'));
+    final photo = find.byKey(const ValueKey('overview-capture-photo'));
+    expect(tester.getCenter(voice).dx, lessThan(tester.getCenter(photo).dx));
+    expect(
+      tester.getCenter(photo).dx,
+      lessThan(tester.getCenter(textButton).dx),
+    );
+    expect(find.text('語音'), findsOneWidget);
+    expect(find.text('說一句'), findsNothing);
     expect(
       tester.getRect(section).bottom,
       lessThanOrEqualTo(tester.getRect(navigation).top),
@@ -122,6 +143,11 @@ void main() {
       tester.getSize(section).height,
       closeTo(tester.getSize(textButton).height + UiSpace.md, 0.1),
     );
+
+    await tester.tap(find.text('新增'));
+    await tester.pumpAndSettle();
+    expect(section, findsNothing);
+    expect(tester.widget<NavigationBar>(navigation).selectedIndex, 0);
   });
 
   testWidgets('reduce motion disables decorative shell and section animation', (
@@ -180,6 +206,8 @@ void main() {
     expect(find.text('還沒有生活項目'), findsOneWidget);
     expect(find.text('今天發生了什麼？'), findsNothing);
     expect(find.text('記錄生活，AI 幫你整理'), findsNothing);
+    await tester.tap(find.text('新增'));
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('overview-capture-text')),
       160,
@@ -189,7 +217,8 @@ void main() {
       ),
     );
     expect(find.text('拍照'), findsOneWidget);
-    expect(find.text('說一句'), findsOneWidget);
+    expect(find.text('語音'), findsOneWidget);
+    expect(find.text('說一句'), findsNothing);
     expect(find.text('輸入'), findsOneWidget);
     final section = find.byKey(const ValueKey('overview-capture-section'));
     expect(

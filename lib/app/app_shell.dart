@@ -49,6 +49,7 @@ class _AppShellState extends State<AppShell> {
   ];
 
   int _currentIndex = 0;
+  bool _showHomeQuickCapture = false;
   final _addScreenKey = GlobalKey<AddScreenState>();
   bool _runtimeReady = false;
   Object? _initializationError;
@@ -128,8 +129,15 @@ class _AppShellState extends State<AppShell> {
   }
 
   void _selectDestination(int index) {
+    if (_currentIndex == 0 && index == 2) {
+      setState(() => _showHomeQuickCapture = !_showHomeQuickCapture);
+      return;
+    }
     if (index == _currentIndex) return;
-    setState(() => _currentIndex = index);
+    setState(() {
+      _currentIndex = index;
+      _showHomeQuickCapture = false;
+    });
   }
 
   Widget _destinationScreen(int index) => switch (index) {
@@ -138,6 +146,7 @@ class _AppShellState extends State<AppShell> {
       onQuickPhoto: () => _showUnavailable('拍照建立尚未啟用，先使用輸入建立。'),
       onQuickVoice: () => _showUnavailable('語音建立尚未啟用，先使用輸入建立。'),
       onQuickText: _openItemCreation,
+      showQuickCapture: _showHomeQuickCapture,
     ),
     1 => const ItemsScreen(),
     2 => AddScreen(
@@ -150,7 +159,10 @@ class _AppShellState extends State<AppShell> {
   };
 
   void _openItemCreation() {
-    _selectDestination(2);
+    setState(() {
+      _currentIndex = 2;
+      _showHomeQuickCapture = false;
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _addScreenKey.currentState?.showItemCreationMenu();
     });

@@ -71,6 +71,13 @@ void main() {
       await tester.tap(
         find.descendant(
           of: find.byKey(const ValueKey('primary-navigation')),
+          matching: find.text('生活項目'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey('primary-navigation')),
           matching: find.text('新增'),
         ),
       );

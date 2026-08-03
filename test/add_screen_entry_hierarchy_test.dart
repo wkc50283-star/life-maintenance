@@ -15,6 +15,13 @@ void main() {
     await tester.pumpWidget(LifeMaintenanceApp(compositionRoot: root));
     await tester.pumpAndSettle();
 
+    expect(find.byKey(const ValueKey('overview-capture-photo')), findsNothing);
+    expect(find.byKey(const ValueKey('overview-capture-voice')), findsNothing);
+    expect(find.byKey(const ValueKey('overview-capture-text')), findsNothing);
+
+    await tester.tap(find.text('新增'));
+    await tester.pumpAndSettle();
+
     expect(
       find.byKey(const ValueKey('overview-capture-photo')),
       findsOneWidget,
@@ -25,8 +32,7 @@ void main() {
     );
     expect(find.byKey(const ValueKey('overview-capture-text')), findsOneWidget);
 
-    await tester.tap(find.text('新增'));
-    await tester.pumpAndSettle();
+    await _openAddCenter(tester);
 
     expect(find.byKey(const ValueKey('item-create-by-photo')), findsNothing);
     expect(find.byKey(const ValueKey('item-create-by-voice')), findsNothing);
@@ -45,8 +51,7 @@ void main() {
     addTearDown(root.database.close);
     await tester.pumpWidget(LifeMaintenanceApp(compositionRoot: root));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('新增'));
-    await tester.pumpAndSettle();
+    await _openAddCenter(tester);
 
     expect(find.text('更多建立方式'), findsOneWidget);
     expect(find.text('分類'), findsOneWidget);
@@ -72,6 +77,8 @@ void main() {
     await tester.pumpWidget(LifeMaintenanceApp(compositionRoot: root));
     await tester.pumpAndSettle();
 
+    await tester.tap(find.text('新增'));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('overview-capture-photo')));
     await tester.pump();
     expect(find.text('拍照建立尚未啟用，先使用輸入建立。'), findsOneWidget);
@@ -80,4 +87,11 @@ void main() {
     await tester.pump();
     expect(find.text('語音建立尚未啟用，先使用輸入建立。'), findsOneWidget);
   });
+}
+
+Future<void> _openAddCenter(WidgetTester tester) async {
+  await tester.tap(find.text('生活項目'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('新增'));
+  await tester.pumpAndSettle();
 }

@@ -25,6 +25,7 @@ class TodayScreen extends StatefulWidget {
     this.onQuickPhoto,
     this.onQuickVoice,
     this.onQuickText,
+    this.showQuickCapture = false,
   }) : _scheduleRepositoryOverride = scheduleRepository;
 
   final ScheduleRepository? _scheduleRepositoryOverride;
@@ -32,6 +33,7 @@ class TodayScreen extends StatefulWidget {
   final VoidCallback? onQuickPhoto;
   final VoidCallback? onQuickVoice;
   final VoidCallback? onQuickText;
+  final bool showQuickCapture;
 
   @override
   State<TodayScreen> createState() => _TodayScreenState();
@@ -178,7 +180,7 @@ class _TodayScreenState extends State<TodayScreen> {
                 UiSpace.md,
                 UiSpace.xs,
                 UiSpace.md,
-                largeText ? 160 : 112,
+                widget.showQuickCapture ? (largeText ? 160 : 112) : UiSpace.md,
               ),
               sliver: SliverList.list(
                 children: [
@@ -197,7 +199,7 @@ class _TodayScreenState extends State<TodayScreen> {
                         key: const ValueKey('overview-empty-items'),
                         icon: Icons.inventory_2_outlined,
                         title: '還沒有生活項目',
-                        description: '拍一張、說一句或輸入名稱開始',
+                        description: '拍一張、用語音或輸入名稱開始',
                         action: widget.onQuickAdd == null
                             ? null
                             : UiPrimaryButton(
@@ -238,16 +240,17 @@ class _TodayScreenState extends State<TodayScreen> {
             ),
           ],
         ),
-        Positioned(
-          left: UiSpace.md,
-          right: UiSpace.md,
-          bottom: UiSpace.sm,
-          child: _QuickCaptureActions(
-            onPhoto: widget.onQuickPhoto ?? widget.onQuickAdd,
-            onVoice: widget.onQuickVoice ?? widget.onQuickAdd,
-            onText: widget.onQuickText ?? widget.onQuickAdd,
+        if (widget.showQuickCapture)
+          Positioned(
+            left: UiSpace.md,
+            right: UiSpace.md,
+            bottom: UiSpace.sm,
+            child: _QuickCaptureActions(
+              onPhoto: widget.onQuickPhoto ?? widget.onQuickAdd,
+              onVoice: widget.onQuickVoice ?? widget.onQuickAdd,
+              onText: widget.onQuickText ?? widget.onQuickAdd,
+            ),
           ),
-        ),
       ],
     );
   }
@@ -489,19 +492,19 @@ class _QuickCaptureActions extends StatelessWidget {
       children: [
         Expanded(
           child: _QuickCaptureButton(
-            buttonKey: const ValueKey('overview-capture-photo'),
-            icon: Icons.photo_camera_outlined,
-            label: '拍照',
-            onPressed: onPhoto,
+            buttonKey: const ValueKey('overview-capture-voice'),
+            icon: Icons.mic_none_rounded,
+            label: '語音',
+            onPressed: onVoice,
           ),
         ),
         const SizedBox(width: UiSpace.xs),
         Expanded(
           child: _QuickCaptureButton(
-            buttonKey: const ValueKey('overview-capture-voice'),
-            icon: Icons.mic_none_rounded,
-            label: '說一句',
-            onPressed: onVoice,
+            buttonKey: const ValueKey('overview-capture-photo'),
+            icon: Icons.photo_camera_outlined,
+            label: '拍照',
+            onPressed: onPhoto,
           ),
         ),
         const SizedBox(width: UiSpace.xs),

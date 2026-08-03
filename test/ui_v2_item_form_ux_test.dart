@@ -506,6 +506,8 @@ Future<void> _advanceItemForm(
 }
 
 Future<void> _openNewItemForm(WidgetTester tester) async {
+  await tester.tap(find.text('新增'));
+  await tester.pumpAndSettle();
   final textEntry = find.byKey(const ValueKey('overview-capture-text'));
   await Scrollable.ensureVisible(tester.element(textEntry), alignment: 0.5);
   await tester.pumpAndSettle();

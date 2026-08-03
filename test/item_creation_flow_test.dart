@@ -25,6 +25,11 @@ void main() {
   ) async {
     await _pumpApp(tester, root);
 
+    expect(find.byKey(const ValueKey('overview-capture-photo')), findsNothing);
+    expect(find.byKey(const ValueKey('overview-capture-voice')), findsNothing);
+    expect(find.byKey(const ValueKey('overview-capture-text')), findsNothing);
+    await tester.tap(find.text('新增'));
+    await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey('overview-capture-photo')),
       findsOneWidget,
@@ -191,6 +196,13 @@ Future<void> _openAdd(WidgetTester tester) async {
   await tester.tap(
     find.descendant(
       of: find.byKey(const ValueKey('primary-navigation')),
+      matching: find.text('生活項目'),
+    ),
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(
+    find.descendant(
+      of: find.byKey(const ValueKey('primary-navigation')),
       matching: find.text('新增'),
     ),
   );
@@ -198,6 +210,8 @@ Future<void> _openAdd(WidgetTester tester) async {
 }
 
 Future<void> _openTextForm(WidgetTester tester) async {
+  await tester.tap(find.text('新增'));
+  await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('overview-capture-text')));
   await tester.pumpAndSettle();
   expect(find.byType(ItemFormScreen), findsOneWidget);

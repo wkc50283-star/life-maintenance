@@ -26,7 +26,12 @@ void main() {
       AppCompositionScope(
         root: root,
         child: MaterialApp(
-          home: Scaffold(body: TodayScreen(onQuickAdd: () => quickAddCount++)),
+          home: Scaffold(
+            body: TodayScreen(
+              onQuickAdd: () => quickAddCount++,
+              showQuickCapture: true,
+            ),
+          ),
         ),
       ),
     );
@@ -79,7 +84,8 @@ void main() {
     expect(find.text('客廳冷氣'), findsNothing);
     expect(find.text('冷氣異音檢查'), findsNothing);
     expect(find.text('拍照'), findsOneWidget);
-    expect(find.text('說一句'), findsOneWidget);
+    expect(find.text('語音'), findsOneWidget);
+    expect(find.text('說一句'), findsNothing);
     expect(find.text('輸入'), findsOneWidget);
     expect(
       tester
@@ -185,7 +191,9 @@ void main() {
     await tester.pumpWidget(
       AppCompositionScope(
         root: root,
-        child: const MaterialApp(home: Scaffold(body: TodayScreen())),
+        child: const MaterialApp(
+          home: Scaffold(body: TodayScreen(showQuickCapture: true)),
+        ),
       ),
     );
     await tester.pumpAndSettle();
