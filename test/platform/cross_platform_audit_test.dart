@@ -75,7 +75,9 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('overview-capture-more')));
+      await tester.tap(find.byKey(const ValueKey('overview-capture-text')));
+      await tester.pumpAndSettle();
+      await tester.pageBack();
       await tester.pumpAndSettle();
       await tester.tap(find.text('分類'));
       await tester.pumpAndSettle();

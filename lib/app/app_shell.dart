@@ -123,13 +123,12 @@ class _AppShellState extends State<AppShell> {
                   UiSpace.md,
                   UiSpace.xs,
                   UiSpace.md,
-                  UiSpace.lg,
+                  UiSpace.sm,
                 ),
                 child: _QuickCaptureActions(
                   onPhoto: () => _showUnavailable('拍照建立尚未啟用，先使用輸入建立。'),
                   onVoice: () => _showUnavailable('語音建立尚未啟用，先使用輸入建立。'),
                   onText: _openItemCreation,
-                  onMore: _openAddCenter,
                 ),
               ),
           ],
@@ -185,13 +184,6 @@ class _AppShellState extends State<AppShell> {
     });
   }
 
-  void _openAddCenter() {
-    setState(() {
-      _currentIndex = 2;
-      _showQuickCapture = false;
-    });
-  }
-
   void _showUnavailable(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -204,13 +196,11 @@ class _QuickCaptureActions extends StatelessWidget {
     required this.onPhoto,
     required this.onVoice,
     required this.onText,
-    required this.onMore,
   });
 
   final VoidCallback onPhoto;
   final VoidCallback onVoice;
   final VoidCallback onText;
-  final VoidCallback onMore;
 
   @override
   Widget build(BuildContext context) => UiSurfaceCard(
@@ -219,66 +209,33 @@ class _QuickCaptureActions extends StatelessWidget {
       horizontal: UiSpace.sm,
       vertical: UiSpace.xs,
     ),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: _QuickCaptureButton(
-                buttonKey: const ValueKey('overview-capture-voice'),
-                icon: Icons.mic_none_rounded,
-                label: '語音',
-                onPressed: onVoice,
-              ),
-            ),
-            const SizedBox(width: UiSpace.xs),
-            Expanded(
-              child: _QuickCaptureButton(
-                buttonKey: const ValueKey('overview-capture-photo'),
-                icon: Icons.photo_camera_outlined,
-                label: '拍照',
-                onPressed: onPhoto,
-              ),
-            ),
-            const SizedBox(width: UiSpace.xs),
-            Expanded(
-              child: _QuickCaptureButton(
-                buttonKey: const ValueKey('overview-capture-text'),
-                icon: Icons.keyboard_outlined,
-                label: '輸入',
-                onPressed: onText,
-              ),
-            ),
-          ],
+        Expanded(
+          child: _QuickCaptureButton(
+            buttonKey: const ValueKey('overview-capture-voice'),
+            icon: Icons.mic_none_rounded,
+            label: '語音',
+            onPressed: onVoice,
+          ),
         ),
-        const SizedBox(height: UiSpace.xs),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton(
-            key: const ValueKey('overview-capture-more'),
-            onPressed: onMore,
-            style: OutlinedButton.styleFrom(
-              alignment: Alignment.centerLeft,
-              backgroundColor: UiColors.iconSurface,
-              side: const BorderSide(color: UiColors.border),
-              padding: const EdgeInsets.symmetric(
-                horizontal: UiSpace.sm,
-                vertical: UiSpace.sm,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(UiRadius.control),
-              ),
-            ),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(child: Text('開啟更多建立方式', style: UiType.cardTitle)),
-                SizedBox(width: UiSpace.xs),
-                Icon(Icons.chevron_right_rounded),
-              ],
-            ),
+        const SizedBox(width: UiSpace.xs),
+        Expanded(
+          child: _QuickCaptureButton(
+            buttonKey: const ValueKey('overview-capture-photo'),
+            icon: Icons.photo_camera_outlined,
+            label: '拍照',
+            onPressed: onPhoto,
+          ),
+        ),
+        const SizedBox(width: UiSpace.xs),
+        Expanded(
+          child: _QuickCaptureButton(
+            buttonKey: const ValueKey('overview-capture-text'),
+            icon: Icons.keyboard_outlined,
+            label: '輸入',
+            onPressed: onText,
           ),
         ),
       ],

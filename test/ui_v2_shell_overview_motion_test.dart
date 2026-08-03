@@ -150,30 +150,12 @@ void main() {
     );
     expect(find.text('語音'), findsOneWidget);
     expect(find.text('說一句'), findsNothing);
-    final more = find.byKey(const ValueKey('overview-capture-more'));
-    expect(more, findsOneWidget);
-    expect(find.text('開啟更多建立方式'), findsOneWidget);
-    expect(
-      find.descendant(
-        of: more,
-        matching: find.byIcon(Icons.chevron_right_rounded),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      tester.getTopLeft(more).dy,
-      greaterThan(tester.getBottomLeft(voice).dy),
-    );
+    expect(find.byKey(const ValueKey('overview-capture-more')), findsNothing);
+    expect(find.text('開啟更多建立方式'), findsNothing);
     expect(
       tester.getRect(section).bottom,
       lessThanOrEqualTo(tester.getRect(navigation).top),
     );
-
-    await tester.tap(more);
-    await tester.pumpAndSettle();
-    expect(find.byType(AddScreen), findsOneWidget);
-    expect(section, findsNothing);
-    expect(tester.widget<NavigationBar>(navigation).selectedIndex, 2);
   });
 
   testWidgets('reduce motion disables decorative shell and section animation', (
@@ -238,8 +220,7 @@ void main() {
     expect(find.text('語音'), findsOneWidget);
     expect(find.text('說一句'), findsNothing);
     expect(find.text('輸入'), findsOneWidget);
-    expect(find.text('開啟更多建立方式'), findsOneWidget);
-    expect(find.byIcon(Icons.chevron_right_rounded), findsOneWidget);
+    expect(find.text('開啟更多建立方式'), findsNothing);
     final section = find.byKey(const ValueKey('overview-capture-section'));
     expect(tester.getSize(section).height, lessThan(220));
     expect(tester.takeException(), isNull);

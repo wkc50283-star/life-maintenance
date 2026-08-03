@@ -97,6 +97,8 @@ Future<void> _openAddCenter(WidgetTester tester) async {
     await tester.tap(find.text('新增'));
     await tester.pumpAndSettle();
   }
-  await tester.tap(find.byKey(const ValueKey('overview-capture-more')));
+  await tester.tap(find.byKey(const ValueKey('overview-capture-text')));
+  await tester.pumpAndSettle();
+  await tester.pageBack();
   await tester.pumpAndSettle();
 }
