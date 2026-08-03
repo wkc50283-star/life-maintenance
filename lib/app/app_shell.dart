@@ -123,7 +123,7 @@ class _AppShellState extends State<AppShell> {
                   UiSpace.md,
                   UiSpace.xs,
                   UiSpace.md,
-                  UiSpace.sm,
+                  UiSpace.lg,
                 ),
                 child: _QuickCaptureActions(
                   onPhoto: () => _showUnavailable('拍照建立尚未啟用，先使用輸入建立。'),
@@ -222,11 +222,6 @@ class _QuickCaptureActions extends StatelessWidget {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        TextButton(
-          key: const ValueKey('overview-capture-more'),
-          onPressed: onMore,
-          child: const Text('更多建立方式'),
-        ),
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -257,6 +252,34 @@ class _QuickCaptureActions extends StatelessWidget {
               ),
             ),
           ],
+        ),
+        const SizedBox(height: UiSpace.xs),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton(
+            key: const ValueKey('overview-capture-more'),
+            onPressed: onMore,
+            style: OutlinedButton.styleFrom(
+              alignment: Alignment.centerLeft,
+              backgroundColor: UiColors.iconSurface,
+              side: const BorderSide(color: UiColors.border),
+              padding: const EdgeInsets.symmetric(
+                horizontal: UiSpace.sm,
+                vertical: UiSpace.sm,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(UiRadius.control),
+              ),
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(child: Text('開啟更多建立方式', style: UiType.cardTitle)),
+                SizedBox(width: UiSpace.xs),
+                Icon(Icons.chevron_right_rounded),
+              ],
+            ),
+          ),
         ),
       ],
     ),
