@@ -22,18 +22,10 @@ class TodayScreen extends StatefulWidget {
     super.key,
     ScheduleRepository? scheduleRepository,
     this.onQuickAdd,
-    this.onQuickPhoto,
-    this.onQuickVoice,
-    this.onQuickText,
-    this.showQuickCapture = false,
   }) : _scheduleRepositoryOverride = scheduleRepository;
 
   final ScheduleRepository? _scheduleRepositoryOverride;
   final VoidCallback? onQuickAdd;
-  final VoidCallback? onQuickPhoto;
-  final VoidCallback? onQuickVoice;
-  final VoidCallback? onQuickText;
-  final bool showQuickCapture;
 
   @override
   State<TodayScreen> createState() => _TodayScreenState();
@@ -169,7 +161,6 @@ class _TodayScreenState extends State<TodayScreen> {
 
     final hasItems = localItems.isNotEmpty;
 
-    final largeText = MediaQuery.textScalerOf(context).scale(14) >= 21;
     return Stack(
       children: [
         CustomScrollView(
@@ -180,7 +171,7 @@ class _TodayScreenState extends State<TodayScreen> {
                 UiSpace.md,
                 UiSpace.xs,
                 UiSpace.md,
-                widget.showQuickCapture ? (largeText ? 160 : 112) : UiSpace.md,
+                UiSpace.md,
               ),
               sliver: SliverList.list(
                 children: [
@@ -240,17 +231,6 @@ class _TodayScreenState extends State<TodayScreen> {
             ),
           ],
         ),
-        if (widget.showQuickCapture)
-          Positioned(
-            left: UiSpace.md,
-            right: UiSpace.md,
-            bottom: UiSpace.sm,
-            child: _QuickCaptureActions(
-              onPhoto: widget.onQuickPhoto ?? widget.onQuickAdd,
-              onVoice: widget.onQuickVoice ?? widget.onQuickAdd,
-              onText: widget.onQuickText ?? widget.onQuickAdd,
-            ),
-          ),
       ],
     );
   }
@@ -467,97 +447,6 @@ class _OverviewHeader extends StatelessWidget {
       ),
     );
   }
-}
-
-class _QuickCaptureActions extends StatelessWidget {
-  const _QuickCaptureActions({
-    required this.onPhoto,
-    required this.onVoice,
-    required this.onText,
-  });
-
-  final VoidCallback? onPhoto;
-  final VoidCallback? onVoice;
-  final VoidCallback? onText;
-
-  @override
-  Widget build(BuildContext context) => UiSurfaceCard(
-    key: const ValueKey('overview-capture-section'),
-    padding: const EdgeInsets.symmetric(
-      horizontal: UiSpace.sm,
-      vertical: UiSpace.xs,
-    ),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Expanded(
-          child: _QuickCaptureButton(
-            buttonKey: const ValueKey('overview-capture-voice'),
-            icon: Icons.mic_none_rounded,
-            label: '語音',
-            onPressed: onVoice,
-          ),
-        ),
-        const SizedBox(width: UiSpace.xs),
-        Expanded(
-          child: _QuickCaptureButton(
-            buttonKey: const ValueKey('overview-capture-photo'),
-            icon: Icons.photo_camera_outlined,
-            label: '拍照',
-            onPressed: onPhoto,
-          ),
-        ),
-        const SizedBox(width: UiSpace.xs),
-        Expanded(
-          child: _QuickCaptureButton(
-            buttonKey: const ValueKey('overview-capture-text'),
-            icon: Icons.keyboard_outlined,
-            label: '輸入',
-            onPressed: onText,
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-class _QuickCaptureButton extends StatelessWidget {
-  const _QuickCaptureButton({
-    required this.buttonKey,
-    required this.icon,
-    required this.label,
-    required this.onPressed,
-  });
-
-  final Key buttonKey;
-  final IconData icon;
-  final String label;
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) => Semantics(
-    label: '$label，前往新增生活項目',
-    button: true,
-    child: OutlinedButton(
-      key: buttonKey,
-      onPressed: onPressed,
-      style: OutlinedButton.styleFrom(
-        minimumSize: const Size.fromHeight(68),
-        padding: const EdgeInsets.symmetric(
-          horizontal: UiSpace.xs,
-          vertical: UiSpace.sm,
-        ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 26, color: UiColors.success),
-          const SizedBox(height: UiSpace.xxs),
-          Text(label, style: UiType.cardTitle, textAlign: TextAlign.center),
-        ],
-      ),
-    ),
-  );
 }
 
 class _TodayTasksSection extends StatelessWidget {

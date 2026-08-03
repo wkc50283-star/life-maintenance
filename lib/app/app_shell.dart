@@ -49,7 +49,7 @@ class _AppShellState extends State<AppShell> {
   ];
 
   int _currentIndex = 0;
-  bool _showHomeQuickCapture = false;
+  bool _showQuickCapture = false;
   final _addScreenKey = GlobalKey<AddScreenState>();
   bool _runtimeReady = false;
   Object? _initializationError;
@@ -87,30 +87,53 @@ class _AppShellState extends State<AppShell> {
       key: const ValueKey('app-shell'),
       body: SafeArea(
         bottom: false,
-        child: switch ((_runtimeReady, _initializationError)) {
-          (false, null) => const Center(child: CircularProgressIndicator()),
-          (false, _) => _RuntimeLoadFailure(onRetry: _initializeRuntime),
-          (true, _) => AnimatedSwitcher(
-            key: const ValueKey('shell-tab-transition'),
-            duration: transitionDuration,
-            switchInCurve: UiMotion.standardCurve,
-            switchOutCurve: UiMotion.standardCurve,
-            transitionBuilder: (child, animation) => FadeTransition(
-              opacity: animation,
-              child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0.02, 0),
-                  end: Offset.zero,
-                ).animate(animation),
-                child: child,
+        child: Column(
+          children: [
+            Expanded(
+              child: switch ((_runtimeReady, _initializationError)) {
+                (false, null) => const Center(
+                  child: CircularProgressIndicator(),
+                ),
+                (false, _) => _RuntimeLoadFailure(onRetry: _initializeRuntime),
+                (true, _) => AnimatedSwitcher(
+                  key: const ValueKey('shell-tab-transition'),
+                  duration: transitionDuration,
+                  switchInCurve: UiMotion.standardCurve,
+                  switchOutCurve: UiMotion.standardCurve,
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0.02, 0),
+                        end: Offset.zero,
+                      ).animate(animation),
+                      child: child,
+                    ),
+                  ),
+                  child: KeyedSubtree(
+                    key: ValueKey('shell-destination-$_currentIndex'),
+                    child: _destinationScreen(_currentIndex),
+                  ),
+                ),
+              },
+            ),
+            if (_runtimeReady && _showQuickCapture)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  UiSpace.md,
+                  UiSpace.xs,
+                  UiSpace.md,
+                  UiSpace.sm,
+                ),
+                child: _QuickCaptureActions(
+                  onPhoto: () => _showUnavailable('拍照建立尚未啟用，先使用輸入建立。'),
+                  onVoice: () => _showUnavailable('語音建立尚未啟用，先使用輸入建立。'),
+                  onText: _openItemCreation,
+                  onMore: _openAddCenter,
+                ),
               ),
-            ),
-            child: KeyedSubtree(
-              key: ValueKey('shell-destination-$_currentIndex'),
-              child: _destinationScreen(_currentIndex),
-            ),
-          ),
-        },
+          ],
+        ),
       ),
       bottomNavigationBar: UiBottomNavigation(
         navigationKey: const ValueKey('primary-navigation'),
@@ -129,25 +152,19 @@ class _AppShellState extends State<AppShell> {
   }
 
   void _selectDestination(int index) {
-    if (_currentIndex == 0 && index == 2) {
-      setState(() => _showHomeQuickCapture = !_showHomeQuickCapture);
+    if (index == 2) {
+      setState(() => _showQuickCapture = !_showQuickCapture);
       return;
     }
     if (index == _currentIndex) return;
     setState(() {
       _currentIndex = index;
-      _showHomeQuickCapture = false;
+      _showQuickCapture = false;
     });
   }
 
   Widget _destinationScreen(int index) => switch (index) {
-    0 => TodayScreen(
-      onQuickAdd: _openItemCreation,
-      onQuickPhoto: () => _showUnavailable('拍照建立尚未啟用，先使用輸入建立。'),
-      onQuickVoice: () => _showUnavailable('語音建立尚未啟用，先使用輸入建立。'),
-      onQuickText: _openItemCreation,
-      showQuickCapture: _showHomeQuickCapture,
-    ),
+    0 => TodayScreen(onQuickAdd: _openItemCreation),
     1 => const ItemsScreen(),
     2 => AddScreen(
       key: _addScreenKey,
@@ -161,10 +178,17 @@ class _AppShellState extends State<AppShell> {
   void _openItemCreation() {
     setState(() {
       _currentIndex = 2;
-      _showHomeQuickCapture = false;
+      _showQuickCapture = false;
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _addScreenKey.currentState?.showItemCreationMenu();
+    });
+  }
+
+  void _openAddCenter() {
+    setState(() {
+      _currentIndex = 2;
+      _showQuickCapture = false;
     });
   }
 
@@ -173,6 +197,109 @@ class _AppShellState extends State<AppShell> {
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
   }
+}
+
+class _QuickCaptureActions extends StatelessWidget {
+  const _QuickCaptureActions({
+    required this.onPhoto,
+    required this.onVoice,
+    required this.onText,
+    required this.onMore,
+  });
+
+  final VoidCallback onPhoto;
+  final VoidCallback onVoice;
+  final VoidCallback onText;
+  final VoidCallback onMore;
+
+  @override
+  Widget build(BuildContext context) => UiSurfaceCard(
+    key: const ValueKey('overview-capture-section'),
+    padding: const EdgeInsets.symmetric(
+      horizontal: UiSpace.sm,
+      vertical: UiSpace.xs,
+    ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TextButton(
+          key: const ValueKey('overview-capture-more'),
+          onPressed: onMore,
+          child: const Text('更多建立方式'),
+        ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: _QuickCaptureButton(
+                buttonKey: const ValueKey('overview-capture-voice'),
+                icon: Icons.mic_none_rounded,
+                label: '語音',
+                onPressed: onVoice,
+              ),
+            ),
+            const SizedBox(width: UiSpace.xs),
+            Expanded(
+              child: _QuickCaptureButton(
+                buttonKey: const ValueKey('overview-capture-photo'),
+                icon: Icons.photo_camera_outlined,
+                label: '拍照',
+                onPressed: onPhoto,
+              ),
+            ),
+            const SizedBox(width: UiSpace.xs),
+            Expanded(
+              child: _QuickCaptureButton(
+                buttonKey: const ValueKey('overview-capture-text'),
+                icon: Icons.keyboard_outlined,
+                label: '輸入',
+                onPressed: onText,
+              ),
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
+class _QuickCaptureButton extends StatelessWidget {
+  const _QuickCaptureButton({
+    required this.buttonKey,
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+
+  final Key buttonKey;
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label: '$label，前往新增生活項目',
+    button: true,
+    child: OutlinedButton(
+      key: buttonKey,
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size.fromHeight(68),
+        padding: const EdgeInsets.symmetric(
+          horizontal: UiSpace.xs,
+          vertical: UiSpace.sm,
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 26, color: UiColors.success),
+          const SizedBox(height: UiSpace.xxs),
+          Text(label, style: UiType.cardTitle, textAlign: TextAlign.center),
+        ],
+      ),
+    ),
+  );
 }
 
 class _RuntimeLoadFailure extends StatelessWidget {

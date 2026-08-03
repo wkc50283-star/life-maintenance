@@ -63,6 +63,9 @@ void main() {
 
     await tester.tap(find.text('新增'));
     await tester.pumpAndSettle();
+    expect(find.byType(ItemsScreen), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('overview-capture-more')));
+    await tester.pumpAndSettle();
     expect(find.byType(AddScreen), findsOneWidget);
     await tester.tapAt(const Offset(8, 8));
     await tester.pumpAndSettle();

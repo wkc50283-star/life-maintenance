@@ -93,7 +93,7 @@ void main() {
     },
   );
 
-  testWidgets('home quick capture is content-sized above navigation', (
+  testWidgets('quick capture toggles consistently across main destinations', (
     tester,
   ) async {
     final root = AppCompositionRoot(
@@ -108,20 +108,39 @@ void main() {
     final navigation = find.byKey(const ValueKey('primary-navigation'));
     expect(section, findsNothing);
 
-    await tester.tap(find.text('新增'));
-    await tester.pumpAndSettle();
+    for (final destination in const [
+      ('生活總覽', 0),
+      ('生活項目', 1),
+      ('履歷', 3),
+      ('設定', 4),
+    ]) {
+      await tester.tap(_navigationLabel(destination.$1));
+      await tester.pumpAndSettle();
+      expect(section, findsNothing);
+      await tester.tap(_navigationLabel('新增'));
+      await tester.pumpAndSettle();
+      expect(section, findsOneWidget);
+      expect(
+        tester.widget<NavigationBar>(navigation).selectedIndex,
+        destination.$2,
+      );
+      await tester.tap(_navigationLabel('新增'));
+      await tester.pumpAndSettle();
+      expect(section, findsNothing);
+    }
 
-    final textButton = find.byKey(const ValueKey('overview-capture-text'));
+    await tester.tap(_navigationLabel('履歷'));
+    await tester.pumpAndSettle();
+    await tester.tap(_navigationLabel('新增'));
+    await tester.pumpAndSettle();
     expect(section, findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('overview-capture-photo')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey('overview-capture-voice')),
-      findsOneWidget,
-    );
-    expect(textButton, findsOneWidget);
+    await tester.tap(_navigationLabel('設定'));
+    await tester.pumpAndSettle();
+    expect(section, findsNothing);
+
+    await tester.tap(_navigationLabel('新增'));
+    await tester.pumpAndSettle();
+    final textButton = find.byKey(const ValueKey('overview-capture-text'));
     final voice = find.byKey(const ValueKey('overview-capture-voice'));
     final photo = find.byKey(const ValueKey('overview-capture-photo'));
     expect(tester.getCenter(voice).dx, lessThan(tester.getCenter(photo).dx));
@@ -131,23 +150,17 @@ void main() {
     );
     expect(find.text('語音'), findsOneWidget);
     expect(find.text('說一句'), findsNothing);
+    expect(find.byKey(const ValueKey('overview-capture-more')), findsOneWidget);
     expect(
       tester.getRect(section).bottom,
       lessThanOrEqualTo(tester.getRect(navigation).top),
     );
-    expect(
-      tester.getRect(navigation).top - tester.getRect(section).bottom,
-      lessThanOrEqualTo(UiSpace.sm),
-    );
-    expect(
-      tester.getSize(section).height,
-      closeTo(tester.getSize(textButton).height + UiSpace.md, 0.1),
-    );
 
-    await tester.tap(find.text('新增'));
+    await tester.tap(find.byKey(const ValueKey('overview-capture-more')));
     await tester.pumpAndSettle();
+    expect(find.byType(AddScreen), findsOneWidget);
     expect(section, findsNothing);
-    expect(tester.widget<NavigationBar>(navigation).selectedIndex, 0);
+    expect(tester.widget<NavigationBar>(navigation).selectedIndex, 2);
   });
 
   testWidgets('reduce motion disables decorative shell and section animation', (
@@ -206,33 +219,19 @@ void main() {
     expect(find.text('還沒有生活項目'), findsOneWidget);
     expect(find.text('今天發生了什麼？'), findsNothing);
     expect(find.text('記錄生活，AI 幫你整理'), findsNothing);
-    await tester.tap(find.text('新增'));
+    await tester.tap(_navigationLabel('新增'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('overview-capture-text')),
-      160,
-      scrollable: find.descendant(
-        of: find.byKey(const ValueKey('overview-scroll')),
-        matching: find.byType(Scrollable),
-      ),
-    );
     expect(find.text('拍照'), findsOneWidget);
     expect(find.text('語音'), findsOneWidget);
     expect(find.text('說一句'), findsNothing);
     expect(find.text('輸入'), findsOneWidget);
     final section = find.byKey(const ValueKey('overview-capture-section'));
-    expect(
-      tester.getSize(section).height,
-      closeTo(
-        tester
-                .getSize(
-                  find.descendant(of: section, matching: find.byType(Row)),
-                )
-                .height +
-            UiSpace.md,
-        0.1,
-      ),
-    );
+    expect(tester.getSize(section).height, lessThan(220));
     expect(tester.takeException(), isNull);
   });
 }
+
+Finder _navigationLabel(String label) => find.descendant(
+  of: find.byKey(const ValueKey('primary-navigation')),
+  matching: find.text(label),
+);

@@ -193,19 +193,19 @@ Future<void> _pumpApp(WidgetTester tester, AppCompositionRoot root) async {
 }
 
 Future<void> _openAdd(WidgetTester tester) async {
-  await tester.tap(
-    find.descendant(
-      of: find.byKey(const ValueKey('primary-navigation')),
-      matching: find.text('生活項目'),
-    ),
-  );
-  await tester.pumpAndSettle();
-  await tester.tap(
-    find.descendant(
-      of: find.byKey(const ValueKey('primary-navigation')),
-      matching: find.text('新增'),
-    ),
-  );
+  if (find
+      .byKey(const ValueKey('overview-capture-section'))
+      .evaluate()
+      .isEmpty) {
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('primary-navigation')),
+        matching: find.text('新增'),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+  await tester.tap(find.byKey(const ValueKey('overview-capture-more')));
   await tester.pumpAndSettle();
 }
 

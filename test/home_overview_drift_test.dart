@@ -26,12 +26,7 @@ void main() {
       AppCompositionScope(
         root: root,
         child: MaterialApp(
-          home: Scaffold(
-            body: TodayScreen(
-              onQuickAdd: () => quickAddCount++,
-              showQuickCapture: true,
-            ),
-          ),
+          home: Scaffold(body: TodayScreen(onQuickAdd: () => quickAddCount++)),
         ),
       ),
     );
@@ -63,46 +58,20 @@ void main() {
     );
     await tester.tap(find.text('新增生活項目').last);
     expect(quickAddCount, 1);
-    final scrollable = find.descendant(
-      of: find.byKey(const ValueKey('overview-scroll')),
-      matching: find.byType(Scrollable),
-    );
-    for (final key in const [
-      ValueKey('overview-capture-photo'),
-      ValueKey('overview-capture-voice'),
-      ValueKey('overview-capture-text'),
-    ]) {
-      await tester.scrollUntilVisible(
-        find.byKey(key),
-        160,
-        scrollable: scrollable,
-      );
-      await tester.tap(find.byKey(key));
-    }
-    expect(quickAddCount, 4);
+    expect(quickAddCount, 1);
     expect(find.text('今天想記錄什麼？'), findsNothing);
     expect(find.text('客廳冷氣'), findsNothing);
     expect(find.text('冷氣異音檢查'), findsNothing);
-    expect(find.text('拍照'), findsOneWidget);
-    expect(find.text('語音'), findsOneWidget);
-    expect(find.text('說一句'), findsNothing);
-    expect(find.text('輸入'), findsOneWidget);
     expect(
-      tester
-          .getSize(find.byKey(const ValueKey('overview-capture-section')))
-          .height,
-      lessThan(140),
+      find.byKey(const ValueKey('overview-capture-section')),
+      findsNothing,
     );
     expect(find.text('拍一張照片'), findsNothing);
     expect(find.text('語音說一段話'), findsNothing);
     expect(find.text('打幾個字'), findsNothing);
     final aiTop = tester.getTopLeft(find.text('AI 建議管理')).dy;
     final focusTop = tester.getTopLeft(find.text('近期需要注意')).dy;
-    final captureTop = tester
-        .getTopLeft(find.byKey(const ValueKey('overview-capture-section')))
-        .dy;
     expect(aiTop, lessThan(focusTop));
-    expect(focusTop, lessThan(captureTop));
     await database.close();
   });
 
@@ -191,9 +160,7 @@ void main() {
     await tester.pumpWidget(
       AppCompositionScope(
         root: root,
-        child: const MaterialApp(
-          home: Scaffold(body: TodayScreen(showQuickCapture: true)),
-        ),
+        child: const MaterialApp(home: Scaffold(body: TodayScreen())),
       ),
     );
     await tester.pumpAndSettle();
@@ -232,13 +199,9 @@ void main() {
     final completionTop = tester.getTopLeft(find.text('最近完成')).dy;
     final aiTop = tester.getTopLeft(find.text('AI 建議管理')).dy;
     final focusTop = tester.getTopLeft(find.text('近期需要注意')).dy;
-    final captureTop = tester
-        .getTopLeft(find.byKey(const ValueKey('overview-capture-section')))
-        .dy;
     expect(reminderTop, lessThan(completionTop));
     expect(completionTop, lessThan(aiTop));
     expect(aiTop, lessThan(focusTop));
-    expect(focusTop, lessThan(captureTop));
     await database.close();
   });
 
