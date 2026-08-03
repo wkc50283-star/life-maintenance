@@ -126,9 +126,9 @@ class _AppShellState extends State<AppShell> {
                   UiSpace.sm,
                 ),
                 child: _QuickCaptureActions(
-                  onPhoto: () => _showUnavailable('拍照建立尚未啟用，先使用輸入建立。'),
-                  onVoice: () => _showUnavailable('語音建立尚未啟用，先使用輸入建立。'),
-                  onText: _openItemCreation,
+                  onPhoto: () => _showUnavailable('拍照建立尚未啟用，先使用手動建立。'),
+                  onVoice: () => _showUnavailable('語音建立尚未啟用，先使用手動建立。'),
+                  onText: _openAddCenter,
                 ),
               ),
           ],
@@ -184,6 +184,13 @@ class _AppShellState extends State<AppShell> {
     });
   }
 
+  void _openAddCenter() {
+    setState(() {
+      _currentIndex = 2;
+      _showQuickCapture = false;
+    });
+  }
+
   void _showUnavailable(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -234,7 +241,7 @@ class _QuickCaptureActions extends StatelessWidget {
           child: _QuickCaptureButton(
             buttonKey: const ValueKey('overview-capture-text'),
             icon: Icons.keyboard_outlined,
-            label: '輸入',
+            label: '手動建立',
             onPressed: onText,
           ),
         ),

@@ -564,7 +564,7 @@ class _AiSuggestionsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => const _HomeListSection(
-    title: 'AI 建議管理',
+    title: '告訴我你想記住或處理什麼',
     actionLabel: '查看全部',
     children: [
       Padding(
@@ -573,7 +573,7 @@ class _AiSuggestionsSection extends StatelessWidget {
           children: [
             _HomeListIcon(icon: Icons.auto_awesome_outlined),
             SizedBox(width: UiSpace.sm),
-            Expanded(child: Text('AI 建議功能尚未啟用', style: UiType.body)),
+            Expanded(child: Text('AI 功能尚未啟用', style: UiType.body)),
           ],
         ),
       ),

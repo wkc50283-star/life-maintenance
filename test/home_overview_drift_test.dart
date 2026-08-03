@@ -46,8 +46,8 @@ void main() {
     expect(find.text('進行中案件'), findsNothing);
     expect(find.text('階段性重點'), findsNothing);
     expect(find.text('最近完成'), findsNothing);
-    expect(find.text('AI 建議管理'), findsOneWidget);
-    expect(find.text('AI 建議功能尚未啟用'), findsOneWidget);
+    expect(find.text('告訴我你想記住或處理什麼'), findsOneWidget);
+    expect(find.text('AI 功能尚未啟用'), findsOneWidget);
     expect(find.text('近期需要注意'), findsOneWidget);
     expect(find.text('近期沒有需要注意的事情'), findsOneWidget);
     expect(find.byKey(const ValueKey('overview-quick-add')), findsNothing);
@@ -69,7 +69,7 @@ void main() {
     expect(find.text('拍一張照片'), findsNothing);
     expect(find.text('語音說一段話'), findsNothing);
     expect(find.text('打幾個字'), findsNothing);
-    final aiTop = tester.getTopLeft(find.text('AI 建議管理')).dy;
+    final aiTop = tester.getTopLeft(find.text('告訴我你想記住或處理什麼')).dy;
     final focusTop = tester.getTopLeft(find.text('近期需要注意')).dy;
     expect(aiTop, lessThan(focusTop));
     await database.close();
@@ -172,8 +172,8 @@ void main() {
     expect(find.text('今天需要處理（1）'), findsOneWidget);
     expect(find.text('進行中案件'), findsNothing);
     expect(find.text('最近完成'), findsOneWidget);
-    expect(find.text('AI 建議管理'), findsOneWidget);
-    expect(find.text('AI 建議功能尚未啟用'), findsOneWidget);
+    expect(find.text('告訴我你想記住或處理什麼'), findsOneWidget);
+    expect(find.text('AI 功能尚未啟用'), findsOneWidget);
     expect(find.text('近期需要注意'), findsOneWidget);
     expect(find.text('近期沒有需要注意的事情'), findsNothing);
     expect(
@@ -197,7 +197,7 @@ void main() {
 
     final reminderTop = tester.getTopLeft(find.text('今天需要處理（1）')).dy;
     final completionTop = tester.getTopLeft(find.text('最近完成')).dy;
-    final aiTop = tester.getTopLeft(find.text('AI 建議管理')).dy;
+    final aiTop = tester.getTopLeft(find.text('告訴我你想記住或處理什麼')).dy;
     final focusTop = tester.getTopLeft(find.text('近期需要注意')).dy;
     expect(reminderTop, lessThan(completionTop));
     expect(completionTop, lessThan(aiTop));

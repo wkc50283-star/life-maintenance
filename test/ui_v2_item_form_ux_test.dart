@@ -8,6 +8,7 @@ import 'package:life_maintenance/main.dart';
 import 'package:life_maintenance/repositories/formal_planning_editor.dart';
 import 'package:life_maintenance/screens/formal_planning_screens.dart';
 import 'package:life_maintenance/screens/item_detail_screen.dart';
+import 'package:life_maintenance/screens/today_screen.dart';
 
 void main() {
   test('UI foundation exposes centralized visual and motion tokens', () {
@@ -506,12 +507,12 @@ Future<void> _advanceItemForm(
 }
 
 Future<void> _openNewItemForm(WidgetTester tester) async {
-  await tester.tap(find.text('新增'));
-  await tester.pumpAndSettle();
-  final textEntry = find.byKey(const ValueKey('overview-capture-text'));
-  await Scrollable.ensureVisible(tester.element(textEntry), alignment: 0.5);
-  await tester.pumpAndSettle();
-  await tester.tap(textEntry);
+  final emptyStateAction = find.text('新增生活項目');
+  if (emptyStateAction.evaluate().isNotEmpty) {
+    await tester.tap(emptyStateAction);
+  } else {
+    tester.widget<TodayScreen>(find.byType(TodayScreen)).onQuickAdd!();
+  }
   await tester.pumpAndSettle();
   expect(find.text('確認生活項目'), findsOneWidget);
   expect(find.byKey(const ValueKey('item-name')), findsOneWidget);

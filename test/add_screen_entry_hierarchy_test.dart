@@ -39,7 +39,7 @@ void main() {
     expect(find.byKey(const ValueKey('item-create-by-text')), findsNothing);
     expect(find.text('拍照'), findsNothing);
     expect(find.text('說一句'), findsNothing);
-    expect(find.text('輸入'), findsNothing);
+    expect(find.text('手動建立'), findsNothing);
   });
 
   testWidgets('advanced functions are immediately visible and operable', (
@@ -81,11 +81,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('overview-capture-photo')));
     await tester.pump();
-    expect(find.text('拍照建立尚未啟用，先使用輸入建立。'), findsOneWidget);
+    expect(find.text('拍照建立尚未啟用，先使用手動建立。'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('overview-capture-voice')));
     await tester.pump();
-    expect(find.text('語音建立尚未啟用，先使用輸入建立。'), findsOneWidget);
+    expect(find.text('語音建立尚未啟用，先使用手動建立。'), findsOneWidget);
   });
 }
 
@@ -98,7 +98,5 @@ Future<void> _openAddCenter(WidgetTester tester) async {
     await tester.pumpAndSettle();
   }
   await tester.tap(find.byKey(const ValueKey('overview-capture-text')));
-  await tester.pumpAndSettle();
-  await tester.pageBack();
   await tester.pumpAndSettle();
 }

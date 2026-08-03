@@ -7,7 +7,6 @@ import 'package:life_maintenance/app/ui_tokens.dart';
 import 'package:life_maintenance/database/app_database.dart';
 import 'package:life_maintenance/main.dart';
 import 'package:life_maintenance/screens/add_screen.dart';
-import 'package:life_maintenance/screens/formal_planning_screens.dart';
 import 'package:life_maintenance/widgets/ui_v2_components.dart';
 
 void main() {
@@ -46,10 +45,6 @@ void main() {
       await tester.tap(textEntry);
       await tester.pumpAndSettle();
 
-      expect(navigation.selectedIndex, 0);
-      expect(find.byType(ItemFormScreen), findsOneWidget);
-      await tester.pageBack();
-      await tester.pumpAndSettle();
       expect(find.byType(AddScreen), findsOneWidget);
       expect(
         tester
@@ -219,7 +214,8 @@ void main() {
     expect(find.text('拍照'), findsOneWidget);
     expect(find.text('語音'), findsOneWidget);
     expect(find.text('說一句'), findsNothing);
-    expect(find.text('輸入'), findsOneWidget);
+    expect(find.text('手動建立'), findsOneWidget);
+    expect(find.text('輸入'), findsNothing);
     expect(find.text('開啟更多建立方式'), findsNothing);
     final section = find.byKey(const ValueKey('overview-capture-section'));
     expect(tester.getSize(section).height, lessThan(220));

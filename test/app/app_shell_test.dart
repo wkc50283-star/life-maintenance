@@ -66,8 +66,6 @@ void main() {
     expect(find.byType(ItemsScreen), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('overview-capture-text')));
     await tester.pumpAndSettle();
-    await tester.pageBack();
-    await tester.pumpAndSettle();
     expect(find.byType(AddScreen), findsOneWidget);
     await tester.tapAt(const Offset(8, 8));
     await tester.pumpAndSettle();

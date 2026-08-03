@@ -41,15 +41,15 @@ void main() {
     expect(find.byKey(const ValueKey('overview-capture-text')), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('overview-capture-photo')));
     await tester.pumpAndSettle();
-    expect(find.text('拍照建立尚未啟用，先使用輸入建立。'), findsOneWidget);
+    expect(find.text('拍照建立尚未啟用，先使用手動建立。'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('overview-capture-voice')));
     await tester.pumpAndSettle();
-    expect(find.text('語音建立尚未啟用，先使用輸入建立。'), findsOneWidget);
+    expect(find.text('語音建立尚未啟用，先使用手動建立。'), findsOneWidget);
 
     await _openAdd(tester);
     expect(find.text('拍照'), findsNothing);
     expect(find.text('說一句'), findsNothing);
-    expect(find.text('輸入'), findsNothing);
+    expect(find.text('手動建立'), findsNothing);
     expect(find.text('現在需要記住或處理什麼？'), findsOneWidget);
     expect(find.text('分類'), findsOneWidget);
     expect(find.text('一般提醒'), findsOneWidget);
@@ -207,14 +207,10 @@ Future<void> _openAdd(WidgetTester tester) async {
   }
   await tester.tap(find.byKey(const ValueKey('overview-capture-text')));
   await tester.pumpAndSettle();
-  await tester.pageBack();
-  await tester.pumpAndSettle();
 }
 
 Future<void> _openTextForm(WidgetTester tester) async {
-  await tester.tap(find.text('新增'));
-  await tester.pumpAndSettle();
-  await tester.tap(find.byKey(const ValueKey('overview-capture-text')));
+  await tester.tap(find.text('新增生活項目'));
   await tester.pumpAndSettle();
   expect(find.byType(ItemFormScreen), findsOneWidget);
 }
