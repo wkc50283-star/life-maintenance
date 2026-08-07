@@ -65,9 +65,9 @@ Codex 不得自行進行任何產品、流程、文案、資料模型、Schema�
 ## 6. PR #279 狀態
 
 - PR #279：`Toggle home quick capture actions`
-- 狀態：OPEN／Draft，Head `7b54640aeee5e91d9da406990d4c8fcc3322a7b0`
-- 它建立於本次四入口產品定案之前，內容仍以舊的 quick-capture／Add center 邏輯為中心。
-- 在重新核對與本次正式規劃的一致性前，不得合併，也不得把它當成四入口工程的正式實作基礎。
+- 最終狀態：CLOSED／未合併，Head `7b54640aeee5e91d9da406990d4c8fcc3322a7b0`
+- 關閉原因：它建立於本次四入口產品定案之前，仍以舊的 quick-capture／Add center 邏輯為中心；繼續合併會把舊入口邏輯帶回 main。
+- 可重用的測試或實作概念只能在後續新 PR 明確批准時逐項採用，不得整批帶入。
 
 ## 7. 明確未施工
 
