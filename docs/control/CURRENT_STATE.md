@@ -33,7 +33,7 @@
 - 手動建立「四個生活目的入口」是 2026-08-08 前後完成的新產品定案，尚未進入 main。
 - 四入口與現有 Model／Repository／Runtime／History 的正式工程映射尚待完成。
 - 四入口相關文案、版面、步驟與互動尚未經真實 App／非設計參與者情境操作驗收，不得標記 UI／UX 完成。
-- PR #279 `Toggle home quick capture actions` 仍為 OPEN／Draft；不屬於 main 正式能力，也尚未核對是否符合新的四入口規劃。
+- PR #279 `Toggle home quick capture actions` 已關閉且未合併；它不屬於 main 正式能力，後續不得整批帶入新的四入口工程。
 - 既有舊 Item 沒有 created event 時不補造建立履歷。
 - 設定中的「使用說明與常見問題」已批准為產品方向，但尚未施工。
 
@@ -45,7 +45,7 @@
 - `docs/control/04-development-rules.md`
 - GitHub main commit `0fd7a53df785880ead03bea01d4d118389c4a806`
 - 已合併 PR #269、#270、#275、#276、#277、#278
-- OPEN／Draft PR #279
+- 已關閉且未合併 PR #279
 
 ## 5. 更新規則
 
