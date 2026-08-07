@@ -3,6 +3,7 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_maintenance/database/app_database.dart';
 import 'package:life_maintenance/models/history_projection.dart';
+import 'package:life_maintenance/models/item_custom_management_period.dart';
 import 'package:life_maintenance/models/item_management_period.dart';
 import 'package:life_maintenance/models/item_system_category.dart';
 import 'package:life_maintenance/repositories/drift/drift_history_projection_repository.dart';
@@ -34,15 +35,17 @@ void main() {
       ItemManagementPeriod.halfYear,
       ItemManagementPeriod.month,
     },
+    List<ItemCustomManagementPeriod> customPeriods = const [],
   }) => ItemCreationRequest(
     itemId: itemId,
     name: name,
     categoryId: categoryId,
     createdAt: now,
     managementPeriods: periods,
+    customManagementPeriods: customPeriods,
   );
 
-  test('schema v4 seeds immutable unclassified system category', () async {
+  test('schema v5 seeds immutable unclassified system category', () async {
     final category = await repositories.itemCategories.findById(
       ItemSystemCategory.unclassifiedId,
     );
@@ -60,6 +63,216 @@ void main() {
       throwsA(isA<RepositoryConstraintException>()),
     );
   });
+
+  test(
+    'stores multiple custom periods and immutable created snapshots',
+    () async {
+      final customPeriods = [
+        ItemCustomManagementPeriod(
+          intervalValue: 14,
+          intervalUnit: ItemManagementIntervalUnit.day,
+        ),
+        ItemCustomManagementPeriod(
+          intervalValue: 5,
+          intervalUnit: ItemManagementIntervalUnit.month,
+        ),
+      ];
+      await runtime.create(
+        request(periods: const {}, customPeriods: customPeriods),
+      );
+
+      expect(await runtime.listCustomManagementPeriods('item-created'), {
+        ...customPeriods,
+      });
+      final event = await runtime.findCreatedEvent('item-created');
+      expect(event!.customManagementPeriods, {...customPeriods});
+      expect(
+        await database.select(database.itemCustomManagementPeriods).get(),
+        hasLength(2),
+      );
+      expect(
+        await database.select(database.itemLifecycleEventCustomPeriods).get(),
+        hasLength(2),
+      );
+
+      await expectLater(
+        (database.delete(database.itemLifecycleEventCustomPeriods)..where(
+              (table) => table.eventId.equals('item-created-item-created'),
+            ))
+            .go(),
+        throwsA(anything),
+      );
+    },
+  );
+
+  test('N equals one is stored as the existing fixed period', () async {
+    await runtime.create(
+      request(
+        periods: const {},
+        customPeriods: [
+          ItemCustomManagementPeriod(
+            intervalValue: 1,
+            intervalUnit: ItemManagementIntervalUnit.year,
+          ),
+        ],
+      ),
+    );
+
+    expect(await runtime.listManagementPeriods('item-created'), {
+      ItemManagementPeriod.year,
+    });
+    expect(await runtime.listCustomManagementPeriods('item-created'), isEmpty);
+    final event = await runtime.findCreatedEvent('item-created');
+    expect(event!.managementPeriods, {ItemManagementPeriod.year});
+    expect(event.customManagementPeriods, isEmpty);
+  });
+
+  test(
+    'rejects equivalent periods within and across representations',
+    () async {
+      Future<void> expectRejected(
+        List<ItemCustomManagementPeriod> custom, {
+        Set<ItemManagementPeriod> fixed = const {},
+      }) async {
+        await expectLater(
+          runtime.create(request(periods: fixed, customPeriods: custom)),
+          throwsA(isA<RepositoryConstraintException>()),
+        );
+        expect(await database.select(database.items).get(), isEmpty);
+      }
+
+      await expectRejected([
+        ItemCustomManagementPeriod(
+          intervalValue: 14,
+          intervalUnit: ItemManagementIntervalUnit.day,
+        ),
+        ItemCustomManagementPeriod(
+          intervalValue: 2,
+          intervalUnit: ItemManagementIntervalUnit.week,
+        ),
+      ]);
+      await expectRejected([
+        ItemCustomManagementPeriod(
+          intervalValue: 6,
+          intervalUnit: ItemManagementIntervalUnit.month,
+        ),
+        ItemCustomManagementPeriod(
+          intervalValue: 2,
+          intervalUnit: ItemManagementIntervalUnit.quarter,
+        ),
+      ]);
+      await expectRejected(
+        [
+          ItemCustomManagementPeriod(
+            intervalValue: 7,
+            intervalUnit: ItemManagementIntervalUnit.day,
+          ),
+        ],
+        fixed: const {ItemManagementPeriod.week},
+      );
+    },
+  );
+
+  test('duration and calendar families remain distinct', () async {
+    await runtime.create(
+      request(
+        periods: const {},
+        customPeriods: [
+          ItemCustomManagementPeriod(
+            intervalValue: 30,
+            intervalUnit: ItemManagementIntervalUnit.day,
+          ),
+          ItemCustomManagementPeriod(
+            intervalValue: 1,
+            intervalUnit: ItemManagementIntervalUnit.month,
+          ),
+        ],
+      ),
+    );
+
+    expect(await runtime.listManagementPeriods('item-created'), {
+      ItemManagementPeriod.month,
+    });
+    expect(await runtime.listCustomManagementPeriods('item-created'), {
+      ItemCustomManagementPeriod(
+        intervalValue: 30,
+        intervalUnit: ItemManagementIntervalUnit.day,
+      ),
+    });
+  });
+
+  test(
+    'database constraints reject equivalent and corrupted direct writes',
+    () async {
+      final sevenDays = ItemCustomManagementPeriod(
+        intervalValue: 7,
+        intervalUnit: ItemManagementIntervalUnit.day,
+      );
+      await runtime.create(
+        request(periods: const {}, customPeriods: [sevenDays]),
+      );
+
+      await expectLater(
+        database
+            .into(database.itemManagementPeriods)
+            .insert(
+              ItemManagementPeriodsCompanion.insert(
+                itemId: 'item-created',
+                period: ItemManagementPeriod.week.name,
+                createdAt: now,
+              ),
+            ),
+        throwsA(anything),
+      );
+      await expectLater(
+        database
+            .into(database.itemLifecycleEventPeriods)
+            .insert(
+              ItemLifecycleEventPeriodsCompanion.insert(
+                eventId: 'item-created-item-created',
+                period: ItemManagementPeriod.week.name,
+              ),
+            ),
+        throwsA(anything),
+      );
+      await expectLater(
+        database
+            .into(database.itemCustomManagementPeriods)
+            .insert(
+              ItemCustomManagementPeriodsCompanion.insert(
+                itemId: 'item-created',
+                intervalValue: 2,
+                intervalUnit: ItemManagementIntervalUnit.week.name,
+                canonicalFamily: ItemManagementIntervalFamily.day.name,
+                canonicalValue: 13,
+                createdAt: now,
+              ),
+            ),
+        throwsA(anything),
+      );
+      await runtime.create(
+        request(
+          itemId: 'fixed-item',
+          periods: const {ItemManagementPeriod.week},
+        ),
+      );
+      await expectLater(
+        database
+            .into(database.itemCustomManagementPeriods)
+            .insert(
+              ItemCustomManagementPeriodsCompanion.insert(
+                itemId: 'fixed-item',
+                intervalValue: 7,
+                intervalUnit: ItemManagementIntervalUnit.day.name,
+                canonicalFamily: ItemManagementIntervalFamily.day.name,
+                canonicalValue: 7,
+                createdAt: now,
+              ),
+            ),
+        throwsA(anything),
+      );
+    },
+  );
 
   test(
     'creates Item, normalized periods, and immutable snapshot atomically',
@@ -179,6 +392,7 @@ void main() {
         ItemManagementPeriod.halfYear,
         ItemManagementPeriod.month,
       });
+      expect(entry.event.customManagementPeriods, isEmpty);
       expect(projection.entries, isEmpty);
     },
   );
@@ -219,6 +433,24 @@ void main() {
       await database.select(database.itemLifecycleEvents).get(),
       hasLength(1),
     );
+  });
+
+  test('History projects the exact custom period snapshot', () async {
+    final custom = ItemCustomManagementPeriod(
+      intervalValue: 5,
+      intervalUnit: ItemManagementIntervalUnit.month,
+    );
+    await runtime.create(request(periods: const {}, customPeriods: [custom]));
+    final history = DriftHistoryProjectionRepository(
+      database: database,
+      attachments: repositories.attachments,
+    );
+
+    final entry = (await history.projectForItem(
+      'item-created',
+    )).itemCreatedEntries.single;
+    expect(entry.event.customManagementPeriods, {custom});
+    expect(entry.sourceId, 'item-created-item-created');
   });
 
   test('creates Item and history with no management periods', () async {
@@ -328,4 +560,33 @@ void main() {
       );
     },
   );
+
+  test('custom event period failure rolls back every creation write', () async {
+    await database.customStatement('''
+      CREATE TRIGGER fail_item_lifecycle_custom_period_insert
+      BEFORE INSERT ON item_lifecycle_event_custom_periods
+      BEGIN
+        SELECT RAISE(ABORT, 'simulated custom lifecycle period failure');
+      END
+    ''');
+    final custom = ItemCustomManagementPeriod(
+      intervalValue: 5,
+      intervalUnit: ItemManagementIntervalUnit.month,
+    );
+
+    await expectLater(
+      runtime.create(request(periods: const {}, customPeriods: [custom])),
+      throwsA(anything),
+    );
+    expect(await database.select(database.items).get(), isEmpty);
+    expect(
+      await database.select(database.itemCustomManagementPeriods).get(),
+      isEmpty,
+    );
+    expect(await database.select(database.itemLifecycleEvents).get(), isEmpty);
+    expect(
+      await database.select(database.itemLifecycleEventCustomPeriods).get(),
+      isEmpty,
+    );
+  });
 }

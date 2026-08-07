@@ -95,7 +95,7 @@ void main() {
     final databaseSource = File(
       'lib/database/app_database.dart',
     ).readAsStringSync();
-    expect(databaseSource, contains('int get schemaVersion => 4;'));
+    expect(databaseSource, contains('int get schemaVersion => 5;'));
   });
 
   test(

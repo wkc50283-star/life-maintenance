@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 import '../../database/app_database.dart';
 import '../../models/attachment.dart';
 import '../../models/history_projection.dart';
+import '../../models/item_custom_management_period.dart';
 import '../../models/item_lifecycle_event.dart';
 import '../../models/item_management_period.dart';
 import '../../models/maintenance_record.dart';
@@ -182,6 +183,19 @@ class DriftHistoryProjectionRepository implements HistoryProjectionRepository {
       final periods = (await periodQuery.get())
           .map((period) => ItemManagementPeriod.values.byName(period.period))
           .toSet();
+      final customPeriodQuery = _database.select(
+        _database.itemLifecycleEventCustomPeriods,
+      )..where((table) => table.eventId.equals(row.id));
+      final customPeriods = (await customPeriodQuery.get())
+          .map(
+            (period) => ItemCustomManagementPeriod(
+              intervalValue: period.intervalValue,
+              intervalUnit: ItemManagementIntervalUnit.values.byName(
+                period.intervalUnit,
+              ),
+            ),
+          )
+          .toSet();
       entries.add(
         ItemCreatedHistoryEntry(
           ItemLifecycleEvent(
@@ -196,6 +210,7 @@ class DriftHistoryProjectionRepository implements HistoryProjectionRepository {
             occurredAt: row.occurredAt,
             createdAt: row.createdAt,
             managementPeriods: periods,
+            customManagementPeriods: customPeriods,
           ),
         ),
       );
