@@ -277,8 +277,15 @@ void main() {
 
     await _openNewItemForm(tester);
 
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('custom-period-value')),
+    );
+    await tester.pumpAndSettle();
+
     expect(tester.takeException(), isNull);
     expect(find.byKey(const ValueKey('save-form')), findsOneWidget);
+    expect(find.byKey(const ValueKey('custom-period-unit')), findsOneWidget);
+    expect(find.byKey(const ValueKey('add-custom-period')), findsOneWidget);
   });
 
   testWidgets('Item category selection changes the formal saved relation', (

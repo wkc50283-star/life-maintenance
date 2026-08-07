@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../app/app_composition_root.dart';
 import '../app/ui_tokens.dart';
 import '../models/enums.dart';
+import '../models/item_custom_management_period.dart';
 import '../models/item_lifecycle_event.dart';
 import '../models/item_management_period.dart';
 import '../models/item_system_category.dart';
@@ -14,6 +15,7 @@ import '../models/milestone_enums.dart';
 import '../repositories/formal_planning_editor.dart';
 import '../repositories/item_creation_runtime.dart';
 import '../widgets/ui_v2_components.dart';
+import 'item_management_period_formatter.dart';
 import 'item_detail_screen.dart';
 
 enum PlanningContentKind { maintenancePlan, reminder, milestone, schedule }
@@ -227,6 +229,11 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
   bool _saving = false;
   int _step = 0;
   final Set<ItemManagementPeriod> _managementPeriods = {};
+  final List<ItemCustomManagementPeriod> _customManagementPeriods = [];
+  late final TextEditingController _customIntervalValue;
+  ItemManagementIntervalUnit _customIntervalUnit =
+      ItemManagementIntervalUnit.day;
+  String? _customPeriodError;
 
   @override
   void initState() {
@@ -236,6 +243,7 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
     _location = TextEditingController(text: value?.location);
     _years = TextEditingController(text: value?.expectedLifeYears?.toString());
     _note = TextEditingController(text: value?.note);
+    _customIntervalValue = TextEditingController();
     _categoryId = value?.categoryId;
     _status = value?.status ?? 'active';
     _purchaseDate = value?.purchaseDate;
@@ -267,6 +275,7 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
     _location.dispose();
     _years.dispose();
     _note.dispose();
+    _customIntervalValue.dispose();
     super.dispose();
   }
 
@@ -496,6 +505,98 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
                 ),
                 const SizedBox(height: UiSpace.xs),
                 Text('可先略過，之後再補充。', style: UiType.body),
+                const SizedBox(height: UiSpace.md),
+                Text('自訂週期（選填）', style: UiType.cardTitle),
+                const SizedBox(height: UiSpace.xs),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        key: const ValueKey('custom-period-value'),
+                        controller: _customIntervalValue,
+                        enabled: !_saving,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: '每 N',
+                          hintText: '正整數',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: UiSpace.xs),
+                    Expanded(
+                      child:
+                          DropdownButtonFormField<ItemManagementIntervalUnit>(
+                            key: const ValueKey('custom-period-unit'),
+                            initialValue: _customIntervalUnit,
+                            isExpanded: true,
+                            decoration: const InputDecoration(labelText: '單位'),
+                            items: [
+                              for (final unit
+                                  in ItemManagementIntervalUnit.values)
+                                DropdownMenuItem(
+                                  value: unit,
+                                  child: Text(
+                                    itemManagementIntervalUnitLabel(unit),
+                                  ),
+                                ),
+                            ],
+                            onChanged: _saving
+                                ? null
+                                : (value) => setState(() {
+                                    if (value != null) {
+                                      _customIntervalUnit = value;
+                                      _customPeriodError = null;
+                                    }
+                                  }),
+                          ),
+                    ),
+                  ],
+                ),
+                if (_customPeriodError != null) ...[
+                  const SizedBox(height: UiSpace.xs),
+                  Text(
+                    _customPeriodError!,
+                    key: const ValueKey('custom-period-error'),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ],
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    key: const ValueKey('add-custom-period'),
+                    onPressed: _saving ? null : _addCustomPeriod,
+                    icon: const Icon(Icons.add_rounded),
+                    label: const Text('新增自訂週期'),
+                  ),
+                ),
+                for (
+                  var index = 0;
+                  index < _customManagementPeriods.length;
+                  index++
+                )
+                  ListTile(
+                    key: ValueKey('custom-period-$index'),
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      itemCustomManagementPeriodLabel(
+                        _customManagementPeriods[index],
+                      ),
+                    ),
+                    trailing: IconButton(
+                      key: ValueKey('remove-custom-period-$index'),
+                      tooltip: '刪除自訂週期',
+                      onPressed: _saving
+                          ? null
+                          : () => setState(() {
+                              _customManagementPeriods.removeAt(index);
+                              _customPeriodError = null;
+                            }),
+                      icon: const Icon(Icons.delete_outline_rounded),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -579,6 +680,11 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
 
   Future<void> _create() async {
     if (!_formKey.currentState!.validate() || _saving) return;
+    final duplicateError = _managementPeriodDuplicateError();
+    if (duplicateError != null) {
+      setState(() => _customPeriodError = duplicateError);
+      return;
+    }
     setState(() => _saving = true);
     final now = DateTime.now();
     final itemId = _newId('item');
@@ -594,6 +700,7 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
               : _categoryId,
           createdAt: now,
           managementPeriods: _managementPeriods,
+          customManagementPeriods: _customManagementPeriods,
         ),
       );
       if (!mounted) return;
@@ -620,6 +727,48 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  void _addCustomPeriod() {
+    final rawValue = _customIntervalValue.text.trim();
+    final intervalValue = int.tryParse(rawValue);
+    if (intervalValue == null || intervalValue <= 0) {
+      setState(() => _customPeriodError = 'N 必須是正整數。');
+      return;
+    }
+    try {
+      final period = ItemCustomManagementPeriod(
+        intervalValue: intervalValue,
+        intervalUnit: _customIntervalUnit,
+      );
+      setState(() {
+        _customManagementPeriods.add(period);
+        _customIntervalValue.clear();
+        _customPeriodError = null;
+      });
+    } on ArgumentError {
+      setState(() => _customPeriodError = '數值超出目前可安全支援的範圍。');
+    }
+  }
+
+  String? _managementPeriodDuplicateError() {
+    if (_customIntervalValue.text.trim().isNotEmpty) {
+      return '請先新增目前輸入的自訂週期，或清空欄位。';
+    }
+    final labels = <String, String>{};
+    for (final period in _managementPeriods) {
+      labels[itemManagementPeriodEquivalenceKey(period)] =
+          itemManagementPeriodLabel(period);
+    }
+    for (final period in _customManagementPeriods) {
+      final label = itemCustomManagementPeriodLabel(period);
+      final existing = labels[period.equivalenceKey];
+      if (existing != null) {
+        return '管理週期「$label」與「$existing」等價，請保留其中一筆。';
+      }
+      labels[period.equivalenceKey] = label;
+    }
+    return null;
   }
 }
 
@@ -649,8 +798,6 @@ class ItemCreationSuccessScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final periods = event.managementPeriods.toList()
-      ..sort((left, right) => left.index.compareTo(right.index));
     return Scaffold(
       appBar: AppBar(title: const Text('生活項目已建立')),
       body: SafeArea(
@@ -671,9 +818,10 @@ class ItemCreationSuccessScreen extends StatelessWidget {
             ),
             _CreationSummaryRow(
               label: '管理週期',
-              value: periods.isEmpty
-                  ? '尚未設定'
-                  : periods.map(_managementPeriodLabel).join('、'),
+              value: formatItemManagementPeriods(
+                fixed: event.managementPeriods,
+                custom: event.customManagementPeriods,
+              ),
             ),
             _CreationSummaryRow(
               label: '建立時間',
