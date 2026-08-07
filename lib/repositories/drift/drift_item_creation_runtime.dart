@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../../database/app_database.dart';
+import '../../models/item_custom_management_period.dart';
 import '../../models/item_lifecycle_event.dart';
 import '../../models/item_management_period.dart';
 import '../../models/item_system_category.dart';
@@ -33,6 +34,7 @@ class DriftItemCreationRuntime implements ItemCreationRuntime {
           'Item category $categoryId is not available.',
         );
       }
+      final periods = _normalizePeriods(request);
 
       final eventId = 'item-created-$itemId';
       await _database
@@ -53,13 +55,28 @@ class DriftItemCreationRuntime implements ItemCreationRuntime {
             ),
           );
 
-      for (final period in request.managementPeriods) {
+      for (final period in periods.fixed) {
         await _database
             .into(_database.itemManagementPeriods)
             .insert(
               ItemManagementPeriodsCompanion.insert(
                 itemId: itemId,
                 period: period.name,
+                createdAt: request.createdAt,
+              ),
+            );
+      }
+
+      for (final period in periods.custom) {
+        await _database
+            .into(_database.itemCustomManagementPeriods)
+            .insert(
+              ItemCustomManagementPeriodsCompanion.insert(
+                itemId: itemId,
+                intervalValue: period.intervalValue,
+                intervalUnit: period.intervalUnit.name,
+                canonicalFamily: period.canonicalFamily.name,
+                canonicalValue: period.canonicalValue,
                 createdAt: request.createdAt,
               ),
             );
@@ -82,13 +99,27 @@ class DriftItemCreationRuntime implements ItemCreationRuntime {
             ),
           );
 
-      for (final period in request.managementPeriods) {
+      for (final period in periods.fixed) {
         await _database
             .into(_database.itemLifecycleEventPeriods)
             .insert(
               ItemLifecycleEventPeriodsCompanion.insert(
                 eventId: eventId,
                 period: period.name,
+              ),
+            );
+      }
+
+      for (final period in periods.custom) {
+        await _database
+            .into(_database.itemLifecycleEventCustomPeriods)
+            .insert(
+              ItemLifecycleEventCustomPeriodsCompanion.insert(
+                eventId: eventId,
+                intervalValue: period.intervalValue,
+                intervalUnit: period.intervalUnit.name,
+                canonicalFamily: period.canonicalFamily.name,
+                canonicalValue: period.canonicalValue,
               ),
             );
       }
@@ -115,6 +146,24 @@ class DriftItemCreationRuntime implements ItemCreationRuntime {
   }
 
   @override
+  Future<Set<ItemCustomManagementPeriod>> listCustomManagementPeriods(
+    String itemId,
+  ) async {
+    final query = _database.select(_database.itemCustomManagementPeriods)
+      ..where((table) => table.itemId.equals(itemId));
+    return Set.unmodifiable(
+      (await query.get()).map(
+        (row) => ItemCustomManagementPeriod(
+          intervalValue: row.intervalValue,
+          intervalUnit: ItemManagementIntervalUnit.values.byName(
+            row.intervalUnit,
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
   Future<ItemLifecycleEvent?> findCreatedEvent(String itemId) async {
     final eventQuery = _database.select(_database.itemLifecycleEvents)
       ..where(
@@ -131,6 +180,19 @@ class DriftItemCreationRuntime implements ItemCreationRuntime {
     final periods = (await periodQuery.get())
         .map((period) => ItemManagementPeriod.values.byName(period.period))
         .toSet();
+    final customPeriodQuery = _database.select(
+      _database.itemLifecycleEventCustomPeriods,
+    )..where((table) => table.eventId.equals(row.id));
+    final customPeriods = (await customPeriodQuery.get())
+        .map(
+          (period) => ItemCustomManagementPeriod(
+            intervalValue: period.intervalValue,
+            intervalUnit: ItemManagementIntervalUnit.values.byName(
+              period.intervalUnit,
+            ),
+          ),
+        )
+        .toSet();
     return ItemLifecycleEvent(
       id: row.id,
       itemId: row.itemId,
@@ -143,8 +205,40 @@ class DriftItemCreationRuntime implements ItemCreationRuntime {
       occurredAt: row.occurredAt,
       createdAt: row.createdAt,
       managementPeriods: periods,
+      customManagementPeriods: customPeriods,
     );
   }
+}
+
+_NormalizedPeriods _normalizePeriods(ItemCreationRequest request) {
+  final fixed = <ItemManagementPeriod>{...request.managementPeriods};
+  final custom = <ItemCustomManagementPeriod>[];
+  final seen = <String>{
+    for (final period in fixed) itemManagementPeriodEquivalenceKey(period),
+  };
+
+  for (final period in request.customManagementPeriods) {
+    final key = period.equivalenceKey;
+    if (!seen.add(key)) {
+      throw RepositoryConstraintException(
+        'Equivalent management period is already selected: $key.',
+      );
+    }
+    final fixedPeriod = period.fixedPeriod;
+    if (fixedPeriod != null) {
+      fixed.add(fixedPeriod);
+    } else {
+      custom.add(period);
+    }
+  }
+  return _NormalizedPeriods(Set.unmodifiable(fixed), List.unmodifiable(custom));
+}
+
+class _NormalizedPeriods {
+  const _NormalizedPeriods(this.fixed, this.custom);
+
+  final Set<ItemManagementPeriod> fixed;
+  final List<ItemCustomManagementPeriod> custom;
 }
 
 String? _textOrNull(String? value) {

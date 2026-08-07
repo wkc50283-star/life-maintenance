@@ -21,9 +21,10 @@ class DriftDatabaseBackupService {
   }) : _snapshotWriter = snapshotWriter ?? _writeSqliteSnapshot,
        _backupPromoter = backupPromoter ?? _promoteAtomically;
 
-  static const int formatVersion = 4;
+  static const int formatVersion = 5;
+  static const int oldestRestorableFormatVersion = 4;
 
-  static const Set<String> requiredTables = <String>{
+  static const Set<String> schemaV4RequiredTables = <String>{
     'item_categories',
     'items',
     'item_management_periods',
@@ -40,6 +41,11 @@ class DriftDatabaseBackupService {
     'work_case_updates',
     'work_case_closures',
     'attachments',
+  };
+  static const Set<String> requiredTables = <String>{
+    ...schemaV4RequiredTables,
+    'item_custom_management_periods',
+    'item_lifecycle_event_custom_periods',
   };
 
   final SqliteSnapshotWriter _snapshotWriter;
@@ -118,11 +124,14 @@ class DriftDatabaseBackupService {
     final version = database
         .select('PRAGMA user_version')
         .single['user_version'];
-    if (version != formatVersion) {
+    if (version != formatVersion && version != oldestRestorableFormatVersion) {
       throw DatabaseBackupException(
         'Unsupported database backup version: $version.',
       );
     }
+    final requiredTablesForVersion = version == formatVersion
+        ? requiredTables
+        : schemaV4RequiredTables;
 
     final tables = database
         .select(
@@ -131,7 +140,7 @@ class DriftDatabaseBackupService {
         )
         .map((row) => row['name'] as String)
         .toSet();
-    final missingTables = requiredTables.difference(tables);
+    final missingTables = requiredTablesForVersion.difference(tables);
     if (missingTables.isNotEmpty) {
       throw DatabaseBackupException(
         'Database backup is missing required tables: '
@@ -158,7 +167,7 @@ class DriftDatabaseBackupService {
     }
 
     final rowCounts = <String, int>{};
-    for (final table in requiredTables) {
+    for (final table in requiredTablesForVersion) {
       rowCounts[table] =
           database
                   .select('SELECT COUNT(*) AS count FROM $table')

@@ -1,3 +1,4 @@
+import '../models/item_custom_management_period.dart';
 import '../models/item_management_period.dart';
 import '../models/item_lifecycle_event.dart';
 
@@ -7,6 +8,7 @@ class ItemCreationRequest {
     required this.name,
     required this.createdAt,
     required Iterable<ItemManagementPeriod> managementPeriods,
+    Iterable<ItemCustomManagementPeriod> customManagementPeriods = const [],
     this.categoryId,
     this.purchaseDate,
     this.warrantyEndDate,
@@ -15,6 +17,9 @@ class ItemCreationRequest {
     this.note,
   }) : managementPeriods = Set<ItemManagementPeriod>.unmodifiable(
          managementPeriods,
+       ),
+       customManagementPeriods = List<ItemCustomManagementPeriod>.unmodifiable(
+         customManagementPeriods,
        );
 
   final String itemId;
@@ -27,6 +32,7 @@ class ItemCreationRequest {
   final String? location;
   final String? note;
   final Set<ItemManagementPeriod> managementPeriods;
+  final List<ItemCustomManagementPeriod> customManagementPeriods;
 }
 
 class ItemCreationResult {
@@ -40,6 +46,10 @@ abstract interface class ItemCreationRuntime {
   Future<ItemCreationResult> create(ItemCreationRequest request);
 
   Future<Set<ItemManagementPeriod>> listManagementPeriods(String itemId);
+
+  Future<Set<ItemCustomManagementPeriod>> listCustomManagementPeriods(
+    String itemId,
+  );
 
   Future<ItemLifecycleEvent?> findCreatedEvent(String itemId);
 }

@@ -53,7 +53,7 @@ void main() {
     expect(items.single.id, 'item-existing');
     expect(items.single.name, '既有生活項目');
     final version = await reopened.customSelect('PRAGMA user_version').get();
-    expect(version.single.read<int>('user_version'), 4);
+    expect(version.single.read<int>('user_version'), 5);
   });
 }
 
