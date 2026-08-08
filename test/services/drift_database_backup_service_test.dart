@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_maintenance/database/app_database.dart';
@@ -29,7 +29,7 @@ void main() {
     }
   });
 
-  test('creates and validates a complete schema v6 SQLite backup', () async {
+  test('creates and validates a complete schema v7 SQLite backup', () async {
     final service = DriftDatabaseBackupService();
 
     final validation = await service.createBackup(
@@ -37,7 +37,7 @@ void main() {
       destination: backup,
     );
 
-    expect(validation.formatVersion, 6);
+    expect(validation.formatVersion, 7);
     expect(validation.rowCounts['items'], 1);
     expect(validation.rowCounts['item_management_periods'], 1);
     expect(validation.rowCounts['item_lifecycle_events'], 1);
@@ -54,11 +54,13 @@ void main() {
           .rowCounts['item_management_period_change_event_custom_periods'],
       2,
     );
+    expect(validation.rowCounts['future_matters'], 3);
+    expect(validation.rowCounts['future_matter_created_events'], 3);
     expect(await _itemNames(backup), ['來源資料']);
     expect(await File('${backup.path}.restore-staging').exists(), isFalse);
   });
 
-  test('restores a schema v4 backup that migrates cleanly to v6', () async {
+  test('restores a schema v4 backup that migrates cleanly to v7', () async {
     await _downgradeToSchemaV4(source);
     final service = DriftDatabaseBackupService();
 
@@ -75,7 +77,7 @@ void main() {
     final migrated = AppDatabase(NativeDatabase(destination));
     addTearDown(migrated.close);
     await migrated.customSelect('SELECT 1').get();
-    expect(migrated.schemaVersion, 6);
+    expect(migrated.schemaVersion, 7);
     expect(await migrated.select(migrated.items).get(), hasLength(1));
     expect(
       await migrated.select(migrated.itemCustomManagementPeriods).get(),
@@ -87,7 +89,7 @@ void main() {
     );
   });
 
-  test('restores a schema v5 backup that migrates cleanly to v6', () async {
+  test('restores a schema v5 backup that migrates cleanly to v7', () async {
     await _downgradeToSchemaV5(source);
     final service = DriftDatabaseBackupService();
 
@@ -104,7 +106,7 @@ void main() {
     final migrated = AppDatabase(NativeDatabase(destination));
     addTearDown(migrated.close);
     await migrated.customSelect('SELECT 1').get();
-    expect(migrated.schemaVersion, 6);
+    expect(migrated.schemaVersion, 7);
     expect(await migrated.select(migrated.items).get(), hasLength(1));
     expect(
       await migrated.select(migrated.itemCustomManagementPeriods).get(),
@@ -115,6 +117,126 @@ void main() {
       isEmpty,
     );
   });
+
+  test('restores a schema v6 backup that migrates cleanly to v7', () async {
+    await _downgradeToSchemaV6(source);
+    final service = DriftDatabaseBackupService();
+
+    final validation = await service.restore(
+      backup: source,
+      destination: destination,
+    );
+    expect(validation.formatVersion, 6);
+    expect(validation.rowCounts, isNot(contains('future_matters')));
+
+    final migrated = AppDatabase(NativeDatabase(destination));
+    addTearDown(migrated.close);
+    await migrated.customSelect('SELECT 1').get();
+    expect(migrated.schemaVersion, 7);
+    expect(await migrated.select(migrated.items).get(), hasLength(1));
+    expect(await migrated.select(migrated.futureMatters).get(), isEmpty);
+    expect(
+      await migrated.select(migrated.futureMatterCreatedEvents).get(),
+      isEmpty,
+    );
+  });
+
+  test(
+    'schema v7 restore preserves FutureMatter values and constraints',
+    () async {
+      final service = DriftDatabaseBackupService();
+      await service.createBackup(source: source, destination: backup);
+      await service.restore(backup: backup, destination: destination);
+
+      final restored = AppDatabase(NativeDatabase(destination));
+      await restored.customSelect('SELECT 1').get();
+      final matters = await restored.select(restored.futureMatters).get();
+      final events = await restored
+          .select(restored.futureMatterCreatedEvents)
+          .get();
+      await restored.close();
+
+      final specified = matters.singleWhere(
+        (row) => row.id == 'future-specified-source-item',
+      );
+      expect(specified.specifiedDate, '2026-02-28');
+      expect(specified.specifiedMinuteOfDay, isNull);
+      final recurring = matters.singleWhere(
+        (row) => row.id == 'future-recurring-source-item',
+      );
+      expect(recurring.recurringAnchorDate, '2028-02-29');
+      expect(recurring.recurringAnchorMinuteOfDay, 0);
+      final condition = matters.singleWhere(
+        (row) => row.id == 'future-condition-source-item',
+      );
+      expect(
+        condition.conditionMaintenanceRecordId,
+        'maintenance-record-source-item',
+      );
+
+      final specifiedEvent = events.singleWhere(
+        (row) => row.futureMatterId == 'future-specified-source-item',
+      );
+      expect(specifiedEvent.specifiedDateSnapshot, '2026-02-28');
+      expect(specifiedEvent.specifiedMinuteOfDaySnapshot, isNull);
+      final recurringEvent = events.singleWhere(
+        (row) => row.futureMatterId == 'future-recurring-source-item',
+      );
+      expect(recurringEvent.recurringAnchorDateSnapshot, '2028-02-29');
+      expect(recurringEvent.recurringAnchorMinuteOfDaySnapshot, 0);
+      final conditionEvent = events.singleWhere(
+        (row) => row.futureMatterId == 'future-condition-source-item',
+      );
+      expect(
+        conditionEvent.conditionMaintenanceRecordIdSnapshot,
+        'maintenance-record-source-item',
+      );
+
+      final raw = sqlite3.open(destination.path);
+      try {
+        final indexes = raw
+            .select('''
+            SELECT name FROM sqlite_schema
+            WHERE type = 'index' AND name IN (
+              'future_matters_item_idx',
+              'future_matters_timing_mode_idx',
+              'future_matter_created_events_matter_unique_idx',
+              'future_matter_created_events_item_idx'
+            )
+          ''')
+            .map((row) => row['name'])
+            .toSet();
+        expect(indexes, hasLength(4));
+        expect(
+          () => raw.execute(
+            "UPDATE future_matter_created_events SET title_snapshot = '改寫' "
+            "WHERE id = 'future-created-specified-source-item'",
+          ),
+          throwsA(isA<SqliteException>()),
+        );
+        expect(
+          () => raw.execute(
+            "DELETE FROM future_matter_created_events "
+            "WHERE id = 'future-created-specified-source-item'",
+          ),
+          throwsA(isA<SqliteException>()),
+        );
+        expect(
+          () => raw.execute('''
+          INSERT INTO future_matters (
+            id, title, timing_mode, specified_date, created_at, updated_at
+          ) VALUES (
+            'invalid-restored-date', '非法日期', 'specifiedDate',
+            '2026-02-29', 0, 0
+          )
+        '''),
+          throwsA(isA<SqliteException>()),
+        );
+      } finally {
+        raw.close();
+      }
+    },
+  );
 
   test(
     'rejects invalid format and unsupported versions before restore',
@@ -402,11 +524,119 @@ Future<void> _writeDatabase(
           ),
         );
   }
+  await database
+      .into(database.maintenanceRecords)
+      .insert(
+        MaintenanceRecordsCompanion.insert(
+          id: 'maintenance-record-$itemId',
+          itemId: itemId,
+          recordType: 'other',
+          date: now,
+          title: '正式完成來源',
+          createdAt: now,
+        ),
+      );
+  await database
+      .into(database.futureMatters)
+      .insert(
+        FutureMattersCompanion.insert(
+          id: 'future-specified-$itemId',
+          title: '指定日期事項',
+          itemId: Value(itemId),
+          timingMode: 'specifiedDate',
+          specifiedDate: const Value('2026-02-28'),
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+  await database
+      .into(database.futureMatterCreatedEvents)
+      .insert(
+        FutureMatterCreatedEventsCompanion.insert(
+          id: 'future-created-specified-$itemId',
+          futureMatterId: 'future-specified-$itemId',
+          titleSnapshot: '指定日期事項',
+          itemIdSnapshot: Value(itemId),
+          timingModeSnapshot: 'specifiedDate',
+          specifiedDateSnapshot: const Value('2026-02-28'),
+          occurredAt: now,
+          createdAt: now,
+        ),
+      );
+  await database
+      .into(database.futureMatters)
+      .insert(
+        FutureMattersCompanion.insert(
+          id: 'future-recurring-$itemId',
+          title: '固定重複事項',
+          itemId: Value(itemId),
+          timingMode: 'recurring',
+          recurringIntervalValue: const Value(2),
+          recurringIntervalUnit: const Value('month'),
+          recurringAnchorDate: const Value('2028-02-29'),
+          recurringAnchorMinuteOfDay: const Value(0),
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+  await database
+      .into(database.futureMatterCreatedEvents)
+      .insert(
+        FutureMatterCreatedEventsCompanion.insert(
+          id: 'future-created-recurring-$itemId',
+          futureMatterId: 'future-recurring-$itemId',
+          titleSnapshot: '固定重複事項',
+          itemIdSnapshot: Value(itemId),
+          timingModeSnapshot: 'recurring',
+          recurringIntervalValueSnapshot: const Value(2),
+          recurringIntervalUnitSnapshot: const Value('month'),
+          recurringAnchorDateSnapshot: const Value('2028-02-29'),
+          recurringAnchorMinuteOfDaySnapshot: const Value(0),
+          occurredAt: now,
+          createdAt: now,
+        ),
+      );
+  await database
+      .into(database.futureMatters)
+      .insert(
+        FutureMattersCompanion.insert(
+          id: 'future-condition-$itemId',
+          title: '完成後事項',
+          itemId: Value(itemId),
+          timingMode: 'condition',
+          conditionType: const Value('afterFormalCompletion'),
+          conditionMaintenanceRecordId: Value('maintenance-record-$itemId'),
+          conditionDelayValue: const Value(1),
+          conditionDelayUnit: const Value('day'),
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+  await database
+      .into(database.futureMatterCreatedEvents)
+      .insert(
+        FutureMatterCreatedEventsCompanion.insert(
+          id: 'future-created-condition-$itemId',
+          futureMatterId: 'future-condition-$itemId',
+          titleSnapshot: '完成後事項',
+          itemIdSnapshot: Value(itemId),
+          timingModeSnapshot: 'condition',
+          conditionTypeSnapshot: const Value('afterFormalCompletion'),
+          conditionMaintenanceRecordIdSnapshot: Value(
+            'maintenance-record-$itemId',
+          ),
+          conditionDelayValueSnapshot: const Value(1),
+          conditionDelayUnitSnapshot: const Value('day'),
+          occurredAt: now,
+          createdAt: now,
+        ),
+      );
   await database.close();
 }
 
 Future<void> _downgradeToSchemaV4(File file) async {
   final raw = sqlite3.open(file.path);
+  _dropSchemaV7(raw);
   _dropSchemaV6(raw);
   raw.execute('DROP TRIGGER item_management_periods_no_custom_equivalent');
   raw.execute('DROP TRIGGER item_lifecycle_event_periods_no_custom_equivalent');
@@ -418,9 +648,22 @@ Future<void> _downgradeToSchemaV4(File file) async {
 
 Future<void> _downgradeToSchemaV5(File file) async {
   final raw = sqlite3.open(file.path);
+  _dropSchemaV7(raw);
   _dropSchemaV6(raw);
   raw.execute('PRAGMA user_version = 5');
   raw.close();
+}
+
+Future<void> _downgradeToSchemaV6(File file) async {
+  final raw = sqlite3.open(file.path);
+  _dropSchemaV7(raw);
+  raw.execute('PRAGMA user_version = 6');
+  raw.close();
+}
+
+void _dropSchemaV7(Database database) {
+  database.execute('DROP TABLE future_matter_created_events');
+  database.execute('DROP TABLE future_matters');
 }
 
 void _dropSchemaV6(Database database) {

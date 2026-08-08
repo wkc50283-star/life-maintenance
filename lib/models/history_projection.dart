@@ -1,4 +1,5 @@
 import 'attachment.dart';
+import 'future_matter.dart';
 import 'item_lifecycle_event.dart';
 import 'item_management_period_change_event.dart';
 import 'maintenance_record.dart';
@@ -21,6 +22,7 @@ class HistoryProjection {
     List<ItemManagementPeriodChangeHistoryEntry>
         itemManagementPeriodChangeEntries =
         const [],
+    List<FutureMatterCreatedHistoryEntry> futureMatterCreatedEntries = const [],
   }) : entries = List<HistoryEntry>.unmodifiable(entries),
        itemAttachments = List<Attachment>.unmodifiable(itemAttachments),
        itemCreatedEntries = List<ItemCreatedHistoryEntry>.unmodifiable(
@@ -29,6 +31,10 @@ class HistoryProjection {
        itemManagementPeriodChangeEntries =
            List<ItemManagementPeriodChangeHistoryEntry>.unmodifiable(
              itemManagementPeriodChangeEntries,
+           ),
+       futureMatterCreatedEntries =
+           List<FutureMatterCreatedHistoryEntry>.unmodifiable(
+             futureMatterCreatedEntries,
            );
 
   final String itemId;
@@ -37,6 +43,16 @@ class HistoryProjection {
   final List<ItemCreatedHistoryEntry> itemCreatedEntries;
   final List<ItemManagementPeriodChangeHistoryEntry>
   itemManagementPeriodChangeEntries;
+  final List<FutureMatterCreatedHistoryEntry> futureMatterCreatedEntries;
+}
+
+class FutureMatterCreatedHistoryEntry {
+  const FutureMatterCreatedHistoryEntry(this.event);
+
+  final FutureMatterCreatedEvent event;
+
+  DateTime get occurredAt => event.occurredAt;
+  String get sourceId => event.id;
 }
 
 class ItemCreatedHistoryEntry {

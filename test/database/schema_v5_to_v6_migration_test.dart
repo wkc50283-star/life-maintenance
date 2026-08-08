@@ -64,7 +64,7 @@ void main() {
       addTearDown(database.close);
       await database.customSelect('SELECT 1').get();
 
-      expect(database.schemaVersion, 6);
+      expect(database.schemaVersion, 7);
       expect(
         (await database.select(database.itemManagementPeriods).get())
             .single

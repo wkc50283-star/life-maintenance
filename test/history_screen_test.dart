@@ -230,6 +230,10 @@ class _StaticHistoryRepository implements HistoryProjectionRepository {
         entries: const [],
         itemAttachments: const [],
       );
+
+  @override
+  Future<List<FutureMatterCreatedHistoryEntry>>
+  projectGlobalFutureMatterCreatedEntries() async => const [];
 }
 
 class _RetryHistoryRepository implements HistoryProjectionRepository {
@@ -246,4 +250,8 @@ class _RetryHistoryRepository implements HistoryProjectionRepository {
     }
     return projection;
   }
+
+  @override
+  Future<List<FutureMatterCreatedHistoryEntry>>
+  projectGlobalFutureMatterCreatedEntries() async => const [];
 }
