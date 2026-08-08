@@ -6,7 +6,6 @@ import '../models/attachment.dart';
 import '../models/enums.dart';
 import '../models/history_projection.dart';
 import '../models/item.dart';
-import '../models/item_management_period.dart';
 import '../models/maintenance_plan.dart';
 import '../models/maintenance_plan_enums.dart';
 import '../models/milestone.dart';
@@ -18,6 +17,7 @@ import '../models/work_case_enums.dart';
 import '../models/work_case_update.dart';
 import '../widgets/ui_v2_components.dart';
 import 'formal_planning_screens.dart';
+import 'item_management_period_formatter.dart';
 import 'task_reminder_screens.dart';
 import 'work_case_screens.dart';
 
@@ -1051,23 +1051,12 @@ String _historyDetail(HistoryEntry entry) => switch (entry) {
 };
 
 String _itemCreatedHistoryDetail(ItemCreatedHistoryEntry entry) {
-  final periods = entry.event.managementPeriods.toList()
-    ..sort((left, right) => left.index.compareTo(right.index));
-  final periodLabel = periods.isEmpty
-      ? '尚未設定'
-      : periods.map(_itemManagementPeriodLabel).join('、');
+  final periodLabel = formatItemManagementPeriods(
+    fixed: entry.event.managementPeriods,
+    custom: entry.event.customManagementPeriods,
+  );
   return '分類：${entry.event.categoryDisplayNameSnapshot} · 管理週期：$periodLabel';
 }
-
-String _itemManagementPeriodLabel(ItemManagementPeriod value) =>
-    switch (value) {
-      ItemManagementPeriod.year => '年',
-      ItemManagementPeriod.halfYear => '半年',
-      ItemManagementPeriod.quarter => '季',
-      ItemManagementPeriod.month => '月',
-      ItemManagementPeriod.week => '週',
-      ItemManagementPeriod.day => '日',
-    };
 
 String _attachmentName(Attachment attachment) =>
     _nullableText(attachment.originalFileName) ?? '未命名附件';

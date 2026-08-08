@@ -5,7 +5,6 @@ import '../app/ui_tokens.dart';
 import '../models/enums.dart';
 import '../models/history_projection.dart';
 import '../models/item.dart';
-import '../models/item_management_period.dart';
 import '../models/maintenance_record.dart';
 import '../models/milestone_enums.dart';
 import '../models/work_case_enums.dart';
@@ -17,6 +16,7 @@ import '../widgets/history_month_section.dart';
 import '../widgets/history_record_card.dart';
 import '../widgets/maintenance_record_detail_sheet.dart';
 import '../widgets/ui_v2_components.dart';
+import 'item_management_period_formatter.dart';
 import 'work_case_screens.dart';
 
 class HistoryScreen extends StatefulWidget {
@@ -238,8 +238,6 @@ List<_HistoryMonthSection> _historySectionsFrom(
 }
 
 _HistoryEntryData _historyEntryForItemCreated(ItemCreatedHistoryEntry entry) {
-  final periods = entry.event.managementPeriods.toList()
-    ..sort((left, right) => left.index.compareTo(right.index));
   return _HistoryEntryData(
     date: _formatShortDate(entry.occurredAt),
     title: '建立生活項目',
@@ -247,7 +245,7 @@ _HistoryEntryData _historyEntryForItemCreated(ItemCreatedHistoryEntry entry) {
     recordType: '生活項目履歷',
     description: '分類：${entry.event.categoryDisplayNameSnapshot}',
     detailLines: [
-      '管理週期：${periods.isEmpty ? '尚未設定' : periods.map(_itemManagementPeriodLabel).join('、')}',
+      '管理週期：${formatItemManagementPeriods(fixed: entry.event.managementPeriods, custom: entry.event.customManagementPeriods)}',
     ],
     result: '已建立',
     costLabel: null,
@@ -255,16 +253,6 @@ _HistoryEntryData _historyEntryForItemCreated(ItemCreatedHistoryEntry entry) {
     icon: Icons.inventory_2_outlined,
   );
 }
-
-String _itemManagementPeriodLabel(ItemManagementPeriod value) =>
-    switch (value) {
-      ItemManagementPeriod.year => '年',
-      ItemManagementPeriod.halfYear => '半年',
-      ItemManagementPeriod.quarter => '季',
-      ItemManagementPeriod.month => '月',
-      ItemManagementPeriod.week => '週',
-      ItemManagementPeriod.day => '日',
-    };
 
 _HistoryEntryData _historyEntryForProjection(
   HistoryEntry entry,
