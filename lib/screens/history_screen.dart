@@ -217,6 +217,8 @@ List<_HistoryMonthSection> _historySectionsFrom(
         (occurredAt: entry.occurredAt, entry: entry),
       for (final entry in projection.itemCreatedEntries)
         (occurredAt: entry.occurredAt, entry: entry),
+      for (final entry in projection.itemManagementPeriodChangeEntries)
+        (occurredAt: entry.occurredAt, entry: entry),
     ],
   ]..sort((a, b) => b.occurredAt.compareTo(a.occurredAt));
 
@@ -224,17 +226,44 @@ List<_HistoryMonthSection> _historySectionsFrom(
     final entry = wrapped.entry;
     final month = '${wrapped.occurredAt.year} 年 ${wrapped.occurredAt.month} 月';
     groupedRecords.putIfAbsent(month, () => []);
-    groupedRecords[month]!.add(
-      entry is ItemCreatedHistoryEntry
-          ? _historyEntryForItemCreated(entry)
-          : _historyEntryForProjection(entry as HistoryEntry, items),
-    );
+    groupedRecords[month]!.add(switch (entry) {
+      ItemCreatedHistoryEntry() => _historyEntryForItemCreated(entry),
+      ItemManagementPeriodChangeHistoryEntry() =>
+        _historyEntryForManagementPeriodChange(entry, items),
+      _ => _historyEntryForProjection(entry as HistoryEntry, items),
+    });
   }
 
   return [
     for (final entry in groupedRecords.entries)
       _HistoryMonthSection(month: entry.key, records: entry.value),
   ];
+}
+
+_HistoryEntryData _historyEntryForManagementPeriodChange(
+  ItemManagementPeriodChangeHistoryEntry entry,
+  List<Item> items,
+) {
+  final before = formatItemManagementPeriods(
+    fixed: entry.event.before.fixed,
+    custom: entry.event.before.custom,
+  );
+  final after = formatItemManagementPeriods(
+    fixed: entry.event.after.fixed,
+    custom: entry.event.after.custom,
+  );
+  return _HistoryEntryData(
+    date: _formatShortDate(entry.occurredAt),
+    title: '管理週期',
+    itemName: _itemName(entry.event.itemId, items),
+    recordType: '生活項目履歷',
+    description: '變更前：$before',
+    detailLines: ['變更後：$after'],
+    result: '已更新',
+    costLabel: null,
+    photoLabel: null,
+    icon: Icons.event_repeat_outlined,
+  );
 }
 
 _HistoryEntryData _historyEntryForItemCreated(ItemCreatedHistoryEntry entry) {

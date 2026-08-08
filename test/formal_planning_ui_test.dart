@@ -16,6 +16,7 @@ import 'package:life_maintenance/screens/add_screen.dart';
 import 'package:life_maintenance/screens/formal_planning_screens.dart';
 import 'package:life_maintenance/screens/item_detail_screen.dart';
 import 'package:life_maintenance/screens/work_case_screens.dart';
+import 'package:life_maintenance/widgets/ui_v2_components.dart';
 
 void main() {
   late AppDatabase database;
@@ -447,12 +448,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.scrollUntilVisible(
-      find.text('管理').first,
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.tap(find.text('管理').first);
+    await _openItemDetailManagement(tester, '保養項目');
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('add-entry')));
     await tester.pumpAndSettle();
@@ -466,12 +462,7 @@ void main() {
     expect(find.byType(ItemDetailScreen), findsOneWidget);
     expect(find.text('清洗濾網'), findsOneWidget);
 
-    await tester.scrollUntilVisible(
-      find.text('管理').first,
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.tap(find.text('管理').first);
+    await _openItemDetailManagement(tester, '保養項目');
     await tester.pumpAndSettle();
     await tester.tap(find.text('清洗濾網'));
     await tester.pumpAndSettle();
@@ -601,12 +592,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.scrollUntilVisible(
-      find.text('管理').at(1),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.tap(find.text('管理').at(1));
+    await _openItemDetailManagement(tester, '一般提醒');
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('add-entry')));
     await tester.pumpAndSettle();
@@ -628,12 +614,7 @@ void main() {
     );
     expect(find.text('保固到期'), findsWidgets);
 
-    await tester.scrollUntilVisible(
-      find.text('管理').at(1),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.tap(find.text('管理').at(1));
+    await _openItemDetailManagement(tester, '一般提醒');
     await tester.pumpAndSettle();
     await tester.tap(find.text('保固到期').first);
     await tester.pumpAndSettle();
@@ -764,12 +745,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.scrollUntilVisible(
-        find.text('管理').at(3),
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.tap(find.text('管理').at(3));
+      await _openItemDetailManagement(tester, '階段性重點／大修');
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('add-entry')));
       await tester.pumpAndSettle();
@@ -787,12 +763,7 @@ void main() {
       expect(find.byType(ItemDetailScreen), findsOneWidget);
       expect(find.text('評估汰換冷氣'), findsOneWidget);
 
-      await tester.scrollUntilVisible(
-        find.text('管理').at(3),
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.tap(find.text('管理').at(3));
+      await _openItemDetailManagement(tester, '階段性重點／大修');
       await tester.pumpAndSettle();
       await tester.tap(find.text('評估汰換冷氣'));
       await tester.pumpAndSettle();
@@ -1298,12 +1269,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('尚未建立排程'), findsOneWidget);
 
-    await tester.scrollUntilVisible(
-      find.text('管理').at(2),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.tap(find.text('管理').at(2));
+    await _openItemDetailManagement(tester, '提醒與排程');
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('add-entry')));
     await tester.pumpAndSettle();
@@ -1318,6 +1284,22 @@ void main() {
     expect(find.textContaining('下次'), findsWidgets);
     expect(await root.taskRepository.loadTasks(), isEmpty);
   });
+}
+
+Future<void> _openItemDetailManagement(
+  WidgetTester tester,
+  String sectionTitle,
+) async {
+  final title = find.text(sectionTitle).last;
+  await tester.scrollUntilVisible(
+    title,
+    200,
+    scrollable: find.byType(Scrollable).first,
+  );
+  final section = find
+      .ancestor(of: title, matching: find.byType(UiSurfaceCard))
+      .first;
+  await tester.tap(find.descendant(of: section, matching: find.text('管理')));
 }
 
 Future<void> _selectMilestoneDate(WidgetTester tester) async {
