@@ -21,7 +21,7 @@ class DriftDatabaseBackupService {
   }) : _snapshotWriter = snapshotWriter ?? _writeSqliteSnapshot,
        _backupPromoter = backupPromoter ?? _promoteAtomically;
 
-  static const int formatVersion = 5;
+  static const int formatVersion = 6;
   static const int oldestRestorableFormatVersion = 4;
 
   static const Set<String> schemaV4RequiredTables = <String>{
@@ -42,10 +42,16 @@ class DriftDatabaseBackupService {
     'work_case_closures',
     'attachments',
   };
-  static const Set<String> requiredTables = <String>{
+  static const Set<String> schemaV5RequiredTables = <String>{
     ...schemaV4RequiredTables,
     'item_custom_management_periods',
     'item_lifecycle_event_custom_periods',
+  };
+  static const Set<String> requiredTables = <String>{
+    ...schemaV5RequiredTables,
+    'item_management_period_change_events',
+    'item_management_period_change_event_periods',
+    'item_management_period_change_event_custom_periods',
   };
 
   final SqliteSnapshotWriter _snapshotWriter;
@@ -124,14 +130,17 @@ class DriftDatabaseBackupService {
     final version = database
         .select('PRAGMA user_version')
         .single['user_version'];
-    if (version != formatVersion && version != oldestRestorableFormatVersion) {
+    if (version != formatVersion && version != 5 && version != 4) {
       throw DatabaseBackupException(
         'Unsupported database backup version: $version.',
       );
     }
-    final requiredTablesForVersion = version == formatVersion
-        ? requiredTables
-        : schemaV4RequiredTables;
+    final requiredTablesForVersion = switch (version) {
+      6 => requiredTables,
+      5 => schemaV5RequiredTables,
+      4 => schemaV4RequiredTables,
+      _ => throw StateError('Unsupported validated database version.'),
+    };
 
     final tables = database
         .select(

@@ -6,6 +6,7 @@ import '../../models/history_projection.dart';
 import '../../models/item_custom_management_period.dart';
 import '../../models/item_lifecycle_event.dart';
 import '../../models/item_management_period.dart';
+import '../../models/item_management_period_change_event.dart';
 import '../../models/maintenance_record.dart';
 import '../../models/milestone.dart';
 import '../../models/milestone_enums.dart';
@@ -32,6 +33,8 @@ class DriftHistoryProjectionRepository implements HistoryProjectionRepository {
   Future<HistoryProjection> projectForItem(String itemId) async {
     await _requireItem(itemId);
     final itemCreatedEntries = await _itemCreatedEntries(itemId);
+    final itemManagementPeriodChangeEntries =
+        await _itemManagementPeriodChangeEntries(itemId);
     final entries = <HistoryEntry>[];
     final consumedTaskIds = <String>{};
     final consumedMilestoneIds = <String>{};
@@ -159,6 +162,7 @@ class DriftHistoryProjectionRepository implements HistoryProjectionRepository {
       itemId: itemId,
       entries: entries,
       itemCreatedEntries: itemCreatedEntries,
+      itemManagementPeriodChangeEntries: itemManagementPeriodChangeEntries,
       itemAttachments: await _attachments.listForOwner(
         AttachmentOwnerType.item,
         itemId,
@@ -216,6 +220,63 @@ class DriftHistoryProjectionRepository implements HistoryProjectionRepository {
       );
     }
     return entries;
+  }
+
+  Future<List<ItemManagementPeriodChangeHistoryEntry>>
+  _itemManagementPeriodChangeEntries(String itemId) async {
+    final query = _database.select(_database.itemManagementPeriodChangeEvents)
+      ..where((table) => table.itemId.equals(itemId))
+      ..orderBy([
+        (table) => OrderingTerm.asc(table.occurredAt),
+        (table) => OrderingTerm.asc(table.id),
+      ]);
+    final entries = <ItemManagementPeriodChangeHistoryEntry>[];
+    for (final row in await query.get()) {
+      entries.add(
+        ItemManagementPeriodChangeHistoryEntry(
+          ItemManagementPeriodChangeEvent(
+            id: row.id,
+            itemId: row.itemId,
+            occurredAt: row.occurredAt,
+            createdAt: row.createdAt,
+            before: await _managementPeriodChangeSnapshot(row.id, 'before'),
+            after: await _managementPeriodChangeSnapshot(row.id, 'after'),
+          ),
+        ),
+      );
+    }
+    return entries;
+  }
+
+  Future<ItemManagementPeriodSnapshot> _managementPeriodChangeSnapshot(
+    String eventId,
+    String side,
+  ) async {
+    final fixedQuery =
+        _database.select(_database.itemManagementPeriodChangeEventPeriods)
+          ..where(
+            (table) =>
+                table.eventId.equals(eventId) & table.snapshotSide.equals(side),
+          );
+    final customQuery =
+        _database.select(_database.itemManagementPeriodChangeEventCustomPeriods)
+          ..where(
+            (table) =>
+                table.eventId.equals(eventId) & table.snapshotSide.equals(side),
+          );
+    return ItemManagementPeriodSnapshot(
+      fixed: (await fixedQuery.get()).map(
+        (row) => ItemManagementPeriod.values.byName(row.period),
+      ),
+      custom: (await customQuery.get()).map(
+        (row) => ItemCustomManagementPeriod(
+          intervalValue: row.intervalValue,
+          intervalUnit: ItemManagementIntervalUnit.values.byName(
+            row.intervalUnit,
+          ),
+        ),
+      ),
+    );
   }
 
   Future<List<HistoryTaskSnapshot>> _relatedTasks(WorkCase workCase) async {

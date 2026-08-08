@@ -10,6 +10,7 @@ import 'package:life_maintenance/repositories/history_projection_repository.dart
 import 'package:life_maintenance/repositories/item_local_repository.dart';
 import 'package:life_maintenance/repositories/item_read_repository.dart';
 import 'package:life_maintenance/repositories/item_creation_runtime.dart';
+import 'package:life_maintenance/repositories/item_management_period_runtime.dart';
 import 'package:life_maintenance/repositories/maintenance_record_local_repository.dart';
 import 'package:life_maintenance/repositories/maintenance_record_repository.dart';
 import 'package:life_maintenance/repositories/schedule_local_repository.dart';
@@ -41,6 +42,8 @@ class TestRuntimeDependencies implements AppRuntimeDependencies {
   late final ItemReadRepository itemReadRepository;
   @override
   ItemCreationRuntime? get itemCreationRuntime => null;
+  @override
+  ItemManagementPeriodRuntime? get itemManagementPeriodRuntime => null;
   @override
   late final MaintenanceRecordRepository maintenanceRecordRepository;
   @override
