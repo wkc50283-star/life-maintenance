@@ -5,4 +5,6 @@ abstract interface class HistoryProjectionRepository {
   Future<HistoryProjection> projectForItem(String itemId);
   Future<List<FutureMatterCreatedHistoryEntry>>
   projectGlobalFutureMatterCreatedEntries();
+  Future<List<FutureMatterChangeHistoryEntry>>
+  projectGlobalFutureMatterChangeEntries();
 }

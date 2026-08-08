@@ -29,7 +29,7 @@ void main() {
     }
   });
 
-  test('creates and validates a complete schema v7 SQLite backup', () async {
+  test('creates and validates a complete schema v8 SQLite backup', () async {
     final service = DriftDatabaseBackupService();
 
     final validation = await service.createBackup(
@@ -37,7 +37,7 @@ void main() {
       destination: backup,
     );
 
-    expect(validation.formatVersion, 7);
+    expect(validation.formatVersion, 8);
     expect(validation.rowCounts['items'], 1);
     expect(validation.rowCounts['item_management_periods'], 1);
     expect(validation.rowCounts['item_lifecycle_events'], 1);
@@ -56,11 +56,13 @@ void main() {
     );
     expect(validation.rowCounts['future_matters'], 3);
     expect(validation.rowCounts['future_matter_created_events'], 3);
+    expect(validation.rowCounts['future_matter_change_events'], 1);
+    expect(validation.rowCounts['future_matter_change_event_snapshots'], 2);
     expect(await _itemNames(backup), ['來源資料']);
     expect(await File('${backup.path}.restore-staging').exists(), isFalse);
   });
 
-  test('restores a schema v4 backup that migrates cleanly to v7', () async {
+  test('restores a schema v4 backup that migrates cleanly to v8', () async {
     await _downgradeToSchemaV4(source);
     final service = DriftDatabaseBackupService();
 
@@ -77,7 +79,7 @@ void main() {
     final migrated = AppDatabase(NativeDatabase(destination));
     addTearDown(migrated.close);
     await migrated.customSelect('SELECT 1').get();
-    expect(migrated.schemaVersion, 7);
+    expect(migrated.schemaVersion, 8);
     expect(await migrated.select(migrated.items).get(), hasLength(1));
     expect(
       await migrated.select(migrated.itemCustomManagementPeriods).get(),
@@ -89,7 +91,7 @@ void main() {
     );
   });
 
-  test('restores a schema v5 backup that migrates cleanly to v7', () async {
+  test('restores a schema v5 backup that migrates cleanly to v8', () async {
     await _downgradeToSchemaV5(source);
     final service = DriftDatabaseBackupService();
 
@@ -106,7 +108,7 @@ void main() {
     final migrated = AppDatabase(NativeDatabase(destination));
     addTearDown(migrated.close);
     await migrated.customSelect('SELECT 1').get();
-    expect(migrated.schemaVersion, 7);
+    expect(migrated.schemaVersion, 8);
     expect(await migrated.select(migrated.items).get(), hasLength(1));
     expect(
       await migrated.select(migrated.itemCustomManagementPeriods).get(),
@@ -118,7 +120,7 @@ void main() {
     );
   });
 
-  test('restores a schema v6 backup that migrates cleanly to v7', () async {
+  test('restores a schema v6 backup that migrates cleanly to v8', () async {
     await _downgradeToSchemaV6(source);
     final service = DriftDatabaseBackupService();
 
@@ -132,7 +134,7 @@ void main() {
     final migrated = AppDatabase(NativeDatabase(destination));
     addTearDown(migrated.close);
     await migrated.customSelect('SELECT 1').get();
-    expect(migrated.schemaVersion, 7);
+    expect(migrated.schemaVersion, 8);
     expect(await migrated.select(migrated.items).get(), hasLength(1));
     expect(await migrated.select(migrated.futureMatters).get(), isEmpty);
     expect(
@@ -142,7 +144,7 @@ void main() {
   });
 
   test(
-    'schema v7 restore preserves FutureMatter values and constraints',
+    'schema v8 restore preserves FutureMatter values and constraints',
     () async {
       final service = DriftDatabaseBackupService();
       await service.createBackup(source: source, destination: backup);
@@ -153,6 +155,12 @@ void main() {
       final matters = await restored.select(restored.futureMatters).get();
       final events = await restored
           .select(restored.futureMatterCreatedEvents)
+          .get();
+      final changeEvents = await restored
+          .select(restored.futureMatterChangeEvents)
+          .get();
+      final changeSnapshots = await restored
+          .select(restored.futureMatterChangeEventSnapshots)
           .get();
       await restored.close();
 
@@ -191,6 +199,18 @@ void main() {
         conditionEvent.conditionMaintenanceRecordIdSnapshot,
         'maintenance-record-source-item',
       );
+      expect(changeEvents.single.id, 'future-change-source-item');
+      final beforeSnapshot = changeSnapshots.singleWhere(
+        (row) => row.snapshotSide == 'before',
+      );
+      final afterSnapshot = changeSnapshots.singleWhere(
+        (row) => row.snapshotSide == 'after',
+      );
+      expect(beforeSnapshot.specifiedDate, '2026-02-28');
+      expect(beforeSnapshot.specifiedMinuteOfDay, isNull);
+      expect(afterSnapshot.specifiedDate, '2026-02-28');
+      expect(afterSnapshot.specifiedMinuteOfDay, 0);
+      expect(afterSnapshot.itemId, 'source-item');
 
       final raw = sqlite3.open(destination.path);
       try {
@@ -201,16 +221,25 @@ void main() {
               'future_matters_item_idx',
               'future_matters_timing_mode_idx',
               'future_matter_created_events_matter_unique_idx',
-              'future_matter_created_events_item_idx'
+              'future_matter_created_events_item_idx',
+              'future_matter_change_events_matter_idx',
+              'future_matter_change_event_snapshots_item_idx'
             )
           ''')
             .map((row) => row['name'])
             .toSet();
-        expect(indexes, hasLength(4));
+        expect(indexes, hasLength(6));
         expect(
           () => raw.execute(
             "UPDATE future_matter_created_events SET title_snapshot = '改寫' "
             "WHERE id = 'future-created-specified-source-item'",
+          ),
+          throwsA(isA<SqliteException>()),
+        );
+        expect(
+          () => raw.execute(
+            "UPDATE future_matter_change_event_snapshots SET title = '改寫' "
+            "WHERE event_id = 'future-change-source-item'",
           ),
           throwsA(isA<SqliteException>()),
         );
@@ -237,6 +266,30 @@ void main() {
       }
     },
   );
+
+  test('restores a schema v7 backup that migrates cleanly to v8', () async {
+    await _downgradeToSchemaV7(source);
+    final service = DriftDatabaseBackupService();
+    final validation = await service.restore(
+      backup: source,
+      destination: destination,
+    );
+    expect(validation.formatVersion, 7);
+    expect(
+      validation.rowCounts,
+      isNot(contains('future_matter_change_events')),
+    );
+
+    final migrated = AppDatabase(NativeDatabase(destination));
+    addTearDown(migrated.close);
+    await migrated.customSelect('SELECT 1').get();
+    expect(migrated.schemaVersion, 8);
+    expect(await migrated.select(migrated.futureMatters).get(), hasLength(3));
+    expect(
+      await migrated.select(migrated.futureMatterChangeEvents).get(),
+      isEmpty,
+    );
+  });
 
   test(
     'rejects invalid format and unsupported versions before restore',
@@ -564,6 +617,35 @@ Future<void> _writeDatabase(
         ),
       );
   await database
+      .into(database.futureMatterChangeEvents)
+      .insert(
+        FutureMatterChangeEventsCompanion.insert(
+          id: 'future-change-$itemId',
+          futureMatterId: 'future-specified-$itemId',
+          occurredAt: now.add(const Duration(minutes: 1)),
+          createdAt: now.add(const Duration(minutes: 1)),
+        ),
+      );
+  for (final side in const ['before', 'after']) {
+    await database
+        .into(database.futureMatterChangeEventSnapshots)
+        .insert(
+          FutureMatterChangeEventSnapshotsCompanion.insert(
+            eventId: 'future-change-$itemId',
+            snapshotSide: side,
+            title: '指定日期事項',
+            itemId: Value(itemId),
+            timingMode: 'specifiedDate',
+            specifiedDate: const Value('2026-02-28'),
+            specifiedMinuteOfDay: Value(side == 'before' ? null : 0),
+            futureMatterCreatedAt: now,
+            futureMatterUpdatedAt: side == 'before'
+                ? now
+                : now.add(const Duration(minutes: 1)),
+          ),
+        );
+  }
+  await database
       .into(database.futureMatters)
       .insert(
         FutureMattersCompanion.insert(
@@ -636,6 +718,7 @@ Future<void> _writeDatabase(
 
 Future<void> _downgradeToSchemaV4(File file) async {
   final raw = sqlite3.open(file.path);
+  _dropSchemaV8(raw);
   _dropSchemaV7(raw);
   _dropSchemaV6(raw);
   raw.execute('DROP TRIGGER item_management_periods_no_custom_equivalent');
@@ -648,6 +731,7 @@ Future<void> _downgradeToSchemaV4(File file) async {
 
 Future<void> _downgradeToSchemaV5(File file) async {
   final raw = sqlite3.open(file.path);
+  _dropSchemaV8(raw);
   _dropSchemaV7(raw);
   _dropSchemaV6(raw);
   raw.execute('PRAGMA user_version = 5');
@@ -656,9 +740,22 @@ Future<void> _downgradeToSchemaV5(File file) async {
 
 Future<void> _downgradeToSchemaV6(File file) async {
   final raw = sqlite3.open(file.path);
+  _dropSchemaV8(raw);
   _dropSchemaV7(raw);
   raw.execute('PRAGMA user_version = 6');
   raw.close();
+}
+
+Future<void> _downgradeToSchemaV7(File file) async {
+  final raw = sqlite3.open(file.path);
+  _dropSchemaV8(raw);
+  raw.execute('PRAGMA user_version = 7');
+  raw.close();
+}
+
+void _dropSchemaV8(Database database) {
+  database.execute('DROP TABLE future_matter_change_event_snapshots');
+  database.execute('DROP TABLE future_matter_change_events');
 }
 
 void _dropSchemaV7(Database database) {

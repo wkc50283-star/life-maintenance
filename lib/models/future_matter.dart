@@ -133,3 +133,21 @@ class FutureMatterCreatedEvent {
   final DateTime occurredAt;
   final DateTime createdAt;
 }
+
+class FutureMatterChangeEvent {
+  const FutureMatterChangeEvent({
+    required this.id,
+    required this.futureMatterId,
+    required this.occurredAt,
+    required this.createdAt,
+    required this.before,
+    required this.after,
+  });
+
+  final String id;
+  final String futureMatterId;
+  final DateTime occurredAt;
+  final DateTime createdAt;
+  final FutureMatter before;
+  final FutureMatter after;
+}

@@ -5,6 +5,7 @@ import '../repositories/attachment_runtime.dart';
 import '../repositories/drift/drift_attachment_runtime.dart';
 import '../repositories/drift/drift_history_projection_repository.dart';
 import '../repositories/drift/drift_future_matter_creation_runtime.dart';
+import '../repositories/drift/drift_future_matter_change_runtime.dart';
 import '../repositories/drift/drift_item_creation_runtime.dart';
 import '../repositories/drift/drift_item_management_period_runtime.dart';
 import '../repositories/drift/drift_item_read_repository.dart';
@@ -16,6 +17,7 @@ import '../repositories/drift/drift_task_reminder_runtime.dart';
 import '../repositories/drift/drift_work_case_runtime.dart';
 import '../repositories/history_projection_repository.dart';
 import '../repositories/future_matter_creation_runtime.dart';
+import '../repositories/future_matter_change_runtime.dart';
 import '../repositories/item_creation_runtime.dart';
 import '../repositories/item_management_period_runtime.dart';
 import '../repositories/item_read_repository.dart';
@@ -36,6 +38,7 @@ abstract interface class AppRuntimeDependencies {
   ItemCreationRuntime? get itemCreationRuntime;
   ItemManagementPeriodRuntime? get itemManagementPeriodRuntime;
   FutureMatterCreationRuntime? get futureMatterCreationRuntime;
+  FutureMatterChangeRuntime? get futureMatterChangeRuntime;
   MaintenanceRecordRepository get maintenanceRecordRepository;
   ScheduleRepository get scheduleRepository;
   DriftMaintenancePlanRepository? get maintenancePlanRepository;
@@ -73,6 +76,7 @@ class AppCompositionRoot implements AppRuntimeDependencies {
     itemCreationRuntime = DriftItemCreationRuntime(database);
     itemManagementPeriodRuntime = DriftItemManagementPeriodRuntime(database);
     futureMatterCreationRuntime = DriftFutureMatterCreationRuntime(database);
+    futureMatterChangeRuntime = DriftFutureMatterChangeRuntime(database);
     scheduleRepository = DriftScheduleRuntimeRepository(
       database: database,
       repositories: driftRepositories,
@@ -117,6 +121,8 @@ class AppCompositionRoot implements AppRuntimeDependencies {
   late final ItemManagementPeriodRuntime itemManagementPeriodRuntime;
   @override
   late final FutureMatterCreationRuntime futureMatterCreationRuntime;
+  @override
+  late final FutureMatterChangeRuntime futureMatterChangeRuntime;
   @override
   late final MaintenanceRecordRepository maintenanceRecordRepository;
   @override
