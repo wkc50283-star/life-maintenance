@@ -41,7 +41,7 @@ class FutureMatters extends Table {
     "CHECK (specified_date IS NULL OR (length(specified_date) = 10 AND specified_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]' AND date(specified_date, '+0 days') = specified_date))",
     "CHECK (recurring_anchor_date IS NULL OR (length(recurring_anchor_date) = 10 AND recurring_anchor_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]' AND date(recurring_anchor_date, '+0 days') = recurring_anchor_date))",
     "CHECK (recurring_interval_unit IS NULL OR recurring_interval_unit IN ('minute', 'hour', 'day', 'week', 'month', 'year'))",
-    "CHECK (condition_delay_unit IS NULL OR condition_delay_unit IN ('minute', 'hour', 'day', 'week', 'month', 'year'))",
+    "CHECK (condition_delay_unit IS NULL OR condition_delay_unit IN ('minute', 'hour', 'day', 'week', 'month'))",
     "CHECK (condition_type IS NULL OR condition_type = 'afterFormalCompletion')",
     'CHECK (recurring_interval_value IS NULL OR recurring_interval_value > 0)',
     'CHECK (condition_delay_value IS NULL OR condition_delay_value > 0)',

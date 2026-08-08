@@ -49,7 +49,7 @@ class FutureMatterCreatedEvents extends Table {
     "CHECK (specified_date_snapshot IS NULL OR (length(specified_date_snapshot) = 10 AND specified_date_snapshot GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]' AND date(specified_date_snapshot, '+0 days') = specified_date_snapshot))",
     "CHECK (recurring_anchor_date_snapshot IS NULL OR (length(recurring_anchor_date_snapshot) = 10 AND recurring_anchor_date_snapshot GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]' AND date(recurring_anchor_date_snapshot, '+0 days') = recurring_anchor_date_snapshot))",
     "CHECK (recurring_interval_unit_snapshot IS NULL OR recurring_interval_unit_snapshot IN ('minute', 'hour', 'day', 'week', 'month', 'year'))",
-    "CHECK (condition_delay_unit_snapshot IS NULL OR condition_delay_unit_snapshot IN ('minute', 'hour', 'day', 'week', 'month', 'year'))",
+    "CHECK (condition_delay_unit_snapshot IS NULL OR condition_delay_unit_snapshot IN ('minute', 'hour', 'day', 'week', 'month'))",
     "CHECK (condition_type_snapshot IS NULL OR condition_type_snapshot = 'afterFormalCompletion')",
     'CHECK (recurring_interval_value_snapshot IS NULL OR recurring_interval_value_snapshot > 0)',
     'CHECK (condition_delay_value_snapshot IS NULL OR condition_delay_value_snapshot > 0)',

@@ -186,7 +186,8 @@ class DriftFutureMatterCreationRuntime implements FutureMatterCreationRuntime {
             conditionMaintenanceRecordId == null ||
             request.conditionDelayValue == null ||
             request.conditionDelayValue! <= 0 ||
-            request.conditionDelayUnit == null) {
+            request.conditionDelayUnit == null ||
+            request.conditionDelayUnit == FutureMatterIntervalUnit.year) {
           _invalidTiming();
         }
     }

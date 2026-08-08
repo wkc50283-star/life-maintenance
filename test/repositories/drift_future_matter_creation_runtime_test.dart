@@ -203,6 +203,113 @@ void main() {
     }
   });
 
+  test('condition rejects year and rolls back all writes', () async {
+    await expectLater(
+      runtime.create(
+        request(
+          id: 'condition-year',
+          mode: FutureMatterTimingMode.condition,
+          conditionType: FutureMatterConditionType.afterFormalCompletion,
+          conditionMaintenanceRecordId: 'record-1',
+          conditionValue: 1,
+          conditionUnit: FutureMatterIntervalUnit.year,
+        ),
+      ),
+      throwsA(isA<RepositoryConstraintException>()),
+    );
+
+    expect(await database.select(database.futureMatters).get(), isEmpty);
+    expect(
+      await database.select(database.futureMatterCreatedEvents).get(),
+      isEmpty,
+    );
+  });
+
+  test('recurring continues to support year', () async {
+    final result = await runtime.create(
+      request(
+        id: 'recurring-year',
+        mode: FutureMatterTimingMode.recurring,
+        recurringValue: 2,
+        recurringUnit: FutureMatterIntervalUnit.year,
+      ),
+    );
+
+    expect(result.futureMatter.recurringIntervalValue, 2);
+    expect(
+      result.futureMatter.recurringIntervalUnit,
+      FutureMatterIntervalUnit.year,
+    );
+    expect(
+      result.createdEvent.recurringIntervalUnitSnapshot,
+      FutureMatterIntervalUnit.year,
+    );
+  });
+
+  test('database rejects condition year in main and snapshot rows', () async {
+    await expectLater(
+      database
+          .into(database.futureMatters)
+          .insert(
+            FutureMattersCompanion.insert(
+              id: 'direct-condition-year',
+              title: '不應寫入的年度條件',
+              timingMode: FutureMatterTimingMode.condition.name,
+              conditionType: Value(
+                FutureMatterConditionType.afterFormalCompletion.name,
+              ),
+              conditionMaintenanceRecordId: const Value('record-1'),
+              conditionDelayValue: const Value(1),
+              conditionDelayUnit: Value(FutureMatterIntervalUnit.year.name),
+              createdAt: createdAt,
+              updatedAt: createdAt,
+            ),
+          ),
+      throwsA(anything),
+    );
+
+    await database
+        .into(database.futureMatters)
+        .insert(
+          FutureMattersCompanion.insert(
+            id: 'snapshot-condition-parent',
+            title: '事件父資料',
+            timingMode: FutureMatterTimingMode.condition.name,
+            conditionType: Value(
+              FutureMatterConditionType.afterFormalCompletion.name,
+            ),
+            conditionMaintenanceRecordId: const Value('record-1'),
+            conditionDelayValue: const Value(1),
+            conditionDelayUnit: Value(FutureMatterIntervalUnit.day.name),
+            createdAt: createdAt,
+            updatedAt: createdAt,
+          ),
+        );
+    await expectLater(
+      database
+          .into(database.futureMatterCreatedEvents)
+          .insert(
+            FutureMatterCreatedEventsCompanion.insert(
+              id: 'direct-condition-year-event',
+              futureMatterId: 'snapshot-condition-parent',
+              titleSnapshot: '不應寫入的年度條件事件',
+              timingModeSnapshot: FutureMatterTimingMode.condition.name,
+              conditionTypeSnapshot: Value(
+                FutureMatterConditionType.afterFormalCompletion.name,
+              ),
+              conditionMaintenanceRecordIdSnapshot: const Value('record-1'),
+              conditionDelayValueSnapshot: const Value(1),
+              conditionDelayUnitSnapshot: Value(
+                FutureMatterIntervalUnit.year.name,
+              ),
+              occurredAt: createdAt,
+              createdAt: createdAt,
+            ),
+          ),
+      throwsA(anything),
+    );
+  });
+
   test('condition rejects missing or nonexistent MaintenanceRecord', () async {
     await expectLater(
       runtime.create(
