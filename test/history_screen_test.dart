@@ -8,8 +8,12 @@ import 'package:life_maintenance/database/app_database.dart';
 import 'package:life_maintenance/models/enums.dart';
 import 'package:life_maintenance/models/history_projection.dart';
 import 'package:life_maintenance/models/item.dart';
+import 'package:life_maintenance/models/item_custom_management_period.dart';
+import 'package:life_maintenance/models/item_management_period.dart';
 import 'package:life_maintenance/models/maintenance_record.dart';
 import 'package:life_maintenance/repositories/history_projection_repository.dart';
+import 'package:life_maintenance/repositories/item_creation_runtime.dart';
+import 'package:life_maintenance/repositories/item_management_period_runtime.dart';
 import 'package:life_maintenance/repositories/item_read_repository.dart';
 import 'package:life_maintenance/screens/history_screen.dart';
 import 'package:life_maintenance/widgets/empty_history_state.dart';
@@ -90,6 +94,61 @@ void main() {
     expect(find.text('紀錄 ID'), findsNothing);
     expect(find.text('record-1'), findsNothing);
   });
+
+  testWidgets(
+    'history shows formatted management period before and after snapshots',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(800, 1400));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final root = AppCompositionRoot(
+        database: AppDatabase(NativeDatabase.memory()),
+      );
+      addTearDown(root.database.close);
+      final createdAt = DateTime.utc(2026, 8, 8, 8);
+      await root.itemCreationRuntime.create(
+        ItemCreationRequest(
+          itemId: 'item-period-history',
+          name: '陽台植物',
+          createdAt: createdAt,
+          managementPeriods: const {ItemManagementPeriod.month},
+          customManagementPeriods: [
+            ItemCustomManagementPeriod(
+              intervalValue: 2,
+              intervalUnit: ItemManagementIntervalUnit.week,
+            ),
+          ],
+        ),
+      );
+      await root.itemManagementPeriodRuntime.replace(
+        ItemManagementPeriodChangeRequest(
+          eventId: 'period-change-history',
+          itemId: 'item-period-history',
+          occurredAt: createdAt.add(const Duration(hours: 1)),
+          fixed: const {ItemManagementPeriod.day},
+          custom: [
+            ItemCustomManagementPeriod(
+              intervalValue: 3,
+              intervalUnit: ItemManagementIntervalUnit.quarter,
+            ),
+          ],
+        ),
+      );
+
+      await tester.pumpWidget(_historyApp(root));
+      await tester.pumpAndSettle();
+
+      expect(find.text('管理週期'), findsOneWidget);
+      expect(find.text('變更前：月、每 2 週'), findsOneWidget);
+      expect(find.text('變更後：日、每 3 季'), findsOneWidget);
+      expect(find.textContaining('管理週期：月、每 2 週'), findsOneWidget);
+      expect(
+        (await root.historyProjectionRepository.projectForItem(
+          'item-period-history',
+        )).itemManagementPeriodChangeEntries,
+        hasLength(1),
+      );
+    },
+  );
 
   testWidgets('empty history state remains renderable', (tester) async {
     await tester.pumpWidget(

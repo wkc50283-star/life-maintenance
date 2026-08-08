@@ -5,6 +5,9 @@ import 'package:life_maintenance/app/app_composition_root.dart';
 import 'package:life_maintenance/database/app_database.dart';
 import 'package:life_maintenance/models/attachment.dart';
 import 'package:life_maintenance/models/enums.dart';
+import 'package:life_maintenance/models/item.dart';
+import 'package:life_maintenance/models/item_custom_management_period.dart';
+import 'package:life_maintenance/models/item_management_period.dart';
 import 'package:life_maintenance/models/maintenance_plan.dart';
 import 'package:life_maintenance/models/maintenance_plan_enums.dart';
 import 'package:life_maintenance/models/maintenance_record.dart';
@@ -18,6 +21,7 @@ import 'package:life_maintenance/screens/items_screen.dart';
 import 'package:life_maintenance/screens/formal_planning_screens.dart';
 import 'package:life_maintenance/screens/task_reminder_screens.dart';
 import 'package:life_maintenance/screens/work_case_screens.dart';
+import 'package:life_maintenance/repositories/item_creation_runtime.dart';
 
 void main() {
   testWidgets('items screen shows calm empty state from empty Drift', (
@@ -248,13 +252,23 @@ void main() {
     await tester.pageBack();
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('attention-work-case-case-1')));
+    final workCaseAttention = find.byKey(
+      const ValueKey('attention-work-case-case-1'),
+    );
+    await tester.ensureVisible(workCaseAttention);
+    await tester.pumpAndSettle();
+    await tester.tap(workCaseAttention);
     await tester.pumpAndSettle();
     expect(find.byType(WorkCaseDetailScreen), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('attention-task-task-overdue')));
+    final overdueAttention = find.byKey(
+      const ValueKey('attention-task-task-overdue'),
+    );
+    await tester.ensureVisible(overdueAttention);
+    await tester.pumpAndSettle();
+    await tester.tap(overdueAttention);
     await tester.pumpAndSettle();
     expect(find.byType(TaskReminderDetailScreen), findsOneWidget);
     await tester.tap(find.text('完成'));
@@ -285,7 +299,195 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('需要注意'), findsWidgets);
-    expect(find.text('目前沒有需要注意的事項'), findsOneWidget);
+    final emptyAttention = find.text('目前沒有需要注意的事項');
+    await tester.scrollUntilVisible(emptyAttention, 200);
+    expect(emptyAttention, findsOneWidget);
+  });
+
+  testWidgets(
+    'item detail edits fixed and custom periods and preserves created history',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(430, 1200);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+      final database = AppDatabase(NativeDatabase.memory());
+      final root = AppCompositionRoot(database: database);
+      addTearDown(database.close);
+      final createdAt = DateTime.utc(2026, 8, 8, 8);
+      await root.itemCreationRuntime.create(
+        ItemCreationRequest(
+          itemId: 'item-period-edit',
+          name: '客廳冷氣',
+          createdAt: createdAt,
+          managementPeriods: const {ItemManagementPeriod.month},
+          customManagementPeriods: [
+            ItemCustomManagementPeriod(
+              intervalValue: 2,
+              intervalUnit: ItemManagementIntervalUnit.week,
+            ),
+          ],
+        ),
+      );
+      final item = Item(
+        id: 'item-period-edit',
+        name: '客廳冷氣',
+        category: ItemCategory.other,
+        createdAt: createdAt,
+      );
+
+      await tester.pumpWidget(_itemDetailApp(root, item));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(find.text('月、每 2 週'), 200);
+      expect(find.text('月、每 2 週'), findsOneWidget);
+
+      await _openManagementPeriodForm(tester);
+      expect(find.byType(ItemManagementPeriodFormScreen), findsOneWidget);
+      expect(
+        tester
+            .widget<FilterChip>(find.byKey(const ValueKey('item-period-month')))
+            .selected,
+        isTrue,
+      );
+      expect(find.text('每 2 週'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('item-period-month')));
+      await tester.tap(find.byKey(const ValueKey('item-period-day')));
+      await tester.tap(find.byKey(const ValueKey('remove-custom-period-0')));
+      await _addCustomPeriod(
+        tester,
+        value: '3',
+        unit: ItemManagementIntervalUnit.quarter,
+      );
+      await tester.tap(find.byKey(const ValueKey('save-form')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ItemDetailScreen), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('日、每 3 季'), 200);
+      expect(find.text('日、每 3 季'), findsOneWidget);
+      final current = await root.itemManagementPeriodRuntime.readCurrent(
+        item.id,
+      );
+      expect(current.fixed, {ItemManagementPeriod.day});
+      expect(current.custom, {
+        ItemCustomManagementPeriod(
+          intervalValue: 3,
+          intervalUnit: ItemManagementIntervalUnit.quarter,
+        ),
+      });
+      var projection = await root.historyProjectionRepository.projectForItem(
+        item.id,
+      );
+      expect(projection.itemManagementPeriodChangeEntries, hasLength(1));
+      expect(projection.itemCreatedEntries.single.event.managementPeriods, {
+        ItemManagementPeriod.month,
+      });
+      expect(
+        projection.itemCreatedEntries.single.event.customManagementPeriods,
+        {
+          ItemCustomManagementPeriod(
+            intervalValue: 2,
+            intervalUnit: ItemManagementIntervalUnit.week,
+          ),
+        },
+      );
+
+      await _openManagementPeriodForm(tester);
+      await tester.tap(find.byKey(const ValueKey('save-form')));
+      await tester.pumpAndSettle();
+      projection = await root.historyProjectionRepository.projectForItem(
+        item.id,
+      );
+      expect(projection.itemManagementPeriodChangeEntries, hasLength(1));
+
+      await _openManagementPeriodForm(tester);
+      await tester.tap(find.byKey(const ValueKey('item-period-day')));
+      await tester.tap(find.byKey(const ValueKey('remove-custom-period-0')));
+      await tester.tap(find.byKey(const ValueKey('save-form')));
+      await tester.pumpAndSettle();
+      expect(find.text('尚未設定'), findsWidgets);
+      expect(
+        (await root.itemManagementPeriodRuntime.readCurrent(item.id)).fixed,
+        isEmpty,
+      );
+      expect(
+        (await root.itemManagementPeriodRuntime.readCurrent(item.id)).custom,
+        isEmpty,
+      );
+      expect(
+        (await root.historyProjectionRepository.projectForItem(
+          item.id,
+        )).itemManagementPeriodChangeEntries,
+        hasLength(2),
+      );
+      expect(await database.select(database.tasks).get(), isEmpty);
+      expect(await database.select(database.schedules).get(), isEmpty);
+      expect(await database.select(database.generalReminders).get(), isEmpty);
+    },
+  );
+
+  testWidgets('item management periods keep the approved equivalence error', (
+    tester,
+  ) async {
+    final database = AppDatabase(NativeDatabase.memory());
+    final root = AppCompositionRoot(database: database);
+    addTearDown(database.close);
+    final createdAt = DateTime.utc(2026, 8, 8, 8);
+    await root.itemCreationRuntime.create(
+      ItemCreationRequest(
+        itemId: 'item-period-equivalence',
+        name: '週期測試',
+        createdAt: createdAt,
+        managementPeriods: const {},
+      ),
+    );
+    final item = Item(
+      id: 'item-period-equivalence',
+      name: '週期測試',
+      category: ItemCategory.other,
+      createdAt: createdAt,
+    );
+    await tester.pumpWidget(_itemDetailApp(root, item));
+    await tester.pumpAndSettle();
+    await _openManagementPeriodForm(tester);
+
+    await tester.tap(find.byKey(const ValueKey('item-period-week')));
+    await _addCustomPeriod(
+      tester,
+      value: '7',
+      unit: ItemManagementIntervalUnit.day,
+    );
+    await tester.tap(find.byKey(const ValueKey('save-form')));
+    await tester.pump();
+
+    expect(find.text('管理週期「每 7 天」與「週」等價，請保留其中一筆。'), findsOneWidget);
+    expect(
+      await root.itemManagementPeriodRuntime.listChanges(item.id),
+      isEmpty,
+    );
+  });
+
+  testWidgets('archived item does not expose management period editing', (
+    tester,
+  ) async {
+    final database = AppDatabase(NativeDatabase.memory());
+    final root = AppCompositionRoot(database: database);
+    addTearDown(database.close);
+    final item = Item(
+      id: 'archived-period-item',
+      name: '已封存項目',
+      category: ItemCategory.other,
+      createdAt: DateTime.utc(2026, 8, 8, 8),
+      status: ItemStatus.archived,
+    );
+    await tester.pumpWidget(_itemDetailApp(root, item));
+    await tester.pumpAndSettle();
+
+    final section = find.byKey(const ValueKey('item-management-periods'));
+    expect(
+      find.descendant(of: section, matching: find.text('管理')),
+      findsNothing,
+    );
   });
 
   testWidgets('item detail separates information and preserves section order', (
@@ -410,6 +612,47 @@ void main() {
     expect(await root.taskRepository.loadTasks(), isEmpty);
   });
 }
+
+Widget _itemDetailApp(AppCompositionRoot root, Item item) {
+  return AppCompositionScope(
+    root: root,
+    child: MaterialApp(home: ItemDetailScreen(item: item)),
+  );
+}
+
+Future<void> _openManagementPeriodForm(WidgetTester tester) async {
+  final section = find.byKey(const ValueKey('item-management-periods'));
+  await tester.scrollUntilVisible(section, 200);
+  await tester.pumpAndSettle();
+  await tester.tap(find.descendant(of: section, matching: find.text('管理')));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _addCustomPeriod(
+  WidgetTester tester, {
+  required String value,
+  required ItemManagementIntervalUnit unit,
+}) async {
+  await tester.enterText(
+    find.byKey(const ValueKey('custom-period-value')),
+    value,
+  );
+  await tester.tap(find.byKey(const ValueKey('custom-period-unit')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(_intervalUnitLabel(unit)).last);
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const ValueKey('add-custom-period')));
+  await tester.pump();
+}
+
+String _intervalUnitLabel(ItemManagementIntervalUnit unit) => switch (unit) {
+  ItemManagementIntervalUnit.day => '天',
+  ItemManagementIntervalUnit.week => '週',
+  ItemManagementIntervalUnit.month => '月',
+  ItemManagementIntervalUnit.quarter => '季',
+  ItemManagementIntervalUnit.halfYear => '半年',
+  ItemManagementIntervalUnit.year => '年',
+};
 
 Widget _app(AppCompositionRoot root) {
   return AppCompositionScope(

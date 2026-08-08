@@ -6,6 +6,7 @@ import '../models/attachment.dart';
 import '../models/enums.dart';
 import '../models/history_projection.dart';
 import '../models/item.dart';
+import '../models/item_management_period_change_event.dart';
 import '../models/maintenance_plan.dart';
 import '../models/maintenance_plan_enums.dart';
 import '../models/milestone.dart';
@@ -126,6 +127,9 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
       final history = await root.historyProjectionRepository?.projectForItem(
         widget.item.id,
       );
+      final managementPeriods =
+          await root.itemManagementPeriodRuntime?.readCurrent(widget.item.id) ??
+          ItemManagementPeriodSnapshot(fixed: const [], custom: const []);
       final attachments = _attachmentsFrom(history);
       if (history == null && root.attachmentRuntime != null) {
         attachments.addAll(
@@ -151,6 +155,9 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         ..sort((left, right) => right.occurredAt.compareTo(left.occurredAt));
       final itemCreatedEntries = [...?history?.itemCreatedEntries]
         ..sort((left, right) => right.occurredAt.compareTo(left.occurredAt));
+      final managementPeriodChangeEntries = [
+        ...?history?.itemManagementPeriodChangeEntries,
+      ]..sort((left, right) => right.occurredAt.compareTo(left.occurredAt));
       final uniqueAttachments =
           <String, Attachment>{
               for (final attachment in attachments) attachment.id: attachment,
@@ -168,6 +175,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
           cases: caseSummaries,
           historyEntries: historyEntries,
           itemCreatedEntries: itemCreatedEntries,
+          managementPeriods: managementPeriods,
+          managementPeriodChangeEntries: managementPeriodChangeEntries,
           attachments: uniqueAttachments,
         );
       });
@@ -507,10 +516,22 @@ class _ItemDetailBody extends StatelessWidget {
             icon: Icons.history_rounded,
             child:
                 snapshot.historyEntries.isEmpty &&
-                    snapshot.itemCreatedEntries.isEmpty
+                    snapshot.itemCreatedEntries.isEmpty &&
+                    snapshot.managementPeriodChangeEntries.isEmpty
                 ? const _EmptyMessage('目前還沒有履歷。')
                 : Column(
                     children: [
+                      for (final entry
+                          in snapshot.managementPeriodChangeEntries)
+                        _FactCard(
+                          key: ValueKey(
+                            'item-management-period-change-${entry.sourceId}',
+                          ),
+                          title: '管理週期',
+                          subtitle: item.name,
+                          detail: _managementPeriodChangeHistoryDetail(entry),
+                          status: _formatDate(entry.occurredAt),
+                        ),
                       for (final entry in snapshot.itemCreatedEntries)
                         _FactCard(
                           key: ValueKey('item-created-${entry.sourceId}'),
@@ -556,6 +577,28 @@ class _ItemDetailBody extends StatelessWidget {
             title: '基本資料',
             icon: Icons.info_outline_rounded,
             child: _BasicInformation(item: item),
+          ),
+        ),
+        _DetailSection(
+          key: const ValueKey('item-management-periods'),
+          title: '管理週期',
+          icon: Icons.event_repeat_outlined,
+          onManage: item.status == ItemStatus.archived
+              ? null
+              : () async {
+                  final changed = await Navigator.of(context).push<bool>(
+                    MaterialPageRoute<bool>(
+                      builder: (_) =>
+                          ItemManagementPeriodFormScreen(itemId: item.id),
+                    ),
+                  );
+                  if (changed == true) await onCaseChanged();
+                },
+          child: Text(
+            formatItemManagementPeriods(
+              fixed: snapshot.managementPeriods.fixed,
+              custom: snapshot.managementPeriods.custom,
+            ),
           ),
         ),
       ],
@@ -760,6 +803,7 @@ class _InformationRow extends StatelessWidget {
 
 class _DetailSection extends StatelessWidget {
   const _DetailSection({
+    super.key,
     required this.title,
     required this.icon,
     required this.child,
@@ -924,6 +968,8 @@ class _ItemDetailSnapshot {
     required this.cases,
     required this.historyEntries,
     required this.itemCreatedEntries,
+    required this.managementPeriods,
+    required this.managementPeriodChangeEntries,
     required this.attachments,
   });
 
@@ -935,6 +981,9 @@ class _ItemDetailSnapshot {
   final List<_CaseSummary> cases;
   final List<HistoryEntry> historyEntries;
   final List<ItemCreatedHistoryEntry> itemCreatedEntries;
+  final ItemManagementPeriodSnapshot managementPeriods;
+  final List<ItemManagementPeriodChangeHistoryEntry>
+  managementPeriodChangeEntries;
   final List<Attachment> attachments;
 }
 
@@ -1056,6 +1105,20 @@ String _itemCreatedHistoryDetail(ItemCreatedHistoryEntry entry) {
     custom: entry.event.customManagementPeriods,
   );
   return '分類：${entry.event.categoryDisplayNameSnapshot} · 管理週期：$periodLabel';
+}
+
+String _managementPeriodChangeHistoryDetail(
+  ItemManagementPeriodChangeHistoryEntry entry,
+) {
+  final before = formatItemManagementPeriods(
+    fixed: entry.event.before.fixed,
+    custom: entry.event.before.custom,
+  );
+  final after = formatItemManagementPeriods(
+    fixed: entry.event.after.fixed,
+    custom: entry.event.after.custom,
+  );
+  return '變更前：$before · 變更後：$after';
 }
 
 String _attachmentName(Attachment attachment) =>
