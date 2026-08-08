@@ -40,7 +40,7 @@ void main() {
       addTearDown(database.close);
       await database.customSelect('SELECT 1').get();
 
-      expect(database.schemaVersion, 8);
+      expect(database.schemaVersion, 9);
       expect(
         (await database.select(database.items).get()).single.id,
         'existing-item',

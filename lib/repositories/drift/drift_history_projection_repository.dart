@@ -42,6 +42,9 @@ class DriftHistoryProjectionRepository implements HistoryProjectionRepository {
     final futureMatterChangeEntries = await _futureMatterChangeEntries(
       itemId: itemId,
     );
+    final futureMatterCompletedEntries = await _futureMatterCompletedEntries(
+      itemId: itemId,
+    );
     final entries = <HistoryEntry>[];
     final consumedTaskIds = <String>{};
     final consumedMilestoneIds = <String>{};
@@ -172,6 +175,7 @@ class DriftHistoryProjectionRepository implements HistoryProjectionRepository {
       itemManagementPeriodChangeEntries: itemManagementPeriodChangeEntries,
       futureMatterCreatedEntries: futureMatterCreatedEntries,
       futureMatterChangeEntries: futureMatterChangeEntries,
+      futureMatterCompletedEntries: futureMatterCompletedEntries,
       itemAttachments: await _attachments.listForOwner(
         AttachmentOwnerType.item,
         itemId,
@@ -186,6 +190,74 @@ class DriftHistoryProjectionRepository implements HistoryProjectionRepository {
   @override
   Future<List<FutureMatterChangeHistoryEntry>>
   projectGlobalFutureMatterChangeEntries() => _futureMatterChangeEntries();
+
+  @override
+  Future<List<FutureMatterCompletedHistoryEntry>>
+  projectGlobalFutureMatterCompletedEntries() =>
+      _futureMatterCompletedEntries();
+
+  Future<List<FutureMatterCompletedHistoryEntry>>
+  _futureMatterCompletedEntries({String? itemId}) async {
+    final query = _database.select(_database.futureMatterCompletedEvents);
+    if (itemId != null) {
+      query.where((table) => table.itemIdSnapshot.equals(itemId));
+    }
+    query.orderBy([
+      (table) => OrderingTerm.desc(table.confirmedAt),
+      (table) => OrderingTerm.asc(table.id),
+    ]);
+    return [
+      for (final row in await query.get())
+        FutureMatterCompletedHistoryEntry(
+          FutureMatterCompletedEvent(
+            id: row.id,
+            futureMatterId: row.futureMatterId,
+            completedDate: FutureMatterDate.parse(row.completedDate),
+            completedMinuteOfDay: row.completedMinuteOfDay,
+            confirmedAt: row.confirmedAt,
+            createdAt: row.createdAt,
+            snapshot: FutureMatter(
+              id: row.futureMatterId,
+              title: row.titleSnapshot,
+              itemId: row.itemIdSnapshot,
+              timingMode: FutureMatterTimingMode.values.byName(
+                row.timingModeSnapshot,
+              ),
+              specifiedDate: row.specifiedDateSnapshot == null
+                  ? null
+                  : FutureMatterDate.parse(row.specifiedDateSnapshot!),
+              specifiedMinuteOfDay: row.specifiedMinuteOfDaySnapshot,
+              recurringIntervalValue: row.recurringIntervalValueSnapshot,
+              recurringIntervalUnit: row.recurringIntervalUnitSnapshot == null
+                  ? null
+                  : FutureMatterIntervalUnit.values.byName(
+                      row.recurringIntervalUnitSnapshot!,
+                    ),
+              recurringAnchorDate: row.recurringAnchorDateSnapshot == null
+                  ? null
+                  : FutureMatterDate.parse(row.recurringAnchorDateSnapshot!),
+              recurringAnchorMinuteOfDay:
+                  row.recurringAnchorMinuteOfDaySnapshot,
+              conditionType: row.conditionTypeSnapshot == null
+                  ? null
+                  : FutureMatterConditionType.values.byName(
+                      row.conditionTypeSnapshot!,
+                    ),
+              conditionMaintenanceRecordId:
+                  row.conditionMaintenanceRecordIdSnapshot,
+              conditionDelayValue: row.conditionDelayValueSnapshot,
+              conditionDelayUnit: row.conditionDelayUnitSnapshot == null
+                  ? null
+                  : FutureMatterIntervalUnit.values.byName(
+                      row.conditionDelayUnitSnapshot!,
+                    ),
+              createdAt: row.futureMatterCreatedAtSnapshot,
+              updatedAt: row.futureMatterUpdatedAtSnapshot,
+            ),
+          ),
+        ),
+    ];
+  }
 
   Future<List<FutureMatterChangeHistoryEntry>> _futureMatterChangeEntries({
     String? itemId,

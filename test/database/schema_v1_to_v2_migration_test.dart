@@ -19,7 +19,7 @@ void main() {
     final items = await database.select(database.items).get();
     final categories = await database.select(database.itemCategories).get();
 
-    expect(database.schemaVersion, 8);
+    expect(database.schemaVersion, 9);
     expect(cases, hasLength(2));
     expect(updates, hasLength(2));
     expect(items, hasLength(2));
@@ -137,7 +137,7 @@ void main() {
       addTearDown(database.close);
 
       final existing = await database.select(database.workCases).getSingle();
-      expect(database.schemaVersion, 8);
+      expect(database.schemaVersion, 9);
       expect(existing.id, 'case-v2');
       expect(existing.title, '既有案件');
       expect(existing.sourceTaskId, isNull);
@@ -206,7 +206,7 @@ void main() {
   );
 
   test('blocks unsupported schema versions', () async {
-    final fixture = await _createEmptyFixture(9);
+    final fixture = await _createEmptyFixture(10);
     addTearDown(fixture.dispose);
     final database = AppDatabase(NativeDatabase(fixture.file));
 
@@ -216,7 +216,7 @@ void main() {
         isA<UnsupportedError>().having(
           (error) => error.message,
           'message',
-          contains('schema 9 to 8'),
+          contains('schema 10 to 9'),
         ),
       ),
     );

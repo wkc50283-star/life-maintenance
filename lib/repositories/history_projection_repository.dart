@@ -7,4 +7,6 @@ abstract interface class HistoryProjectionRepository {
   projectGlobalFutureMatterCreatedEntries();
   Future<List<FutureMatterChangeHistoryEntry>>
   projectGlobalFutureMatterChangeEntries();
+  Future<List<FutureMatterCompletedHistoryEntry>>
+  projectGlobalFutureMatterCompletedEntries();
 }

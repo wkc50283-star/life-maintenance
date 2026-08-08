@@ -14,6 +14,8 @@ class FutureMatters extends Table {
     onUpdate: KeyAction.cascade,
     onDelete: KeyAction.restrict,
   )();
+  TextColumn get lifecycleStatus =>
+      text().withDefault(const Constant('active'))();
   TextColumn get timingMode => text()();
   TextColumn get specifiedDate => text().nullable()();
   IntColumn get specifiedMinuteOfDay => integer().nullable()();
@@ -34,6 +36,7 @@ class FutureMatters extends Table {
   @override
   List<String> get customConstraints => [
     "CHECK (trim(title) <> '')",
+    "CHECK (lifecycle_status IN ('active', 'completed'))",
     "CHECK (timing_mode IN ('later', 'specifiedDate', 'recurring', 'condition'))",
     'CHECK (specified_minute_of_day IS NULL OR specified_minute_of_day BETWEEN 0 AND 1439)',
     'CHECK (recurring_anchor_minute_of_day IS NULL OR recurring_anchor_minute_of_day BETWEEN 0 AND 1439)',

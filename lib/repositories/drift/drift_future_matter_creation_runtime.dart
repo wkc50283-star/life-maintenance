@@ -218,6 +218,9 @@ FutureMatter _matter(FutureMatterRow row) => FutureMatter(
   id: row.id,
   title: row.title,
   itemId: row.itemId,
+  lifecycleStatus: FutureMatterLifecycleStatus.values.byName(
+    row.lifecycleStatus,
+  ),
   timingMode: FutureMatterTimingMode.values.byName(row.timingMode),
   specifiedDate: _date(row.specifiedDate),
   specifiedMinuteOfDay: row.specifiedMinuteOfDay,
