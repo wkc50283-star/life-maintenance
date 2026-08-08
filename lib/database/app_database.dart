@@ -17,6 +17,9 @@ import 'tables/item_lifecycle_event_custom_periods.dart';
 import 'tables/item_lifecycle_event_periods.dart';
 import 'tables/item_lifecycle_events.dart';
 import 'tables/item_management_periods.dart';
+import 'tables/item_management_period_change_event_custom_periods.dart';
+import 'tables/item_management_period_change_event_periods.dart';
+import 'tables/item_management_period_change_events.dart';
 import 'tables/items.dart';
 import 'tables/maintenance_plan_steps.dart';
 import 'tables/maintenance_plans.dart';
@@ -40,6 +43,9 @@ part 'app_database.g.dart';
     ItemLifecycleEvents,
     ItemLifecycleEventPeriods,
     ItemLifecycleEventCustomPeriods,
+    ItemManagementPeriodChangeEvents,
+    ItemManagementPeriodChangeEventPeriods,
+    ItemManagementPeriodChangeEventCustomPeriods,
     MaintenancePlans,
     MaintenancePlanSteps,
     GeneralReminders,
@@ -69,7 +75,7 @@ class AppDatabase extends _$AppDatabase {
       );
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -77,23 +83,25 @@ class AppDatabase extends _$AppDatabase {
       await _createAllIdempotently(migrator);
       await _createSchemaV4ImmutabilityTriggers();
       await _createSchemaV5ProtectionTriggers();
+      await _createSchemaV6ProtectionTriggers();
       await _ensureUnclassifiedCategory();
     },
     onUpgrade: (migrator, from, to) async {
-      if (from == 1 && (to == 3 || to == 4 || to == 5)) {
+      if (from == 1 && (to == 3 || to == 4 || to == 5 || to == 6)) {
         await customStatement('PRAGMA foreign_keys = OFF');
         await transaction(() async {
           await _migrateV1ToV2(migrator);
           if (to >= 4) {
             await _createSchemaV4ImmutabilityTriggers();
           }
-          if (to == 5) await _createSchemaV5ProtectionTriggers();
+          if (to >= 5) await _createSchemaV5ProtectionTriggers();
+          if (to == 6) await _createSchemaV6ProtectionTriggers();
           await _ensureUnclassifiedCategory();
           await _throwIfForeignKeyViolations();
         });
         return;
       }
-      if (from == 2 && (to == 3 || to == 4 || to == 5)) {
+      if (from == 2 && (to == 3 || to == 4 || to == 5 || to == 6)) {
         await transaction(() async {
           await migrator.addColumn(workCases, workCases.sourceTaskId);
           await customStatement(
@@ -105,31 +113,51 @@ class AppDatabase extends _$AppDatabase {
             await _createSchemaV4ImmutabilityTriggers();
             await _ensureUnclassifiedCategory();
           }
-          if (to == 5) {
+          if (to >= 5) {
             await _createSchemaV5(migrator);
             await _createSchemaV5ProtectionTriggers();
+          }
+          if (to == 6) {
+            await _createSchemaV6(migrator);
+            await _createSchemaV6ProtectionTriggers();
           }
           await _throwIfForeignKeyViolations();
         });
         return;
       }
-      if (from == 3 && (to == 4 || to == 5)) {
+      if (from == 3 && (to == 4 || to == 5 || to == 6)) {
         await transaction(() async {
           await _createSchemaV4(migrator);
           await _createSchemaV4ImmutabilityTriggers();
-          if (to == 5) {
+          if (to >= 5) {
             await _createSchemaV5(migrator);
             await _createSchemaV5ProtectionTriggers();
+          }
+          if (to == 6) {
+            await _createSchemaV6(migrator);
+            await _createSchemaV6ProtectionTriggers();
           }
           await _ensureUnclassifiedCategory();
           await _throwIfForeignKeyViolations();
         });
         return;
       }
-      if (from == 4 && to == 5) {
+      if (from == 4 && (to == 5 || to == 6)) {
         await transaction(() async {
           await _createSchemaV5(migrator);
           await _createSchemaV5ProtectionTriggers();
+          if (to == 6) {
+            await _createSchemaV6(migrator);
+            await _createSchemaV6ProtectionTriggers();
+          }
+          await _throwIfForeignKeyViolations();
+        });
+        return;
+      }
+      if (from == 5 && to == 6) {
+        await transaction(() async {
+          await _createSchemaV6(migrator);
+          await _createSchemaV6ProtectionTriggers();
           await _throwIfForeignKeyViolations();
         });
         return;
@@ -190,6 +218,75 @@ class AppDatabase extends _$AppDatabase {
   Future<void> _createSchemaV5(Migrator migrator) async {
     await migrator.createTable(itemCustomManagementPeriods);
     await migrator.createTable(itemLifecycleEventCustomPeriods);
+  }
+
+  Future<void> _createSchemaV6(Migrator migrator) async {
+    await migrator.createTable(itemManagementPeriodChangeEvents);
+    await migrator.createTable(itemManagementPeriodChangeEventPeriods);
+    await migrator.createTable(itemManagementPeriodChangeEventCustomPeriods);
+  }
+
+  Future<void> _createSchemaV6ProtectionTriggers() async {
+    for (final table in const [
+      'item_management_period_change_events',
+      'item_management_period_change_event_periods',
+      'item_management_period_change_event_custom_periods',
+    ]) {
+      await customStatement('''
+        CREATE TRIGGER IF NOT EXISTS ${table}_no_update
+        BEFORE UPDATE ON $table
+        BEGIN
+          SELECT RAISE(ABORT, 'Management period change history is immutable');
+        END
+      ''');
+      await customStatement('''
+        CREATE TRIGGER IF NOT EXISTS ${table}_no_delete
+        BEFORE DELETE ON $table
+        BEGIN
+          SELECT RAISE(ABORT, 'Management period change history is immutable');
+        END
+      ''');
+    }
+    await customStatement('''
+      CREATE TRIGGER IF NOT EXISTS item_management_period_change_event_custom_periods_no_fixed_equivalent
+      BEFORE INSERT ON item_management_period_change_event_custom_periods
+      WHEN EXISTS (
+        SELECT 1 FROM item_management_period_change_event_periods fixed
+        WHERE fixed.event_id = NEW.event_id
+          AND fixed.snapshot_side = NEW.snapshot_side
+          AND (
+            (NEW.canonical_family = 'day' AND NEW.canonical_value =
+              CASE fixed.period WHEN 'day' THEN 1 WHEN 'week' THEN 7 ELSE -1 END)
+            OR
+            (NEW.canonical_family = 'calendarMonth' AND NEW.canonical_value =
+              CASE fixed.period WHEN 'month' THEN 1 WHEN 'quarter' THEN 3
+                WHEN 'halfYear' THEN 6 WHEN 'year' THEN 12 ELSE -1 END)
+          )
+      )
+      BEGIN
+        SELECT RAISE(ABORT, 'Equivalent change snapshot period already exists');
+      END
+    ''');
+    await customStatement('''
+      CREATE TRIGGER IF NOT EXISTS item_management_period_change_event_periods_no_custom_equivalent
+      BEFORE INSERT ON item_management_period_change_event_periods
+      WHEN EXISTS (
+        SELECT 1 FROM item_management_period_change_event_custom_periods custom
+        WHERE custom.event_id = NEW.event_id
+          AND custom.snapshot_side = NEW.snapshot_side
+          AND (
+            (custom.canonical_family = 'day' AND custom.canonical_value =
+              CASE NEW.period WHEN 'day' THEN 1 WHEN 'week' THEN 7 ELSE -1 END)
+            OR
+            (custom.canonical_family = 'calendarMonth' AND custom.canonical_value =
+              CASE NEW.period WHEN 'month' THEN 1 WHEN 'quarter' THEN 3
+                WHEN 'halfYear' THEN 6 WHEN 'year' THEN 12 ELSE -1 END)
+          )
+      )
+      BEGIN
+        SELECT RAISE(ABORT, 'Equivalent change snapshot period already exists');
+      END
+    ''');
   }
 
   Future<void> _createSchemaV4ImmutabilityTriggers() async {

@@ -5,6 +5,7 @@ import '../repositories/attachment_runtime.dart';
 import '../repositories/drift/drift_attachment_runtime.dart';
 import '../repositories/drift/drift_history_projection_repository.dart';
 import '../repositories/drift/drift_item_creation_runtime.dart';
+import '../repositories/drift/drift_item_management_period_runtime.dart';
 import '../repositories/drift/drift_item_read_repository.dart';
 import '../repositories/drift/drift_maintenance_record_repository.dart';
 import '../repositories/drift/drift_schedule_runtime_repository.dart';
@@ -14,6 +15,7 @@ import '../repositories/drift/drift_task_reminder_runtime.dart';
 import '../repositories/drift/drift_work_case_runtime.dart';
 import '../repositories/history_projection_repository.dart';
 import '../repositories/item_creation_runtime.dart';
+import '../repositories/item_management_period_runtime.dart';
 import '../repositories/item_read_repository.dart';
 import '../repositories/maintenance_record_repository.dart';
 import '../repositories/schedule_repository.dart';
@@ -30,6 +32,7 @@ import '../services/maintenance_task_service.dart';
 abstract interface class AppRuntimeDependencies {
   ItemReadRepository get itemReadRepository;
   ItemCreationRuntime? get itemCreationRuntime;
+  ItemManagementPeriodRuntime? get itemManagementPeriodRuntime;
   MaintenanceRecordRepository get maintenanceRecordRepository;
   ScheduleRepository get scheduleRepository;
   DriftMaintenancePlanRepository? get maintenancePlanRepository;
@@ -65,6 +68,7 @@ class AppCompositionRoot implements AppRuntimeDependencies {
     : driftRepositories = DriftSchemaV2Repositories(database) {
     itemReadRepository = DriftItemReadRepository(driftRepositories);
     itemCreationRuntime = DriftItemCreationRuntime(database);
+    itemManagementPeriodRuntime = DriftItemManagementPeriodRuntime(database);
     scheduleRepository = DriftScheduleRuntimeRepository(
       database: database,
       repositories: driftRepositories,
@@ -105,6 +109,8 @@ class AppCompositionRoot implements AppRuntimeDependencies {
   late final ItemReadRepository itemReadRepository;
   @override
   late final ItemCreationRuntime itemCreationRuntime;
+  @override
+  late final ItemManagementPeriodRuntime itemManagementPeriodRuntime;
   @override
   late final MaintenanceRecordRepository maintenanceRecordRepository;
   @override

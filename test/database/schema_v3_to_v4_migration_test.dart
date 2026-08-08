@@ -8,7 +8,7 @@ import 'package:life_maintenance/models/item_system_category.dart';
 import 'package:sqlite3/sqlite3.dart' as sqlite;
 
 void main() {
-  test('schema v3 upgrades to v5 without changing existing Item data', () async {
+  test('schema v3 upgrades to v6 without changing existing Item data', () async {
     final directory = await Directory.systemTemp.createTemp(
       'life-management-schema-v3-v4-',
     );
@@ -43,6 +43,11 @@ void main() {
     await database.close();
 
     final raw = sqlite.sqlite3.open(file.path);
+    raw.execute(
+      'DROP TABLE item_management_period_change_event_custom_periods',
+    );
+    raw.execute('DROP TABLE item_management_period_change_event_periods');
+    raw.execute('DROP TABLE item_management_period_change_events');
     raw.execute('DROP TABLE item_lifecycle_event_custom_periods');
     raw.execute('DROP TABLE item_custom_management_periods');
     raw.execute('DROP TABLE item_lifecycle_event_periods');
@@ -65,7 +70,7 @@ void main() {
             ))
             .getSingleOrNull();
 
-    expect(database.schemaVersion, 5);
+    expect(database.schemaVersion, 6);
     expect(existing.categoryId, 'existing-category');
     expect(unclassified?.systemCode, ItemSystemCategory.unclassifiedCode);
     expect(
