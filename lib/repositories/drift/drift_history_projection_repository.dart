@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import '../../database/app_database.dart';
 import '../../models/attachment.dart';
+import '../../models/future_matter.dart';
 import '../../models/history_projection.dart';
 import '../../models/item_custom_management_period.dart';
 import '../../models/item_lifecycle_event.dart';
@@ -35,6 +36,9 @@ class DriftHistoryProjectionRepository implements HistoryProjectionRepository {
     final itemCreatedEntries = await _itemCreatedEntries(itemId);
     final itemManagementPeriodChangeEntries =
         await _itemManagementPeriodChangeEntries(itemId);
+    final futureMatterCreatedEntries = await _futureMatterCreatedEntries(
+      itemId: itemId,
+    );
     final entries = <HistoryEntry>[];
     final consumedTaskIds = <String>{};
     final consumedMilestoneIds = <String>{};
@@ -163,11 +167,74 @@ class DriftHistoryProjectionRepository implements HistoryProjectionRepository {
       entries: entries,
       itemCreatedEntries: itemCreatedEntries,
       itemManagementPeriodChangeEntries: itemManagementPeriodChangeEntries,
+      futureMatterCreatedEntries: futureMatterCreatedEntries,
       itemAttachments: await _attachments.listForOwner(
         AttachmentOwnerType.item,
         itemId,
       ),
     );
+  }
+
+  @override
+  Future<List<FutureMatterCreatedHistoryEntry>>
+  projectGlobalFutureMatterCreatedEntries() => _futureMatterCreatedEntries();
+
+  Future<List<FutureMatterCreatedHistoryEntry>> _futureMatterCreatedEntries({
+    String? itemId,
+  }) async {
+    final query = _database.select(_database.futureMatterCreatedEvents);
+    if (itemId != null) {
+      query.where((table) => table.itemIdSnapshot.equals(itemId));
+    }
+    query.orderBy([
+      (table) => OrderingTerm.desc(table.occurredAt),
+      (table) => OrderingTerm.asc(table.id),
+    ]);
+    return [
+      for (final row in await query.get())
+        FutureMatterCreatedHistoryEntry(
+          FutureMatterCreatedEvent(
+            id: row.id,
+            futureMatterId: row.futureMatterId,
+            titleSnapshot: row.titleSnapshot,
+            itemIdSnapshot: row.itemIdSnapshot,
+            timingModeSnapshot: FutureMatterTimingMode.values.byName(
+              row.timingModeSnapshot,
+            ),
+            specifiedDateSnapshot: row.specifiedDateSnapshot == null
+                ? null
+                : FutureMatterDate.parse(row.specifiedDateSnapshot!),
+            specifiedMinuteOfDaySnapshot: row.specifiedMinuteOfDaySnapshot,
+            recurringIntervalValueSnapshot: row.recurringIntervalValueSnapshot,
+            recurringIntervalUnitSnapshot:
+                row.recurringIntervalUnitSnapshot == null
+                ? null
+                : FutureMatterIntervalUnit.values.byName(
+                    row.recurringIntervalUnitSnapshot!,
+                  ),
+            recurringAnchorDateSnapshot: row.recurringAnchorDateSnapshot == null
+                ? null
+                : FutureMatterDate.parse(row.recurringAnchorDateSnapshot!),
+            recurringAnchorMinuteOfDaySnapshot:
+                row.recurringAnchorMinuteOfDaySnapshot,
+            conditionTypeSnapshot: row.conditionTypeSnapshot == null
+                ? null
+                : FutureMatterConditionType.values.byName(
+                    row.conditionTypeSnapshot!,
+                  ),
+            conditionMaintenanceRecordIdSnapshot:
+                row.conditionMaintenanceRecordIdSnapshot,
+            conditionDelayValueSnapshot: row.conditionDelayValueSnapshot,
+            conditionDelayUnitSnapshot: row.conditionDelayUnitSnapshot == null
+                ? null
+                : FutureMatterIntervalUnit.values.byName(
+                    row.conditionDelayUnitSnapshot!,
+                  ),
+            occurredAt: row.occurredAt,
+            createdAt: row.createdAt,
+          ),
+        ),
+    ];
   }
 
   Future<List<ItemCreatedHistoryEntry>> _itemCreatedEntries(
