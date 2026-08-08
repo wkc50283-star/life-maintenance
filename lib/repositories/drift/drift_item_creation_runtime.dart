@@ -7,6 +7,7 @@ import '../../models/item_management_period.dart';
 import '../../models/item_system_category.dart';
 import '../item_creation_runtime.dart';
 import '../repository_constraint_exception.dart';
+import 'drift_item_management_period_normalizer.dart';
 
 class DriftItemCreationRuntime implements ItemCreationRuntime {
   DriftItemCreationRuntime(this._database);
@@ -34,7 +35,10 @@ class DriftItemCreationRuntime implements ItemCreationRuntime {
           'Item category $categoryId is not available.',
         );
       }
-      final periods = _normalizePeriods(request);
+      final periods = normalizeItemManagementPeriods(
+        fixed: request.managementPeriods,
+        custom: request.customManagementPeriods,
+      );
 
       final eventId = 'item-created-$itemId';
       await _database
@@ -208,37 +212,6 @@ class DriftItemCreationRuntime implements ItemCreationRuntime {
       customManagementPeriods: customPeriods,
     );
   }
-}
-
-_NormalizedPeriods _normalizePeriods(ItemCreationRequest request) {
-  final fixed = <ItemManagementPeriod>{...request.managementPeriods};
-  final custom = <ItemCustomManagementPeriod>[];
-  final seen = <String>{
-    for (final period in fixed) itemManagementPeriodEquivalenceKey(period),
-  };
-
-  for (final period in request.customManagementPeriods) {
-    final key = period.equivalenceKey;
-    if (!seen.add(key)) {
-      throw RepositoryConstraintException(
-        'Equivalent management period is already selected: $key.',
-      );
-    }
-    final fixedPeriod = period.fixedPeriod;
-    if (fixedPeriod != null) {
-      fixed.add(fixedPeriod);
-    } else {
-      custom.add(period);
-    }
-  }
-  return _NormalizedPeriods(Set.unmodifiable(fixed), List.unmodifiable(custom));
-}
-
-class _NormalizedPeriods {
-  const _NormalizedPeriods(this.fixed, this.custom);
-
-  final Set<ItemManagementPeriod> fixed;
-  final List<ItemCustomManagementPeriod> custom;
 }
 
 String? _textOrNull(String? value) {

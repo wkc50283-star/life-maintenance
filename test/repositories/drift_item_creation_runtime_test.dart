@@ -45,7 +45,7 @@ void main() {
     customManagementPeriods: customPeriods,
   );
 
-  test('schema v5 seeds immutable unclassified system category', () async {
+  test('schema v6 seeds immutable unclassified system category', () async {
     final category = await repositories.itemCategories.findById(
       ItemSystemCategory.unclassifiedId,
     );

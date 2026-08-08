@@ -41,7 +41,7 @@ void main() {
     await database.close();
   });
 
-  test('schema v5 creates the formal life-management tables', () async {
+  test('schema v6 creates the formal life-management tables', () async {
     final rows = await database
         .customSelect(
           "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name",
@@ -49,7 +49,7 @@ void main() {
         .get();
     final names = rows.map((row) => row.read<String>('name')).toSet();
 
-    expect(database.schemaVersion, 5);
+    expect(database.schemaVersion, 6);
     expect(
       names,
       containsAll(<String>{
@@ -60,6 +60,9 @@ void main() {
         'item_lifecycle_events',
         'item_lifecycle_event_periods',
         'item_lifecycle_event_custom_periods',
+        'item_management_period_change_events',
+        'item_management_period_change_event_periods',
+        'item_management_period_change_event_custom_periods',
         'maintenance_plans',
         'maintenance_plan_steps',
         'general_reminders',

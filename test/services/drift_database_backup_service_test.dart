@@ -29,7 +29,7 @@ void main() {
     }
   });
 
-  test('creates and validates a complete schema v5 SQLite backup', () async {
+  test('creates and validates a complete schema v6 SQLite backup', () async {
     final service = DriftDatabaseBackupService();
 
     final validation = await service.createBackup(
@@ -37,18 +37,28 @@ void main() {
       destination: backup,
     );
 
-    expect(validation.formatVersion, 5);
+    expect(validation.formatVersion, 6);
     expect(validation.rowCounts['items'], 1);
     expect(validation.rowCounts['item_management_periods'], 1);
     expect(validation.rowCounts['item_lifecycle_events'], 1);
     expect(validation.rowCounts['item_lifecycle_event_periods'], 1);
     expect(validation.rowCounts['item_custom_management_periods'], 1);
     expect(validation.rowCounts['item_lifecycle_event_custom_periods'], 1);
+    expect(validation.rowCounts['item_management_period_change_events'], 1);
+    expect(
+      validation.rowCounts['item_management_period_change_event_periods'],
+      2,
+    );
+    expect(
+      validation
+          .rowCounts['item_management_period_change_event_custom_periods'],
+      2,
+    );
     expect(await _itemNames(backup), ['來源資料']);
     expect(await File('${backup.path}.restore-staging').exists(), isFalse);
   });
 
-  test('restores a schema v4 backup that migrates cleanly to v5', () async {
+  test('restores a schema v4 backup that migrates cleanly to v6', () async {
     await _downgradeToSchemaV4(source);
     final service = DriftDatabaseBackupService();
 
@@ -65,7 +75,7 @@ void main() {
     final migrated = AppDatabase(NativeDatabase(destination));
     addTearDown(migrated.close);
     await migrated.customSelect('SELECT 1').get();
-    expect(migrated.schemaVersion, 5);
+    expect(migrated.schemaVersion, 6);
     expect(await migrated.select(migrated.items).get(), hasLength(1));
     expect(
       await migrated.select(migrated.itemCustomManagementPeriods).get(),
@@ -73,6 +83,35 @@ void main() {
     );
     expect(
       await migrated.select(migrated.itemLifecycleEventCustomPeriods).get(),
+      isEmpty,
+    );
+  });
+
+  test('restores a schema v5 backup that migrates cleanly to v6', () async {
+    await _downgradeToSchemaV5(source);
+    final service = DriftDatabaseBackupService();
+
+    final validation = await service.restore(
+      backup: source,
+      destination: destination,
+    );
+    expect(validation.formatVersion, 5);
+    expect(
+      validation.rowCounts,
+      isNot(contains('item_management_period_change_events')),
+    );
+
+    final migrated = AppDatabase(NativeDatabase(destination));
+    addTearDown(migrated.close);
+    await migrated.customSelect('SELECT 1').get();
+    expect(migrated.schemaVersion, 6);
+    expect(await migrated.select(migrated.items).get(), hasLength(1));
+    expect(
+      await migrated.select(migrated.itemCustomManagementPeriods).get(),
+      hasLength(1),
+    );
+    expect(
+      await migrated.select(migrated.itemManagementPeriodChangeEvents).get(),
       isEmpty,
     );
   });
@@ -330,17 +369,66 @@ Future<void> _writeDatabase(
           canonicalValue: 14,
         ),
       );
+  await database
+      .into(database.itemManagementPeriodChangeEvents)
+      .insert(
+        ItemManagementPeriodChangeEventsCompanion.insert(
+          id: 'period-change-$itemId',
+          itemId: itemId,
+          occurredAt: now,
+          createdAt: now,
+        ),
+      );
+  for (final side in const ['before', 'after']) {
+    await database
+        .into(database.itemManagementPeriodChangeEventPeriods)
+        .insert(
+          ItemManagementPeriodChangeEventPeriodsCompanion.insert(
+            eventId: 'period-change-$itemId',
+            snapshotSide: side,
+            period: 'month',
+          ),
+        );
+    await database
+        .into(database.itemManagementPeriodChangeEventCustomPeriods)
+        .insert(
+          ItemManagementPeriodChangeEventCustomPeriodsCompanion.insert(
+            eventId: 'period-change-$itemId',
+            snapshotSide: side,
+            intervalValue: 2,
+            intervalUnit: 'week',
+            canonicalFamily: 'day',
+            canonicalValue: 14,
+          ),
+        );
+  }
   await database.close();
 }
 
 Future<void> _downgradeToSchemaV4(File file) async {
   final raw = sqlite3.open(file.path);
+  _dropSchemaV6(raw);
   raw.execute('DROP TRIGGER item_management_periods_no_custom_equivalent');
   raw.execute('DROP TRIGGER item_lifecycle_event_periods_no_custom_equivalent');
   raw.execute('DROP TABLE item_lifecycle_event_custom_periods');
   raw.execute('DROP TABLE item_custom_management_periods');
   raw.execute('PRAGMA user_version = 4');
   raw.close();
+}
+
+Future<void> _downgradeToSchemaV5(File file) async {
+  final raw = sqlite3.open(file.path);
+  _dropSchemaV6(raw);
+  raw.execute('PRAGMA user_version = 5');
+  raw.close();
+}
+
+void _dropSchemaV6(Database database) {
+  database.execute(
+    'DROP TABLE item_management_period_change_event_custom_periods',
+  );
+  database.execute('DROP TABLE item_management_period_change_event_periods');
+  database.execute('DROP TABLE item_management_period_change_events');
 }
 
 Future<List<String>> _itemNames(File file) async {
