@@ -6,6 +6,7 @@ import '../repositories/drift/drift_attachment_runtime.dart';
 import '../repositories/drift/drift_history_projection_repository.dart';
 import '../repositories/drift/drift_future_matter_creation_runtime.dart';
 import '../repositories/drift/drift_future_matter_change_runtime.dart';
+import '../repositories/drift/drift_future_matter_completion_runtime.dart';
 import '../repositories/drift/drift_item_creation_runtime.dart';
 import '../repositories/drift/drift_item_management_period_runtime.dart';
 import '../repositories/drift/drift_item_read_repository.dart';
@@ -18,6 +19,7 @@ import '../repositories/drift/drift_work_case_runtime.dart';
 import '../repositories/history_projection_repository.dart';
 import '../repositories/future_matter_creation_runtime.dart';
 import '../repositories/future_matter_change_runtime.dart';
+import '../repositories/future_matter_completion_runtime.dart';
 import '../repositories/item_creation_runtime.dart';
 import '../repositories/item_management_period_runtime.dart';
 import '../repositories/item_read_repository.dart';
@@ -39,6 +41,7 @@ abstract interface class AppRuntimeDependencies {
   ItemManagementPeriodRuntime? get itemManagementPeriodRuntime;
   FutureMatterCreationRuntime? get futureMatterCreationRuntime;
   FutureMatterChangeRuntime? get futureMatterChangeRuntime;
+  FutureMatterCompletionRuntime? get futureMatterCompletionRuntime;
   MaintenanceRecordRepository get maintenanceRecordRepository;
   ScheduleRepository get scheduleRepository;
   DriftMaintenancePlanRepository? get maintenancePlanRepository;
@@ -77,6 +80,9 @@ class AppCompositionRoot implements AppRuntimeDependencies {
     itemManagementPeriodRuntime = DriftItemManagementPeriodRuntime(database);
     futureMatterCreationRuntime = DriftFutureMatterCreationRuntime(database);
     futureMatterChangeRuntime = DriftFutureMatterChangeRuntime(database);
+    futureMatterCompletionRuntime = DriftFutureMatterCompletionRuntime(
+      database,
+    );
     scheduleRepository = DriftScheduleRuntimeRepository(
       database: database,
       repositories: driftRepositories,
@@ -123,6 +129,8 @@ class AppCompositionRoot implements AppRuntimeDependencies {
   late final FutureMatterCreationRuntime futureMatterCreationRuntime;
   @override
   late final FutureMatterChangeRuntime futureMatterChangeRuntime;
+  @override
+  late final FutureMatterCompletionRuntime futureMatterCompletionRuntime;
   @override
   late final MaintenanceRecordRepository maintenanceRecordRepository;
   @override

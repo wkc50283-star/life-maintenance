@@ -13,6 +13,7 @@ import 'tables/attachments.dart';
 import 'tables/future_matter_created_events.dart';
 import 'tables/future_matter_change_event_snapshots.dart';
 import 'tables/future_matter_change_events.dart';
+import 'tables/future_matter_completed_events.dart';
 import 'tables/future_matters.dart';
 import 'tables/general_reminders.dart';
 import 'tables/item_categories.dart';
@@ -65,6 +66,7 @@ part 'app_database.g.dart';
     FutureMatterCreatedEvents,
     FutureMatterChangeEvents,
     FutureMatterChangeEventSnapshots,
+    FutureMatterCompletedEvents,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -83,7 +85,7 @@ class AppDatabase extends _$AppDatabase {
       );
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -94,11 +96,18 @@ class AppDatabase extends _$AppDatabase {
       await _createSchemaV6ProtectionTriggers();
       await _createSchemaV7ProtectionTriggers();
       await _createSchemaV8ProtectionTriggers();
+      await _createSchemaV9ProtectionTriggers();
       await _ensureUnclassifiedCategory();
     },
     onUpgrade: (migrator, from, to) async {
       if (from == 1 &&
-          (to == 3 || to == 4 || to == 5 || to == 6 || to == 7 || to == 8)) {
+          (to == 3 ||
+              to == 4 ||
+              to == 5 ||
+              to == 6 ||
+              to == 7 ||
+              to == 8 ||
+              to == 9)) {
         await customStatement('PRAGMA foreign_keys = OFF');
         await transaction(() async {
           await _migrateV1ToV2(migrator);
@@ -108,17 +117,24 @@ class AppDatabase extends _$AppDatabase {
           if (to >= 5) await _createSchemaV5ProtectionTriggers();
           if (to >= 6) await _createSchemaV6ProtectionTriggers();
           if (to >= 7) await _createSchemaV7ProtectionTriggers();
-          if (to == 8) {
+          if (to >= 8) {
             await _createSchemaV8(migrator);
             await _createSchemaV8ProtectionTriggers();
           }
+          if (to == 9) await _createSchemaV9(migrator);
           await _ensureUnclassifiedCategory();
           await _throwIfForeignKeyViolations();
         });
         return;
       }
       if (from == 2 &&
-          (to == 3 || to == 4 || to == 5 || to == 6 || to == 7 || to == 8)) {
+          (to == 3 ||
+              to == 4 ||
+              to == 5 ||
+              to == 6 ||
+              to == 7 ||
+              to == 8 ||
+              to == 9)) {
         await transaction(() async {
           await migrator.addColumn(workCases, workCases.sourceTaskId);
           await customStatement(
@@ -142,15 +158,17 @@ class AppDatabase extends _$AppDatabase {
             await _createSchemaV7(migrator);
             await _createSchemaV7ProtectionTriggers();
           }
-          if (to == 8) {
+          if (to >= 8) {
             await _createSchemaV8(migrator);
             await _createSchemaV8ProtectionTriggers();
           }
+          if (to == 9) await _createSchemaV9(migrator);
           await _throwIfForeignKeyViolations();
         });
         return;
       }
-      if (from == 3 && (to == 4 || to == 5 || to == 6 || to == 7 || to == 8)) {
+      if (from == 3 &&
+          (to == 4 || to == 5 || to == 6 || to == 7 || to == 8 || to == 9)) {
         await transaction(() async {
           await _createSchemaV4(migrator);
           await _createSchemaV4ImmutabilityTriggers();
@@ -166,16 +184,17 @@ class AppDatabase extends _$AppDatabase {
             await _createSchemaV7(migrator);
             await _createSchemaV7ProtectionTriggers();
           }
-          if (to == 8) {
+          if (to >= 8) {
             await _createSchemaV8(migrator);
             await _createSchemaV8ProtectionTriggers();
           }
+          if (to == 9) await _createSchemaV9(migrator);
           await _ensureUnclassifiedCategory();
           await _throwIfForeignKeyViolations();
         });
         return;
       }
-      if (from == 4 && (to == 5 || to == 6 || to == 7 || to == 8)) {
+      if (from == 4 && (to == 5 || to == 6 || to == 7 || to == 8 || to == 9)) {
         await transaction(() async {
           await _createSchemaV5(migrator);
           await _createSchemaV5ProtectionTriggers();
@@ -187,15 +206,16 @@ class AppDatabase extends _$AppDatabase {
             await _createSchemaV7(migrator);
             await _createSchemaV7ProtectionTriggers();
           }
-          if (to == 8) {
+          if (to >= 8) {
             await _createSchemaV8(migrator);
             await _createSchemaV8ProtectionTriggers();
           }
+          if (to == 9) await _createSchemaV9(migrator);
           await _throwIfForeignKeyViolations();
         });
         return;
       }
-      if (from == 5 && (to == 6 || to == 7 || to == 8)) {
+      if (from == 5 && (to == 6 || to == 7 || to == 8 || to == 9)) {
         await transaction(() async {
           await _createSchemaV6(migrator);
           await _createSchemaV6ProtectionTriggers();
@@ -203,30 +223,40 @@ class AppDatabase extends _$AppDatabase {
             await _createSchemaV7(migrator);
             await _createSchemaV7ProtectionTriggers();
           }
-          if (to == 8) {
+          if (to >= 8) {
             await _createSchemaV8(migrator);
             await _createSchemaV8ProtectionTriggers();
           }
+          if (to == 9) await _createSchemaV9(migrator);
           await _throwIfForeignKeyViolations();
         });
         return;
       }
-      if (from == 6 && (to == 7 || to == 8)) {
+      if (from == 6 && (to == 7 || to == 8 || to == 9)) {
         await transaction(() async {
           await _createSchemaV7(migrator);
           await _createSchemaV7ProtectionTriggers();
-          if (to == 8) {
+          if (to >= 8) {
             await _createSchemaV8(migrator);
             await _createSchemaV8ProtectionTriggers();
           }
+          if (to == 9) await _createSchemaV9(migrator);
           await _throwIfForeignKeyViolations();
         });
         return;
       }
-      if (from == 7 && to == 8) {
+      if (from == 7 && (to == 8 || to == 9)) {
         await transaction(() async {
           await _createSchemaV8(migrator);
           await _createSchemaV8ProtectionTriggers();
+          if (to == 9) await _createSchemaV9(migrator);
+          await _throwIfForeignKeyViolations();
+        });
+        return;
+      }
+      if (from == 8 && to == 9) {
+        await transaction(() async {
+          await _createSchemaV9(migrator);
           await _throwIfForeignKeyViolations();
         });
         return;
@@ -361,6 +391,70 @@ class AppDatabase extends _$AppDatabase {
         END
       ''');
     }
+  }
+
+  Future<void> _createSchemaV9(Migrator migrator) async {
+    final futureMatterColumns = await customSelect(
+      "PRAGMA table_info('future_matters')",
+    ).get();
+    if (!futureMatterColumns.any(
+      (row) => row.data['name'] == 'lifecycle_status',
+    )) {
+      await migrator.addColumn(futureMatters, futureMatters.lifecycleStatus);
+    }
+    final completedTable = await customSelect(
+      "SELECT 1 FROM sqlite_master WHERE type = 'table' "
+      "AND name = 'future_matter_completed_events'",
+    ).getSingleOrNull();
+    if (completedTable == null) {
+      await migrator.createTable(futureMatterCompletedEvents);
+    }
+    for (final name in const [
+      'future_matter_completed_events_matter_unique_idx',
+      'future_matter_completed_events_item_idx',
+    ]) {
+      final index = allSchemaEntities.whereType<Index>().singleWhere(
+        (entity) => entity.entityName == name,
+      );
+      final statement = index.createStatementsByDialect[SqlDialect.sqlite];
+      if (statement == null) {
+        throw StateError('Missing SQLite definition for ${index.entityName}.');
+      }
+      await customStatement(
+        statement
+            .replaceFirst(
+              'CREATE UNIQUE INDEX ',
+              'CREATE UNIQUE INDEX IF NOT EXISTS ',
+            )
+            .replaceFirst('CREATE INDEX ', 'CREATE INDEX IF NOT EXISTS '),
+      );
+    }
+    await _createSchemaV9ProtectionTriggers();
+  }
+
+  Future<void> _createSchemaV9ProtectionTriggers() async {
+    await customStatement('''
+      CREATE TRIGGER IF NOT EXISTS future_matter_completed_events_no_update
+      BEFORE UPDATE ON future_matter_completed_events
+      BEGIN
+        SELECT RAISE(ABORT, 'Future matter completion history is immutable');
+      END
+    ''');
+    await customStatement('''
+      CREATE TRIGGER IF NOT EXISTS future_matter_completed_events_no_delete
+      BEFORE DELETE ON future_matter_completed_events
+      BEGIN
+        SELECT RAISE(ABORT, 'Future matter completion history is immutable');
+      END
+    ''');
+    await customStatement('''
+      CREATE TRIGGER IF NOT EXISTS future_matters_completed_no_update
+      BEFORE UPDATE ON future_matters
+      WHEN OLD.lifecycle_status = 'completed'
+      BEGIN
+        SELECT RAISE(ABORT, 'Completed future matters are immutable');
+      END
+    ''');
   }
 
   Future<void> _createSchemaV7ProtectionTriggers() async {

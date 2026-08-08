@@ -41,6 +41,11 @@ class DriftFutureMatterChangeRuntime implements FutureMatterChangeRuntime {
           'FutureMatter $futureMatterId does not exist.',
         );
       }
+      if (before.lifecycleStatus != FutureMatterLifecycleStatus.active) {
+        throw RepositoryConstraintException(
+          'FutureMatter $futureMatterId is completed and cannot be changed.',
+        );
+      }
       if (itemId != null) {
         final itemQuery = _database.select(_database.items)
           ..where((table) => table.id.equals(itemId));
@@ -76,6 +81,7 @@ class DriftFutureMatterChangeRuntime implements FutureMatterChangeRuntime {
         conditionDelayUnit: request.conditionDelayUnit,
         createdAt: before.createdAt,
         updatedAt: request.occurredAt,
+        lifecycleStatus: before.lifecycleStatus,
       );
       if (_sameFormalValues(before, after)) return null;
 
@@ -274,6 +280,9 @@ FutureMatter _matter(FutureMatterRow row) => FutureMatter(
   id: row.id,
   title: row.title,
   itemId: row.itemId,
+  lifecycleStatus: FutureMatterLifecycleStatus.values.byName(
+    row.lifecycleStatus,
+  ),
   timingMode: FutureMatterTimingMode.values.byName(row.timingMode),
   specifiedDate: _date(row.specifiedDate),
   specifiedMinuteOfDay: row.specifiedMinuteOfDay,

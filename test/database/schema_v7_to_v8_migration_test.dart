@@ -23,7 +23,7 @@ void main() {
     database = AppDatabase(NativeDatabase(file));
     addTearDown(database.close);
     await database.customSelect('SELECT 1').get();
-    expect(database.schemaVersion, 8);
+    expect(database.schemaVersion, 9);
     expect(
       await database.select(database.futureMatterChangeEvents).get(),
       isEmpty,

@@ -9,6 +9,7 @@ import 'package:life_maintenance/repositories/drift/drift_schema_v2_repositories
 import 'package:life_maintenance/repositories/history_projection_repository.dart';
 import 'package:life_maintenance/repositories/future_matter_creation_runtime.dart';
 import 'package:life_maintenance/repositories/future_matter_change_runtime.dart';
+import 'package:life_maintenance/repositories/future_matter_completion_runtime.dart';
 import 'package:life_maintenance/repositories/item_local_repository.dart';
 import 'package:life_maintenance/repositories/item_read_repository.dart';
 import 'package:life_maintenance/repositories/item_creation_runtime.dart';
@@ -50,6 +51,8 @@ class TestRuntimeDependencies implements AppRuntimeDependencies {
   FutureMatterCreationRuntime? get futureMatterCreationRuntime => null;
   @override
   FutureMatterChangeRuntime? get futureMatterChangeRuntime => null;
+  @override
+  FutureMatterCompletionRuntime? get futureMatterCompletionRuntime => null;
   @override
   late final MaintenanceRecordRepository maintenanceRecordRepository;
   @override

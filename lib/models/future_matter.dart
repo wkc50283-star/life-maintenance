@@ -4,6 +4,8 @@ enum FutureMatterIntervalUnit { minute, hour, day, week, month, year }
 
 enum FutureMatterConditionType { afterFormalCompletion }
 
+enum FutureMatterLifecycleStatus { active, completed }
+
 class FutureMatterDate {
   const FutureMatterDate(this.year, this.month, this.day);
 
@@ -63,6 +65,7 @@ class FutureMatter {
     required this.timingMode,
     required this.createdAt,
     required this.updatedAt,
+    this.lifecycleStatus = FutureMatterLifecycleStatus.active,
     this.itemId,
     this.specifiedDate,
     this.specifiedMinuteOfDay,
@@ -92,6 +95,27 @@ class FutureMatter {
   final FutureMatterIntervalUnit? conditionDelayUnit;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final FutureMatterLifecycleStatus lifecycleStatus;
+}
+
+class FutureMatterCompletedEvent {
+  const FutureMatterCompletedEvent({
+    required this.id,
+    required this.futureMatterId,
+    required this.completedDate,
+    required this.confirmedAt,
+    required this.createdAt,
+    required this.snapshot,
+    this.completedMinuteOfDay,
+  });
+
+  final String id;
+  final String futureMatterId;
+  final FutureMatterDate completedDate;
+  final int? completedMinuteOfDay;
+  final DateTime confirmedAt;
+  final DateTime createdAt;
+  final FutureMatter snapshot;
 }
 
 class FutureMatterCreatedEvent {

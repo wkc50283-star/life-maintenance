@@ -24,6 +24,8 @@ class HistoryProjection {
         const [],
     List<FutureMatterCreatedHistoryEntry> futureMatterCreatedEntries = const [],
     List<FutureMatterChangeHistoryEntry> futureMatterChangeEntries = const [],
+    List<FutureMatterCompletedHistoryEntry> futureMatterCompletedEntries =
+        const [],
   }) : entries = List<HistoryEntry>.unmodifiable(entries),
        itemAttachments = List<Attachment>.unmodifiable(itemAttachments),
        itemCreatedEntries = List<ItemCreatedHistoryEntry>.unmodifiable(
@@ -40,6 +42,10 @@ class HistoryProjection {
        futureMatterChangeEntries =
            List<FutureMatterChangeHistoryEntry>.unmodifiable(
              futureMatterChangeEntries,
+           ),
+       futureMatterCompletedEntries =
+           List<FutureMatterCompletedHistoryEntry>.unmodifiable(
+             futureMatterCompletedEntries,
            );
 
   final String itemId;
@@ -50,6 +56,16 @@ class HistoryProjection {
   itemManagementPeriodChangeEntries;
   final List<FutureMatterCreatedHistoryEntry> futureMatterCreatedEntries;
   final List<FutureMatterChangeHistoryEntry> futureMatterChangeEntries;
+  final List<FutureMatterCompletedHistoryEntry> futureMatterCompletedEntries;
+}
+
+class FutureMatterCompletedHistoryEntry {
+  const FutureMatterCompletedHistoryEntry(this.event);
+
+  final FutureMatterCompletedEvent event;
+
+  DateTime get occurredAt => event.confirmedAt;
+  String get sourceId => event.id;
 }
 
 class FutureMatterChangeHistoryEntry {
