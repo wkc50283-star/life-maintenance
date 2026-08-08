@@ -70,7 +70,7 @@ void main() {
             ))
             .getSingleOrNull();
 
-    expect(database.schemaVersion, 7);
+    expect(database.schemaVersion, 8);
     expect(existing.categoryId, 'existing-category');
     expect(unclassified?.systemCode, ItemSystemCategory.unclassifiedCode);
     expect(

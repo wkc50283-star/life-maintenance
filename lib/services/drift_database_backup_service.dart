@@ -21,7 +21,7 @@ class DriftDatabaseBackupService {
   }) : _snapshotWriter = snapshotWriter ?? _writeSqliteSnapshot,
        _backupPromoter = backupPromoter ?? _promoteAtomically;
 
-  static const int formatVersion = 7;
+  static const int formatVersion = 8;
   static const int oldestRestorableFormatVersion = 4;
 
   static const Set<String> schemaV4RequiredTables = <String>{
@@ -53,10 +53,15 @@ class DriftDatabaseBackupService {
     'item_management_period_change_event_periods',
     'item_management_period_change_event_custom_periods',
   };
-  static const Set<String> requiredTables = <String>{
+  static const Set<String> schemaV7RequiredTables = <String>{
     ...schemaV6RequiredTables,
     'future_matters',
     'future_matter_created_events',
+  };
+  static const Set<String> requiredTables = <String>{
+    ...schemaV7RequiredTables,
+    'future_matter_change_events',
+    'future_matter_change_event_snapshots',
   };
 
   final SqliteSnapshotWriter _snapshotWriter;
@@ -136,6 +141,7 @@ class DriftDatabaseBackupService {
         .select('PRAGMA user_version')
         .single['user_version'];
     if (version != formatVersion &&
+        version != 7 &&
         version != 6 &&
         version != 5 &&
         version != 4) {
@@ -144,7 +150,8 @@ class DriftDatabaseBackupService {
       );
     }
     final requiredTablesForVersion = switch (version) {
-      7 => requiredTables,
+      8 => requiredTables,
+      7 => schemaV7RequiredTables,
       6 => schemaV6RequiredTables,
       5 => schemaV5RequiredTables,
       4 => schemaV4RequiredTables,
