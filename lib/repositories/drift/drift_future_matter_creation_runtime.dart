@@ -22,6 +22,7 @@ class DriftFutureMatterCreationRuntime implements FutureMatterCreationRuntime {
       final conditionMaintenanceRecordId = _textOrNull(
         request.conditionMaintenanceRecordId,
       );
+      final sourceReferenceId = _textOrNull(request.createdSourceReferenceId);
       if (id.isEmpty || eventId.isEmpty || title.isEmpty) {
         throw const RepositoryConstraintException(
           'Future matter ID, event ID, and title must not be empty.',
@@ -44,6 +45,16 @@ class DriftFutureMatterCreationRuntime implements FutureMatterCreationRuntime {
           );
         }
       }
+      _validateReferencePair(
+        request.createdSourceReferenceKind,
+        sourceReferenceId,
+      );
+      if (request.createdSourceReferenceKind != null) {
+        await _requireSourceReference(
+          request.createdSourceReferenceKind!,
+          sourceReferenceId!,
+        );
+      }
 
       await _database
           .into(_database.futureMatters)
@@ -52,6 +63,11 @@ class DriftFutureMatterCreationRuntime implements FutureMatterCreationRuntime {
               id: id,
               title: title,
               itemId: Value(itemId),
+              createdSource: Value(request.createdSource?.name),
+              createdSourceReferenceKind: Value(
+                request.createdSourceReferenceKind?.name,
+              ),
+              createdSourceReferenceId: Value(sourceReferenceId),
               timingMode: request.timingMode.name,
               specifiedDate: Value(request.specifiedDate?.storageValue),
               specifiedMinuteOfDay: Value(request.specifiedMinuteOfDay),
@@ -117,6 +133,55 @@ class DriftFutureMatterCreationRuntime implements FutureMatterCreationRuntime {
         createdEvent: event,
       );
     });
+  }
+
+  void _validateReferencePair(
+    FutureMatterSourceReferenceKind? kind,
+    String? id,
+  ) {
+    if ((kind == null) != (id == null)) {
+      throw const RepositoryConstraintException(
+        'Source reference kind and ID must be provided together.',
+      );
+    }
+  }
+
+  Future<void> _requireSourceReference(
+    FutureMatterSourceReferenceKind kind,
+    String id,
+  ) async {
+    final exists = switch (kind) {
+      FutureMatterSourceReferenceKind.futureMatterCreatedEvent =>
+        await (_database.select(
+              _database.futureMatterCreatedEvents,
+            )..where((table) => table.id.equals(id))).getSingleOrNull() !=
+            null,
+      FutureMatterSourceReferenceKind.futureMatterChangeEvent =>
+        await (_database.select(
+              _database.futureMatterChangeEvents,
+            )..where((table) => table.id.equals(id))).getSingleOrNull() !=
+            null,
+      FutureMatterSourceReferenceKind.futureMatterCompletedEvent =>
+        await (_database.select(
+              _database.futureMatterCompletedEvents,
+            )..where((table) => table.id.equals(id))).getSingleOrNull() !=
+            null,
+      FutureMatterSourceReferenceKind.futureMatterAmendmentEvent =>
+        await (_database.select(
+              _database.futureMatterAmendmentEvents,
+            )..where((table) => table.id.equals(id))).getSingleOrNull() !=
+            null,
+      FutureMatterSourceReferenceKind.maintenanceRecord =>
+        await (_database.select(
+              _database.maintenanceRecords,
+            )..where((table) => table.id.equals(id))).getSingleOrNull() !=
+            null,
+    };
+    if (!exists) {
+      throw RepositoryConstraintException(
+        'Source reference ${kind.name}:$id does not exist.',
+      );
+    }
   }
 
   @override
@@ -221,6 +286,15 @@ FutureMatter _matter(FutureMatterRow row) => FutureMatter(
   lifecycleStatus: FutureMatterLifecycleStatus.values.byName(
     row.lifecycleStatus,
   ),
+  createdSource: row.createdSource == null
+      ? null
+      : FutureMatterSource.values.byName(row.createdSource!),
+  createdSourceReferenceKind: row.createdSourceReferenceKind == null
+      ? null
+      : FutureMatterSourceReferenceKind.values.byName(
+          row.createdSourceReferenceKind!,
+        ),
+  createdSourceReferenceId: row.createdSourceReferenceId,
   timingMode: FutureMatterTimingMode.values.byName(row.timingMode),
   specifiedDate: _date(row.specifiedDate),
   specifiedMinuteOfDay: row.specifiedMinuteOfDay,

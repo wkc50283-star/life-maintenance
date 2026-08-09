@@ -149,6 +149,15 @@ FutureMatter _matter(FutureMatterRow row) => FutureMatter(
   lifecycleStatus: FutureMatterLifecycleStatus.values.byName(
     row.lifecycleStatus,
   ),
+  createdSource: row.createdSource == null
+      ? null
+      : FutureMatterSource.values.byName(row.createdSource!),
+  createdSourceReferenceKind: row.createdSourceReferenceKind == null
+      ? null
+      : FutureMatterSourceReferenceKind.values.byName(
+          row.createdSourceReferenceKind!,
+        ),
+  createdSourceReferenceId: row.createdSourceReferenceId,
   timingMode: FutureMatterTimingMode.values.byName(row.timingMode),
   specifiedDate: _date(row.specifiedDate),
   specifiedMinuteOfDay: row.specifiedMinuteOfDay,

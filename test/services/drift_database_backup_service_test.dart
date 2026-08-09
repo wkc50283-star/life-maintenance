@@ -29,7 +29,7 @@ void main() {
     }
   });
 
-  test('creates and validates a complete schema v9 SQLite backup', () async {
+  test('creates and validates a complete schema v10 SQLite backup', () async {
     final service = DriftDatabaseBackupService();
 
     final validation = await service.createBackup(
@@ -37,7 +37,7 @@ void main() {
       destination: backup,
     );
 
-    expect(validation.formatVersion, 9);
+    expect(validation.formatVersion, 10);
     expect(validation.rowCounts['items'], 1);
     expect(validation.rowCounts['item_management_periods'], 1);
     expect(validation.rowCounts['item_lifecycle_events'], 1);
@@ -80,7 +80,7 @@ void main() {
     final migrated = AppDatabase(NativeDatabase(destination));
     addTearDown(migrated.close);
     await migrated.customSelect('SELECT 1').get();
-    expect(migrated.schemaVersion, 9);
+    expect(migrated.schemaVersion, 10);
     expect(await migrated.select(migrated.items).get(), hasLength(1));
     expect(
       await migrated.select(migrated.itemCustomManagementPeriods).get(),
@@ -109,7 +109,7 @@ void main() {
     final migrated = AppDatabase(NativeDatabase(destination));
     addTearDown(migrated.close);
     await migrated.customSelect('SELECT 1').get();
-    expect(migrated.schemaVersion, 9);
+    expect(migrated.schemaVersion, 10);
     expect(await migrated.select(migrated.items).get(), hasLength(1));
     expect(
       await migrated.select(migrated.itemCustomManagementPeriods).get(),
@@ -135,7 +135,7 @@ void main() {
     final migrated = AppDatabase(NativeDatabase(destination));
     addTearDown(migrated.close);
     await migrated.customSelect('SELECT 1').get();
-    expect(migrated.schemaVersion, 9);
+    expect(migrated.schemaVersion, 10);
     expect(await migrated.select(migrated.items).get(), hasLength(1));
     expect(await migrated.select(migrated.futureMatters).get(), isEmpty);
     expect(
@@ -279,6 +279,129 @@ void main() {
     },
   );
 
+  test('restores schema v9 with null provenance and migrates to v10', () async {
+    await _downgradeToSchemaV9(source);
+    final service = DriftDatabaseBackupService();
+    final validation = await service.createBackup(
+      source: source,
+      destination: backup,
+    );
+    expect(validation.formatVersion, 9);
+    await service.restore(backup: backup, destination: destination);
+
+    final migrated = AppDatabase(NativeDatabase(destination));
+    await migrated.customSelect('SELECT 1').get();
+    expect(migrated.schemaVersion, 10);
+    final matters = await migrated.select(migrated.futureMatters).get();
+    expect(matters, isNotEmpty);
+    expect(matters.every((row) => row.createdSource == null), isTrue);
+    expect(
+      await migrated.select(migrated.futureMatterAmendmentEvents).get(),
+      isEmpty,
+    );
+    await migrated.close();
+  });
+
+  test(
+    'schema v10 backup round trips amendment structured snapshots',
+    () async {
+      final sourceDatabase = AppDatabase(NativeDatabase(source));
+      await sourceDatabase.customSelect('SELECT 1').get();
+      await sourceDatabase
+          .into(sourceDatabase.futureMatterAmendmentEvents)
+          .insert(
+            FutureMatterAmendmentEventsCompanion.insert(
+              id: 'backup-amendment',
+              futureMatterId: 'future-specified-source-item',
+              eventType: 'supplement',
+              targetEventKind: 'completed',
+              targetEventId: 'future-completed-source-item',
+              recordedAt: DateTime.utc(2026, 7, 22),
+              eventSource: 'backfill',
+              sourceReferenceKind: const Value('maintenanceRecord'),
+              sourceReferenceId: const Value('maintenance-record-source-item'),
+            ),
+          );
+      for (final entry in const [
+        ('attachments', 'attachmentCollection'),
+        ('cost', 'money'),
+        ('relatedPeople', 'relatedPeopleCollection'),
+      ]) {
+        await sourceDatabase
+            .into(sourceDatabase.futureMatterAmendmentFieldChanges)
+            .insert(
+              FutureMatterAmendmentFieldChangesCompanion.insert(
+                eventId: 'backup-amendment',
+                fieldKey: entry.$1,
+                valueType: entry.$2,
+                oldState: 'absent',
+                newState: 'value',
+              ),
+            );
+      }
+      await sourceDatabase
+          .into(sourceDatabase.futureMatterAmendmentAttachmentValues)
+          .insert(
+            FutureMatterAmendmentAttachmentValuesCompanion.insert(
+              eventId: 'backup-amendment',
+              valueSide: 'new',
+              attachmentId: 'historic-attachment-id',
+            ),
+          );
+      await sourceDatabase
+          .into(sourceDatabase.futureMatterAmendmentMoneyValues)
+          .insert(
+            FutureMatterAmendmentMoneyValuesCompanion.insert(
+              eventId: 'backup-amendment',
+              valueSide: 'new',
+              amountMinor: 0,
+              currency: 'TWD',
+            ),
+          );
+      await sourceDatabase
+          .into(sourceDatabase.futureMatterAmendmentRelatedPeople)
+          .insert(
+            FutureMatterAmendmentRelatedPeopleCompanion.insert(
+              id: 'backup-person',
+              eventId: 'backup-amendment',
+              valueSide: 'new',
+              displayName: '王先生',
+              relationNote: const Value('聯絡人'),
+            ),
+          );
+      await sourceDatabase.close();
+
+      final service = DriftDatabaseBackupService();
+      await service.createBackup(source: source, destination: backup);
+      await service.restore(backup: backup, destination: destination);
+      final restored = AppDatabase(NativeDatabase(destination));
+      await restored.customSelect('SELECT 1').get();
+      expect(
+        (await restored
+                .select(restored.futureMatterAmendmentEvents)
+                .getSingle())
+            .sourceReferenceId,
+        'maintenance-record-source-item',
+      );
+      expect(
+        (await restored
+                .select(restored.futureMatterAmendmentAttachmentValues)
+                .getSingle())
+            .attachmentId,
+        'historic-attachment-id',
+      );
+      final money = await restored
+          .select(restored.futureMatterAmendmentMoneyValues)
+          .getSingle();
+      expect((money.amountMinor, money.currency), (0, 'TWD'));
+      final person = await restored
+          .select(restored.futureMatterAmendmentRelatedPeople)
+          .getSingle();
+      expect((person.displayName, person.relationNote), ('王先生', '聯絡人'));
+      await restored.close();
+    },
+  );
+
   test('restores a schema v7 backup that migrates cleanly to v9', () async {
     await _downgradeToSchemaV7(source);
     final service = DriftDatabaseBackupService();
@@ -295,7 +418,7 @@ void main() {
     final migrated = AppDatabase(NativeDatabase(destination));
     addTearDown(migrated.close);
     await migrated.customSelect('SELECT 1').get();
-    expect(migrated.schemaVersion, 9);
+    expect(migrated.schemaVersion, 10);
     expect(await migrated.select(migrated.futureMatters).get(), hasLength(3));
     expect(
       await migrated.select(migrated.futureMatterChangeEvents).get(),
@@ -319,7 +442,7 @@ void main() {
     final migrated = AppDatabase(NativeDatabase(destination));
     addTearDown(migrated.close);
     await migrated.customSelect('SELECT 1').get();
-    expect(migrated.schemaVersion, 9);
+    expect(migrated.schemaVersion, 10);
     expect(
       (await migrated.select(migrated.futureMatters).get()).every(
         (row) => row.lifecycleStatus == 'active',
@@ -798,6 +921,13 @@ Future<void> _downgradeToSchemaV4(File file) async {
   raw.close();
 }
 
+Future<void> _downgradeToSchemaV9(File file) async {
+  final raw = sqlite3.open(file.path);
+  _dropSchemaV10(raw);
+  raw.execute('PRAGMA user_version = 9');
+  raw.close();
+}
+
 Future<void> _downgradeToSchemaV5(File file) async {
   final raw = sqlite3.open(file.path);
   _dropSchemaV9(raw);
@@ -838,6 +968,7 @@ void _dropSchemaV8(Database database) {
 }
 
 void _dropSchemaV9(Database database) {
+  _dropSchemaV10(database);
   database.execute('DROP TRIGGER IF EXISTS future_matters_completed_no_update');
   database.execute(
     'DROP TRIGGER IF EXISTS future_matter_completed_events_no_update',
@@ -847,6 +978,40 @@ void _dropSchemaV9(Database database) {
   );
   database.execute('DROP TABLE future_matter_completed_events');
   database.execute("UPDATE future_matters SET lifecycle_status = 'active'");
+}
+
+void _dropSchemaV10(Database database) {
+  database.execute(
+    'DROP TRIGGER IF EXISTS future_matters_created_provenance_no_update',
+  );
+  database.execute(
+    'DROP TRIGGER IF EXISTS future_matters_created_provenance_validate_insert',
+  );
+  database.execute(
+    'DROP TRIGGER IF EXISTS future_matters_created_provenance_validate_update',
+  );
+  for (final table in const [
+    'future_matter_amendment_money_values',
+    'future_matter_amendment_related_people',
+    'future_matter_amendment_attachment_values',
+    'future_matter_amendment_field_changes',
+    'future_matter_amendment_events',
+  ]) {
+    database.execute('DROP TABLE IF EXISTS $table');
+  }
+  final columns = database
+      .select("PRAGMA table_info('future_matters')")
+      .map((row) => row['name'])
+      .toSet();
+  if (columns.contains('created_source')) {
+    database.execute('ALTER TABLE future_matters DROP COLUMN created_source');
+    database.execute(
+      'ALTER TABLE future_matters DROP COLUMN created_source_reference_kind',
+    );
+    database.execute(
+      'ALTER TABLE future_matters DROP COLUMN created_source_reference_id',
+    );
+  }
 }
 
 void _dropSchemaV7(Database database) {

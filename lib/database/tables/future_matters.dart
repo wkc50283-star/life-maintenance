@@ -29,6 +29,9 @@ class FutureMatters extends Table {
   TextColumn get conditionDelayUnit => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
+  TextColumn get createdSource => text().nullable()();
+  TextColumn get createdSourceReferenceKind => text().nullable()();
+  TextColumn get createdSourceReferenceId => text().nullable()();
 
   @override
   Set<Column<Object>> get primaryKey => {id};

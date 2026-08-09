@@ -41,7 +41,7 @@ void main() {
     await database.close();
   });
 
-  test('schema v9 creates the formal life-management tables', () async {
+  test('schema v10 creates the formal life-management tables', () async {
     final rows = await database
         .customSelect(
           "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name",
@@ -49,7 +49,7 @@ void main() {
         .get();
     final names = rows.map((row) => row.read<String>('name')).toSet();
 
-    expect(database.schemaVersion, 9);
+    expect(database.schemaVersion, 10);
     expect(
       names,
       containsAll(<String>{

@@ -14,6 +14,11 @@ import 'tables/future_matter_created_events.dart';
 import 'tables/future_matter_change_event_snapshots.dart';
 import 'tables/future_matter_change_events.dart';
 import 'tables/future_matter_completed_events.dart';
+import 'tables/future_matter_amendment_attachment_values.dart';
+import 'tables/future_matter_amendment_events.dart';
+import 'tables/future_matter_amendment_field_changes.dart';
+import 'tables/future_matter_amendment_money_values.dart';
+import 'tables/future_matter_amendment_related_people.dart';
 import 'tables/future_matters.dart';
 import 'tables/general_reminders.dart';
 import 'tables/item_categories.dart';
@@ -67,6 +72,11 @@ part 'app_database.g.dart';
     FutureMatterChangeEvents,
     FutureMatterChangeEventSnapshots,
     FutureMatterCompletedEvents,
+    FutureMatterAmendmentEvents,
+    FutureMatterAmendmentFieldChanges,
+    FutureMatterAmendmentAttachmentValues,
+    FutureMatterAmendmentRelatedPeople,
+    FutureMatterAmendmentMoneyValues,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -85,7 +95,7 @@ class AppDatabase extends _$AppDatabase {
       );
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -97,6 +107,7 @@ class AppDatabase extends _$AppDatabase {
       await _createSchemaV7ProtectionTriggers();
       await _createSchemaV8ProtectionTriggers();
       await _createSchemaV9ProtectionTriggers();
+      await _createSchemaV10ProtectionTriggers();
       await _ensureUnclassifiedCategory();
     },
     onUpgrade: (migrator, from, to) async {
@@ -107,7 +118,8 @@ class AppDatabase extends _$AppDatabase {
               to == 6 ||
               to == 7 ||
               to == 8 ||
-              to == 9)) {
+              to == 9 ||
+              to == 10)) {
         await customStatement('PRAGMA foreign_keys = OFF');
         await transaction(() async {
           await _migrateV1ToV2(migrator);
@@ -121,7 +133,8 @@ class AppDatabase extends _$AppDatabase {
             await _createSchemaV8(migrator);
             await _createSchemaV8ProtectionTriggers();
           }
-          if (to == 9) await _createSchemaV9(migrator);
+          if (to >= 9) await _createSchemaV9(migrator);
+          if (to == 10) await _createSchemaV10(migrator);
           await _ensureUnclassifiedCategory();
           await _throwIfForeignKeyViolations();
         });
@@ -134,7 +147,8 @@ class AppDatabase extends _$AppDatabase {
               to == 6 ||
               to == 7 ||
               to == 8 ||
-              to == 9)) {
+              to == 9 ||
+              to == 10)) {
         await transaction(() async {
           await migrator.addColumn(workCases, workCases.sourceTaskId);
           await customStatement(
@@ -162,13 +176,20 @@ class AppDatabase extends _$AppDatabase {
             await _createSchemaV8(migrator);
             await _createSchemaV8ProtectionTriggers();
           }
-          if (to == 9) await _createSchemaV9(migrator);
+          if (to >= 9) await _createSchemaV9(migrator);
+          if (to == 10) await _createSchemaV10(migrator);
           await _throwIfForeignKeyViolations();
         });
         return;
       }
       if (from == 3 &&
-          (to == 4 || to == 5 || to == 6 || to == 7 || to == 8 || to == 9)) {
+          (to == 4 ||
+              to == 5 ||
+              to == 6 ||
+              to == 7 ||
+              to == 8 ||
+              to == 9 ||
+              to == 10)) {
         await transaction(() async {
           await _createSchemaV4(migrator);
           await _createSchemaV4ImmutabilityTriggers();
@@ -188,13 +209,15 @@ class AppDatabase extends _$AppDatabase {
             await _createSchemaV8(migrator);
             await _createSchemaV8ProtectionTriggers();
           }
-          if (to == 9) await _createSchemaV9(migrator);
+          if (to >= 9) await _createSchemaV9(migrator);
+          if (to == 10) await _createSchemaV10(migrator);
           await _ensureUnclassifiedCategory();
           await _throwIfForeignKeyViolations();
         });
         return;
       }
-      if (from == 4 && (to == 5 || to == 6 || to == 7 || to == 8 || to == 9)) {
+      if (from == 4 &&
+          (to == 5 || to == 6 || to == 7 || to == 8 || to == 9 || to == 10)) {
         await transaction(() async {
           await _createSchemaV5(migrator);
           await _createSchemaV5ProtectionTriggers();
@@ -210,12 +233,13 @@ class AppDatabase extends _$AppDatabase {
             await _createSchemaV8(migrator);
             await _createSchemaV8ProtectionTriggers();
           }
-          if (to == 9) await _createSchemaV9(migrator);
+          if (to >= 9) await _createSchemaV9(migrator);
+          if (to == 10) await _createSchemaV10(migrator);
           await _throwIfForeignKeyViolations();
         });
         return;
       }
-      if (from == 5 && (to == 6 || to == 7 || to == 8 || to == 9)) {
+      if (from == 5 && (to == 6 || to == 7 || to == 8 || to == 9 || to == 10)) {
         await transaction(() async {
           await _createSchemaV6(migrator);
           await _createSchemaV6ProtectionTriggers();
@@ -227,12 +251,13 @@ class AppDatabase extends _$AppDatabase {
             await _createSchemaV8(migrator);
             await _createSchemaV8ProtectionTriggers();
           }
-          if (to == 9) await _createSchemaV9(migrator);
+          if (to >= 9) await _createSchemaV9(migrator);
+          if (to == 10) await _createSchemaV10(migrator);
           await _throwIfForeignKeyViolations();
         });
         return;
       }
-      if (from == 6 && (to == 7 || to == 8 || to == 9)) {
+      if (from == 6 && (to == 7 || to == 8 || to == 9 || to == 10)) {
         await transaction(() async {
           await _createSchemaV7(migrator);
           await _createSchemaV7ProtectionTriggers();
@@ -240,23 +265,33 @@ class AppDatabase extends _$AppDatabase {
             await _createSchemaV8(migrator);
             await _createSchemaV8ProtectionTriggers();
           }
-          if (to == 9) await _createSchemaV9(migrator);
+          if (to >= 9) await _createSchemaV9(migrator);
+          if (to == 10) await _createSchemaV10(migrator);
           await _throwIfForeignKeyViolations();
         });
         return;
       }
-      if (from == 7 && (to == 8 || to == 9)) {
+      if (from == 7 && (to == 8 || to == 9 || to == 10)) {
         await transaction(() async {
           await _createSchemaV8(migrator);
           await _createSchemaV8ProtectionTriggers();
-          if (to == 9) await _createSchemaV9(migrator);
+          if (to >= 9) await _createSchemaV9(migrator);
+          if (to == 10) await _createSchemaV10(migrator);
           await _throwIfForeignKeyViolations();
         });
         return;
       }
-      if (from == 8 && to == 9) {
+      if (from == 8 && (to == 9 || to == 10)) {
         await transaction(() async {
           await _createSchemaV9(migrator);
+          if (to == 10) await _createSchemaV10(migrator);
+          await _throwIfForeignKeyViolations();
+        });
+        return;
+      }
+      if (from == 9 && to == 10) {
+        await transaction(() async {
+          await _createSchemaV10(migrator);
           await _throwIfForeignKeyViolations();
         });
         return;
@@ -453,6 +488,130 @@ class AppDatabase extends _$AppDatabase {
       WHEN OLD.lifecycle_status = 'completed'
       BEGIN
         SELECT RAISE(ABORT, 'Completed future matters are immutable');
+      END
+    ''');
+  }
+
+  Future<void> _createSchemaV10(Migrator migrator) async {
+    final columns = await customSelect(
+      "PRAGMA table_info('future_matters')",
+    ).get();
+    final names = columns.map((row) => row.data['name']).toSet();
+    if (!names.contains('created_source')) {
+      await migrator.addColumn(futureMatters, futureMatters.createdSource);
+      await migrator.addColumn(
+        futureMatters,
+        futureMatters.createdSourceReferenceKind,
+      );
+      await migrator.addColumn(
+        futureMatters,
+        futureMatters.createdSourceReferenceId,
+      );
+    }
+    await migrator.createTable(futureMatterAmendmentEvents);
+    await migrator.createTable(futureMatterAmendmentFieldChanges);
+    await migrator.createTable(futureMatterAmendmentAttachmentValues);
+    await migrator.createTable(futureMatterAmendmentRelatedPeople);
+    await migrator.createTable(futureMatterAmendmentMoneyValues);
+    for (final name in const [
+      'future_matter_amendment_events_matter_order_idx',
+      'future_matter_amendment_events_target_idx',
+      'future_matter_amendment_events_source_reference_idx',
+    ]) {
+      final index = allSchemaEntities.whereType<Index>().singleWhere(
+        (entity) => entity.entityName == name,
+      );
+      final statement = index.createStatementsByDialect[SqlDialect.sqlite];
+      if (statement == null) {
+        throw StateError('Missing SQLite definition for ${index.entityName}.');
+      }
+      await customStatement(
+        statement.replaceFirst('CREATE INDEX ', 'CREATE INDEX IF NOT EXISTS '),
+      );
+    }
+    await _createSchemaV10ProtectionTriggers();
+  }
+
+  Future<void> _createSchemaV10ProtectionTriggers() async {
+    for (final table in const [
+      'future_matter_amendment_events',
+      'future_matter_amendment_field_changes',
+      'future_matter_amendment_attachment_values',
+      'future_matter_amendment_related_people',
+      'future_matter_amendment_money_values',
+    ]) {
+      await customStatement('''
+        CREATE TRIGGER IF NOT EXISTS ${table}_no_update
+        BEFORE UPDATE ON $table
+        BEGIN
+          SELECT RAISE(ABORT, 'Future matter amendment history is immutable');
+        END
+      ''');
+      await customStatement('''
+        CREATE TRIGGER IF NOT EXISTS ${table}_no_delete
+        BEFORE DELETE ON $table
+        BEGIN
+          SELECT RAISE(ABORT, 'Future matter amendment history is immutable');
+        END
+      ''');
+    }
+    await customStatement('''
+      CREATE TRIGGER IF NOT EXISTS future_matters_created_provenance_validate_insert
+      BEFORE INSERT ON future_matters
+      WHEN (NEW.created_source IS NOT NULL AND NEW.created_source NOT IN ('manual', 'ai', 'backfill', 'system'))
+        OR ((NEW.created_source_reference_kind IS NULL) <> (NEW.created_source_reference_id IS NULL))
+        OR (NEW.created_source_reference_kind IS NOT NULL AND NEW.created_source_reference_kind NOT IN ('futureMatterCreatedEvent', 'futureMatterChangeEvent', 'futureMatterCompletedEvent', 'futureMatterAmendmentEvent', 'maintenanceRecord'))
+        OR (NEW.created_source_reference_id IS NOT NULL AND trim(NEW.created_source_reference_id) = '')
+      BEGIN
+        SELECT RAISE(ABORT, 'Invalid future matter created provenance');
+      END
+    ''');
+    await customStatement('''
+      CREATE TRIGGER IF NOT EXISTS future_matters_created_provenance_validate_update
+      BEFORE UPDATE ON future_matters
+      WHEN (NEW.created_source IS NOT NULL AND NEW.created_source NOT IN ('manual', 'ai', 'backfill', 'system'))
+        OR ((NEW.created_source_reference_kind IS NULL) <> (NEW.created_source_reference_id IS NULL))
+        OR (NEW.created_source_reference_kind IS NOT NULL AND NEW.created_source_reference_kind NOT IN ('futureMatterCreatedEvent', 'futureMatterChangeEvent', 'futureMatterCompletedEvent', 'futureMatterAmendmentEvent', 'maintenanceRecord'))
+        OR (NEW.created_source_reference_id IS NOT NULL AND trim(NEW.created_source_reference_id) = '')
+      BEGIN
+        SELECT RAISE(ABORT, 'Invalid future matter created provenance');
+      END
+    ''');
+    await customStatement('''
+      CREATE TRIGGER IF NOT EXISTS future_matters_created_provenance_no_update
+      BEFORE UPDATE OF created_source, created_source_reference_kind,
+        created_source_reference_id ON future_matters
+      WHEN OLD.created_source IS NOT NEW.created_source
+        OR OLD.created_source_reference_kind IS NOT NEW.created_source_reference_kind
+        OR OLD.created_source_reference_id IS NOT NEW.created_source_reference_id
+      BEGIN
+        SELECT RAISE(ABORT, 'Future matter created provenance is immutable');
+      END
+    ''');
+    await customStatement('''
+      CREATE TRIGGER IF NOT EXISTS future_matter_amendment_field_changes_validate_insert
+      BEFORE INSERT ON future_matter_amendment_field_changes
+      WHEN (
+        (SELECT event_type FROM future_matter_amendment_events WHERE id = NEW.event_id) = 'supplement'
+        AND NOT (NEW.old_state = 'absent' AND NEW.new_state = 'value')
+      ) OR (
+        (SELECT event_type FROM future_matter_amendment_events WHERE id = NEW.event_id) = 'correction'
+        AND NOT (NEW.old_state = 'value' AND NEW.new_state IN ('value', 'null'))
+      ) OR (
+        NEW.value_type IN ('futureMatterDate', 'text')
+        AND ((NEW.old_state = 'value') <> (NEW.old_text_value IS NOT NULL)
+          OR (NEW.new_state = 'value') <> (NEW.new_text_value IS NOT NULL))
+      ) OR (
+        NEW.value_type = 'minuteOfDay'
+        AND ((NEW.old_state = 'value') <> (NEW.old_integer_value IS NOT NULL)
+          OR (NEW.new_state = 'value') <> (NEW.new_integer_value IS NOT NULL))
+      ) OR (
+        NEW.value_type IN ('attachmentCollection', 'money', 'relatedPeopleCollection')
+        AND (NEW.old_text_value IS NOT NULL OR NEW.new_text_value IS NOT NULL
+          OR NEW.old_integer_value IS NOT NULL OR NEW.new_integer_value IS NOT NULL)
+      )
+      BEGIN
+        SELECT RAISE(ABORT, 'Invalid future matter amendment field change');
       END
     ''');
   }

@@ -17,6 +17,7 @@ import '../attachment_repository.dart';
 import '../history_projection_repository.dart';
 import '../repository_constraint_exception.dart';
 import 'drift_maintenance_record_repository.dart';
+import 'drift_future_matter_amendment_runtime.dart';
 import 'schema_v2_drift_mappers.dart';
 import 'work_case_drift_mappers.dart';
 
@@ -43,6 +44,9 @@ class DriftHistoryProjectionRepository implements HistoryProjectionRepository {
       itemId: itemId,
     );
     final futureMatterCompletedEntries = await _futureMatterCompletedEntries(
+      itemId: itemId,
+    );
+    final futureMatterAmendmentEntries = await _futureMatterAmendmentEntries(
       itemId: itemId,
     );
     final entries = <HistoryEntry>[];
@@ -176,6 +180,7 @@ class DriftHistoryProjectionRepository implements HistoryProjectionRepository {
       futureMatterCreatedEntries: futureMatterCreatedEntries,
       futureMatterChangeEntries: futureMatterChangeEntries,
       futureMatterCompletedEntries: futureMatterCompletedEntries,
+      futureMatterAmendmentEntries: futureMatterAmendmentEntries,
       itemAttachments: await _attachments.listForOwner(
         AttachmentOwnerType.item,
         itemId,
@@ -195,6 +200,77 @@ class DriftHistoryProjectionRepository implements HistoryProjectionRepository {
   Future<List<FutureMatterCompletedHistoryEntry>>
   projectGlobalFutureMatterCompletedEntries() =>
       _futureMatterCompletedEntries();
+
+  Future<List<FutureMatterAmendmentHistoryEntry>>
+  projectGlobalFutureMatterAmendmentEntries() =>
+      _futureMatterAmendmentEntries();
+
+  Future<List<FutureMatterAmendmentHistoryEntry>>
+  _futureMatterAmendmentEntries({String? itemId}) async {
+    final query = _database.select(_database.futureMatterAmendmentEvents)
+      ..orderBy([
+        (table) => OrderingTerm.desc(table.recordedAt),
+        (table) => OrderingTerm.asc(table.id),
+      ]);
+    final runtime = DriftFutureMatterAmendmentRuntime(_database);
+    final result = <FutureMatterAmendmentHistoryEntry>[];
+    for (final row in await query.get()) {
+      if (itemId != null &&
+          !(await _amendmentItemScopes(
+            FutureMatterEventReference(
+              kind: FutureMatterTargetEventKind.values.byName(
+                row.targetEventKind,
+              ),
+              id: row.targetEventId,
+            ),
+          )).contains(itemId)) {
+        continue;
+      }
+      final event = (await runtime.listAmendments(
+        row.futureMatterId,
+      )).singleWhere((candidate) => candidate.id == row.id);
+      result.add(FutureMatterAmendmentHistoryEntry(event));
+    }
+    return result;
+  }
+
+  Future<Set<String>> _amendmentItemScopes(
+    FutureMatterEventReference target,
+  ) async {
+    switch (target.kind) {
+      case FutureMatterTargetEventKind.created:
+        final row = await (_database.select(
+          _database.futureMatterCreatedEvents,
+        )..where((table) => table.id.equals(target.id))).getSingle();
+        return {if (row.itemIdSnapshot != null) row.itemIdSnapshot!};
+      case FutureMatterTargetEventKind.completed:
+        final row = await (_database.select(
+          _database.futureMatterCompletedEvents,
+        )..where((table) => table.id.equals(target.id))).getSingle();
+        return {if (row.itemIdSnapshot != null) row.itemIdSnapshot!};
+      case FutureMatterTargetEventKind.change:
+        final rows = await (_database.select(
+          _database.futureMatterChangeEventSnapshots,
+        )..where((table) => table.eventId.equals(target.id))).get();
+        return {
+          for (final row in rows)
+            if (row.itemId != null) row.itemId!,
+        };
+      case FutureMatterTargetEventKind.supplement:
+      case FutureMatterTargetEventKind.correction:
+        final row = await (_database.select(
+          _database.futureMatterAmendmentEvents,
+        )..where((table) => table.id.equals(target.id))).getSingle();
+        return _amendmentItemScopes(
+          FutureMatterEventReference(
+            kind: FutureMatterTargetEventKind.values.byName(
+              row.targetEventKind,
+            ),
+            id: row.targetEventId,
+          ),
+        );
+    }
+  }
 
   Future<List<FutureMatterCompletedHistoryEntry>>
   _futureMatterCompletedEntries({String? itemId}) async {

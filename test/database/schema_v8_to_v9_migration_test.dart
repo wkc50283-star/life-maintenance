@@ -22,7 +22,7 @@ void main() {
       final database = AppDatabase(NativeDatabase(file));
       addTearDown(database.close);
       await database.customSelect('SELECT 1').get();
-      expect(database.schemaVersion, 9);
+      expect(database.schemaVersion, 10);
       expect(
         (await database.select(database.futureMatters).getSingle())
             .lifecycleStatus,
@@ -35,7 +35,7 @@ void main() {
     },
   );
 
-  test('fresh v9 and migrated v9 completion schema match', () async {
+  test('fresh v10 and migrated v10 FutureMatter schema match', () async {
     final directory = await Directory.systemTemp.createTemp('schema-v9-match-');
     addTearDown(() => directory.delete(recursive: true));
     final freshFile = File('${directory.path}/fresh.sqlite');
@@ -52,6 +52,7 @@ void main() {
 
     expect(_schema(migratedFile), _schema(freshFile));
     expect(_lifecycleColumn(migratedFile), _lifecycleColumn(freshFile));
+    expect(_provenanceColumns(migratedFile), _provenanceColumns(freshFile));
   });
 }
 
@@ -95,11 +96,33 @@ List<String> _schema(File file) {
     return database
         .select('''
           SELECT type, name, sql FROM sqlite_schema
-          WHERE name LIKE 'future_matter_completed_%'
-             OR name = 'future_matters_completed_no_update'
+          WHERE name LIKE 'future_matter_amendment_%'
+             OR name LIKE 'future_matters_created_provenance_%'
           ORDER BY type, name
         ''')
         .map((row) => '${row['type']}|${row['name']}|${row['sql']}')
+        .toList(growable: false);
+  } finally {
+    database.close();
+  }
+}
+
+List<String> _provenanceColumns(File file) {
+  final database = sqlite.sqlite3.open(file.path);
+  try {
+    return database
+        .select("PRAGMA table_info('future_matters')")
+        .where(
+          (row) => const {
+            'created_source',
+            'created_source_reference_kind',
+            'created_source_reference_id',
+          }.contains(row['name']),
+        )
+        .map(
+          (row) =>
+              '${row['name']}|${row['type']}|${row['notnull']}|${row['dflt_value']}',
+        )
         .toList(growable: false);
   } finally {
     database.close();
