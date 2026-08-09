@@ -36,7 +36,7 @@ void main() {
     expect(find.text('輸入'), findsNothing);
   });
 
-  testWidgets('advanced functions are immediately visible and operable', (
+  testWidgets('manual creation shows only four approved life purposes', (
     tester,
   ) async {
     final root = AppCompositionRoot(
@@ -48,18 +48,65 @@ void main() {
     await tester.tap(find.text('新增'));
     await tester.pumpAndSettle();
 
-    expect(find.text('更多建立方式'), findsOneWidget);
-    expect(find.text('分類'), findsOneWidget);
-    expect(find.text('保養項目與步驟'), findsOneWidget);
-    expect(find.text('一般提醒'), findsOneWidget);
-    expect(find.text('階段性重點'), findsOneWidget);
-    expect(find.text('提醒排程'), findsOneWidget);
-    expect(find.text('突發事項／工程'), findsOneWidget);
-    expect(find.text('補登完成紀錄'), findsOneWidget);
+    expect(find.text('你現在想做什麼？'), findsOneWidget);
+    expect(find.text('建立要長期管理的內容'), findsOneWidget);
+    expect(find.text('安排未來要注意或處理的事情'), findsOneWidget);
+    expect(find.text('記錄正在處理的事情'), findsOneWidget);
+    expect(find.text('補記已完成的事情'), findsOneWidget);
+    for (final legacyLabel in [
+      '更多建立方式',
+      '分類',
+      '保養項目與步驟',
+      '一般提醒',
+      '階段性重點',
+      '提醒排程',
+      '突發事項／工程',
+      '補登完成紀錄',
+    ]) {
+      expect(find.text(legacyLabel), findsNothing);
+    }
+  });
 
-    await tester.tap(find.text('分類'));
+  testWidgets('four purposes route correctly and returning writes no data', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(320, 568);
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+    final root = AppCompositionRoot(
+      database: AppDatabase(NativeDatabase.memory()),
+    );
+    addTearDown(root.database.close);
+    await tester.pumpWidget(LifeMaintenanceApp(compositionRoot: root));
     await tester.pumpAndSettle();
-    expect(find.byType(CategoryManagementScreen), findsOneWidget);
+    await tester.tap(find.text('新增'));
+    await tester.pumpAndSettle();
+    final before = await _formalWriteCount(root.database);
+
+    await _tapPurpose(tester, 'manual-create-purpose-item');
+    expect(find.byType(ItemFormScreen), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    for (final route in const {
+      'manual-create-purpose-future-matter':
+          'manual-create-future-matter-route',
+      'manual-create-purpose-work-case': 'manual-create-work-case-route',
+      'manual-create-purpose-completed': 'manual-create-completed-route',
+    }.entries) {
+      await _tapPurpose(tester, route.key);
+      expect(find.byKey(ValueKey(route.value)), findsOneWidget);
+      expect(find.textContaining('尚在準備中'), findsOneWidget);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+    }
+
+    expect(await _formalWriteCount(root.database), before);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('home photo and voice report unavailable honestly', (
@@ -80,4 +127,28 @@ void main() {
     await tester.pump();
     expect(find.text('語音建立尚未啟用，先使用輸入建立。'), findsOneWidget);
   });
+}
+
+Future<void> _tapPurpose(WidgetTester tester, String key) async {
+  final finder = find.byKey(ValueKey(key));
+  await tester.scrollUntilVisible(
+    finder,
+    120,
+    scrollable: find.byType(Scrollable).last,
+  );
+  await tester.tap(finder);
+  await tester.pumpAndSettle();
+}
+
+Future<int> _formalWriteCount(AppDatabase database) async {
+  final row = await database.customSelect('''
+    SELECT
+      (SELECT count(*) FROM items) +
+      (SELECT count(*) FROM future_matters) +
+      (SELECT count(*) FROM work_cases) +
+      (SELECT count(*) FROM maintenance_records) +
+      (SELECT count(*) FROM item_lifecycle_events) +
+      (SELECT count(*) FROM future_matter_created_events) AS total
+  ''').getSingle();
+  return row.read<int>('total');
 }

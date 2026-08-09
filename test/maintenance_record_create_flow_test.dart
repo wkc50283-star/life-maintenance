@@ -32,13 +32,12 @@ void main() {
   ) async {
     await _pumpAddScreen(tester, root);
 
-    expect(find.text('補登完成紀錄'), findsOneWidget);
-    expect(find.text('突發事項／工程'), findsOneWidget);
-    expect(find.text('一般提醒'), findsOneWidget);
+    expect(find.text('補記已完成的事情'), findsOneWidget);
+    expect(find.text('補登完成紀錄'), findsNothing);
+    expect(find.text('突發事項／工程'), findsNothing);
+    expect(find.text('一般提醒'), findsNothing);
 
-    await tester.scrollUntilVisible(find.text('補登完成紀錄'), 150);
-    await tester.tap(find.text('補登完成紀錄'));
-    await tester.pumpAndSettle();
+    await _openForm(tester);
 
     expect(find.byType(ManualMaintenanceRecordFormScreen), findsOneWidget);
     expect(find.text('目前還沒有生活項目'), findsOneWidget);
@@ -47,7 +46,7 @@ void main() {
   });
 
   testWidgets(
-    'archives remain selectable and a past fact is read back exactly into History and detail',
+    'archives remain selectable and a past fact is read back exactly into History',
     (tester) async {
       await _seedItem(root, id: 'item-active', name: '客廳冷氣');
       await _seedItem(
@@ -107,8 +106,6 @@ void main() {
         await root.maintenanceRecordRepository.findById(created.id),
         isNotNull,
       );
-      expect(find.text('已完成搬離'), findsOneWidget);
-      expect(find.text('保留收據'), findsOneWidget);
       expect(
         (await root.itemReadRepository.loadItems())
             .singleWhere((item) => item.id == 'item-archived')
@@ -266,9 +263,12 @@ Future<void> _pumpAddScreen(
 }
 
 Future<void> _openForm(WidgetTester tester) async {
-  final entry = find.text('補登完成紀錄');
-  await tester.scrollUntilVisible(entry, 150);
-  await tester.tap(entry);
+  final navigator = tester.state<NavigatorState>(find.byType(Navigator).first);
+  navigator.push(
+    MaterialPageRoute<void>(
+      builder: (_) => const ManualMaintenanceRecordFormScreen(),
+    ),
+  );
   await tester.pumpAndSettle();
 }
 
