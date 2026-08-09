@@ -18,6 +18,9 @@ class FutureMatterCreationRequest {
     this.conditionMaintenanceRecordId,
     this.conditionDelayValue,
     this.conditionDelayUnit,
+    this.createdSource,
+    this.createdSourceReferenceKind,
+    this.createdSourceReferenceId,
   });
 
   final String id;
@@ -36,6 +39,9 @@ class FutureMatterCreationRequest {
   final int? conditionDelayValue;
   final FutureMatterIntervalUnit? conditionDelayUnit;
   final DateTime createdAt;
+  final FutureMatterSource? createdSource;
+  final FutureMatterSourceReferenceKind? createdSourceReferenceKind;
+  final String? createdSourceReferenceId;
 }
 
 class FutureMatterCreationResult {

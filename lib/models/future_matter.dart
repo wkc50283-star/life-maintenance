@@ -6,6 +6,37 @@ enum FutureMatterConditionType { afterFormalCompletion }
 
 enum FutureMatterLifecycleStatus { active, completed }
 
+enum FutureMatterSource { manual, ai, backfill, system }
+
+enum FutureMatterSourceReferenceKind {
+  futureMatterCreatedEvent,
+  futureMatterChangeEvent,
+  futureMatterCompletedEvent,
+  futureMatterAmendmentEvent,
+  maintenanceRecord,
+}
+
+enum FutureMatterAmendmentType { supplement, correction }
+
+enum FutureMatterTargetEventKind {
+  created,
+  change,
+  completed,
+  supplement,
+  correction,
+}
+
+enum FutureMatterAmendmentField {
+  completedDate,
+  completedMinuteOfDay,
+  note,
+  attachments,
+  cost,
+  relatedPeople,
+}
+
+enum FutureMatterValueState { absent, nullValue, value }
+
 class FutureMatterDate {
   const FutureMatterDate(this.year, this.month, this.day);
 
@@ -77,6 +108,9 @@ class FutureMatter {
     this.conditionMaintenanceRecordId,
     this.conditionDelayValue,
     this.conditionDelayUnit,
+    this.createdSource,
+    this.createdSourceReferenceKind,
+    this.createdSourceReferenceId,
   });
 
   final String id;
@@ -96,6 +130,9 @@ class FutureMatter {
   final DateTime createdAt;
   final DateTime updatedAt;
   final FutureMatterLifecycleStatus lifecycleStatus;
+  final FutureMatterSource? createdSource;
+  final FutureMatterSourceReferenceKind? createdSourceReferenceKind;
+  final String? createdSourceReferenceId;
 }
 
 class FutureMatterCompletedEvent {
@@ -174,4 +211,139 @@ class FutureMatterChangeEvent {
   final DateTime createdAt;
   final FutureMatter before;
   final FutureMatter after;
+}
+
+class FutureMatterMoney {
+  const FutureMatterMoney({required this.amountMinor, required this.currency});
+
+  final int amountMinor;
+  final String currency;
+
+  @override
+  bool operator ==(Object other) =>
+      other is FutureMatterMoney &&
+      amountMinor == other.amountMinor &&
+      currency == other.currency;
+
+  @override
+  int get hashCode => Object.hash(amountMinor, currency);
+}
+
+class FutureMatterRelatedPerson {
+  const FutureMatterRelatedPerson({
+    required this.displayName,
+    this.relationNote,
+  });
+
+  final String displayName;
+  final String? relationNote;
+
+  @override
+  bool operator ==(Object other) =>
+      other is FutureMatterRelatedPerson &&
+      displayName == other.displayName &&
+      relationNote == other.relationNote;
+
+  @override
+  int get hashCode => Object.hash(displayName, relationNote);
+}
+
+class FutureMatterFieldValue {
+  const FutureMatterFieldValue._(this.state, this.value);
+
+  const FutureMatterFieldValue.absent()
+    : this._(FutureMatterValueState.absent, null);
+  const FutureMatterFieldValue.nullValue()
+    : this._(FutureMatterValueState.nullValue, null);
+  const FutureMatterFieldValue.value(Object this.value)
+    : state = FutureMatterValueState.value;
+
+  final FutureMatterValueState state;
+  final Object? value;
+
+  @override
+  bool operator ==(Object other) =>
+      other is FutureMatterFieldValue &&
+      state == other.state &&
+      _deepEquals(value, other.value);
+
+  @override
+  int get hashCode => Object.hash(state, _deepHash(value));
+}
+
+class FutureMatterFieldChange {
+  const FutureMatterFieldChange({
+    required this.field,
+    required this.oldValue,
+    required this.newValue,
+  });
+
+  final FutureMatterAmendmentField field;
+  final FutureMatterFieldValue oldValue;
+  final FutureMatterFieldValue newValue;
+}
+
+class FutureMatterEventReference {
+  const FutureMatterEventReference({required this.kind, required this.id});
+
+  final FutureMatterTargetEventKind kind;
+  final String id;
+}
+
+class FutureMatterAmendmentEvent {
+  FutureMatterAmendmentEvent({
+    required this.id,
+    required this.futureMatterId,
+    required this.eventType,
+    required this.target,
+    required this.recordedAt,
+    required this.eventSource,
+    required List<FutureMatterFieldChange> changes,
+    this.occurredAt,
+    this.sourceReferenceKind,
+    this.sourceReferenceId,
+  }) : changes = List.unmodifiable(changes);
+
+  final String id;
+  final String futureMatterId;
+  final FutureMatterAmendmentType eventType;
+  final FutureMatterEventReference target;
+  final DateTime? occurredAt;
+  final DateTime recordedAt;
+  final FutureMatterSource eventSource;
+  final FutureMatterSourceReferenceKind? sourceReferenceKind;
+  final String? sourceReferenceId;
+  final List<FutureMatterFieldChange> changes;
+}
+
+class FutureMatterEffectiveFacts {
+  FutureMatterEffectiveFacts(
+    Map<FutureMatterAmendmentField, FutureMatterFieldValue> values,
+  ) : values = Map.unmodifiable(values);
+
+  final Map<FutureMatterAmendmentField, FutureMatterFieldValue> values;
+}
+
+bool _deepEquals(Object? left, Object? right) {
+  if (left is List && right is List) {
+    if (left.length != right.length) return false;
+    final unmatched = [...right];
+    for (final value in left) {
+      final index = unmatched.indexWhere(
+        (candidate) => _deepEquals(value, candidate),
+      );
+      if (index < 0) return false;
+      unmatched.removeAt(index);
+    }
+    return true;
+  }
+  return left == right;
+}
+
+int _deepHash(Object? value) {
+  if (value is List) {
+    final hashes = value.map(_deepHash).toList()..sort();
+    return Object.hashAll(hashes);
+  }
+  return value.hashCode;
 }
