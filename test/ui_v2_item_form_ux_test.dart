@@ -440,6 +440,12 @@ void main() {
     await tester.tap(find.byTooltip('編輯生活項目'));
     await tester.pumpAndSettle();
 
+    await tester.tap(find.byKey(const ValueKey('manage-item-categories')));
+    await tester.pumpAndSettle();
+    expect(find.byType(CategoryManagementScreen), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
     await tester.enterText(find.byKey(const ValueKey('item-name')), '編輯後項目');
     await tester.tap(find.byKey(const ValueKey('item-form-next')));
     await tester.pumpAndSettle();

@@ -1326,7 +1326,14 @@ Future<void> _selectMilestoneDate(WidgetTester tester) async {
 }
 
 Future<void> _openManualWorkCaseForm(WidgetTester tester) async {
-  await _openAdvancedEntry(tester, '突發事項／工程');
+  final entry = find.byKey(const ValueKey('manual-create-purpose-work-case'));
+  await tester.scrollUntilVisible(
+    entry,
+    200,
+    scrollable: find.byType(Scrollable).first,
+  );
+  await tester.tap(entry);
+  await tester.pumpAndSettle();
 }
 
 Future<void> _openAdvancedEntry(WidgetTester tester, String label) async {
@@ -1348,7 +1355,6 @@ Future<void> _openAdvancedEntry(WidgetTester tester, String label) async {
       kind: PlanningContentKind.schedule,
       handoffCreatedSchedule: true,
     ),
-    '突發事項／工程' => const ManualWorkCaseFormScreen(),
     _ => throw ArgumentError.value(label, 'label'),
   };
   final navigator = tester.state<NavigatorState>(find.byType(Navigator).first);

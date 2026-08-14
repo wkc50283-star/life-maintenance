@@ -5,6 +5,8 @@ import 'package:life_maintenance/app/app_composition_root.dart';
 import 'package:life_maintenance/database/app_database.dart';
 import 'package:life_maintenance/main.dart';
 import 'package:life_maintenance/screens/formal_planning_screens.dart';
+import 'package:life_maintenance/screens/maintenance_record_screens.dart';
+import 'package:life_maintenance/screens/work_case_screens.dart';
 
 void main() {
   testWidgets('quick capture exists only on the overview', (tester) async {
@@ -89,21 +91,31 @@ void main() {
 
     await _tapPurpose(tester, 'manual-create-purpose-item');
     expect(find.byType(ItemFormScreen), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('manage-item-categories')));
+    await tester.pumpAndSettle();
+    expect(find.byType(CategoryManagementScreen), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
     await tester.pageBack();
     await tester.pumpAndSettle();
 
-    for (final route in const {
-      'manual-create-purpose-future-matter':
-          'manual-create-future-matter-route',
-      'manual-create-purpose-work-case': 'manual-create-work-case-route',
-      'manual-create-purpose-completed': 'manual-create-completed-route',
-    }.entries) {
-      await _tapPurpose(tester, route.key);
-      expect(find.byKey(ValueKey(route.value)), findsOneWidget);
-      expect(find.textContaining('尚在準備中'), findsOneWidget);
-      await tester.pageBack();
-      await tester.pumpAndSettle();
-    }
+    await _tapPurpose(tester, 'manual-create-purpose-future-matter');
+    expect(
+      find.byKey(const ValueKey('manual-create-future-matter-route')),
+      findsOneWidget,
+    );
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await _tapPurpose(tester, 'manual-create-purpose-work-case');
+    expect(find.byType(ManualWorkCaseFormScreen), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await _tapPurpose(tester, 'manual-create-purpose-completed');
+    expect(find.byType(ManualMaintenanceRecordFormScreen), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
 
     expect(await _formalWriteCount(root.database), before);
     expect(tester.takeException(), isNull);
@@ -147,6 +159,7 @@ Future<int> _formalWriteCount(AppDatabase database) async {
       (SELECT count(*) FROM future_matters) +
       (SELECT count(*) FROM work_cases) +
       (SELECT count(*) FROM maintenance_records) +
+      (SELECT count(*) FROM item_categories) +
       (SELECT count(*) FROM item_lifecycle_events) +
       (SELECT count(*) FROM future_matter_created_events) AS total
   ''').getSingle();

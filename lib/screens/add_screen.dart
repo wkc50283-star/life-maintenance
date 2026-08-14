@@ -8,6 +8,8 @@ import '../widgets/maintenance_record_preview_sheet.dart';
 import '../widgets/reminder_list_sheet.dart';
 import '../widgets/ui_v2_components.dart';
 import 'formal_planning_screens.dart';
+import 'maintenance_record_screens.dart';
+import 'work_case_screens.dart';
 
 class AddScreen extends StatefulWidget {
   const AddScreen({super.key, this.onShowItems});
@@ -141,10 +143,10 @@ class _FormalAddScreen extends StatelessWidget {
             icon: Icons.handyman_outlined,
             title: '記錄正在處理的事情',
             description: '例如突發狀況、修繕、維修或仍在處理的問題。',
-            onTap: () => openPurpose(
-              routeKey: 'manual-create-work-case-route',
-              title: '記錄正在處理的事情',
-              message: '處理中事項建立流程尚在準備中，目前不會建立任何資料。',
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const ManualWorkCaseFormScreen(),
+              ),
             ),
           ),
           AddEntryCard(
@@ -152,10 +154,10 @@ class _FormalAddScreen extends StatelessWidget {
             icon: Icons.fact_check_outlined,
             title: '補記已完成的事情',
             description: '例如補記實際完成日期、結果或相關紀錄。',
-            onTap: () => openPurpose(
-              routeKey: 'manual-create-completed-route',
-              title: '補記已完成的事情',
-              message: '補記完成流程尚在準備中，目前不會完成或修改任何資料。',
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const ManualMaintenanceRecordFormScreen(),
+              ),
             ),
           ),
         ],

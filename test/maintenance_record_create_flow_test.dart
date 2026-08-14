@@ -263,12 +263,13 @@ Future<void> _pumpAddScreen(
 }
 
 Future<void> _openForm(WidgetTester tester) async {
-  final navigator = tester.state<NavigatorState>(find.byType(Navigator).first);
-  navigator.push(
-    MaterialPageRoute<void>(
-      builder: (_) => const ManualMaintenanceRecordFormScreen(),
-    ),
+  final entry = find.byKey(const ValueKey('manual-create-purpose-completed'));
+  await tester.scrollUntilVisible(
+    entry,
+    150,
+    scrollable: find.byType(Scrollable).first,
   );
+  await tester.tap(entry);
   await tester.pumpAndSettle();
 }
 
