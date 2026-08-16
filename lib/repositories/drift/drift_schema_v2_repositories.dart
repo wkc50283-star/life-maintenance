@@ -854,18 +854,30 @@ class DriftWorkCaseClosureRepository implements WorkCaseClosureRepository {
         );
       }
       if (closure.nextScheduleId case final scheduleId?) {
+        final itemId = workCase.itemId;
+        if (itemId == null) {
+          throw const RepositoryConstraintException(
+            'An unlinked WorkCase cannot reference an Item-scoped follow-up.',
+          );
+        }
         await _requireSameItem(
           'Follow-up Schedule',
           scheduleId,
-          workCase.itemId,
+          itemId,
           (await _schedule(_database, scheduleId))?.itemId,
         );
       }
       if (closure.nextReminderTaskId case final taskId?) {
+        final itemId = workCase.itemId;
+        if (itemId == null) {
+          throw const RepositoryConstraintException(
+            'An unlinked WorkCase cannot reference an Item-scoped follow-up.',
+          );
+        }
         await _requireSameItem(
           'Follow-up Task',
           taskId,
-          workCase.itemId,
+          itemId,
           await _taskItemId(_database, taskId),
         );
       }

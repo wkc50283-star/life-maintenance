@@ -53,58 +53,13 @@ class DriftHistoryProjectionRepository implements HistoryProjectionRepository {
     final consumedTaskIds = <String>{};
     final consumedMilestoneIds = <String>{};
 
-    final caseQuery = _database.select(_database.workCases)
-      ..where(
-        (table) =>
-            table.itemId.equals(itemId) &
-            table.status.isIn([
-              WorkCaseStatus.completed.name,
-              WorkCaseStatus.canceled.name,
-            ]),
-      );
-    for (final row in await caseQuery.get()) {
-      final workCase = row.toModel();
-      final updateQuery = _database.select(_database.workCaseUpdates)
-        ..where((table) => table.workCaseId.equals(workCase.id))
-        ..orderBy([
-          (table) => OrderingTerm.asc(table.occurredAt),
-          (table) => OrderingTerm.asc(table.createdAt),
-        ]);
-      final updates = (await updateQuery.get())
-          .map((update) => update.toModel())
-          .toList(growable: false);
-      final closureQuery = _database.select(_database.workCaseClosures)
-        ..where((table) => table.workCaseId.equals(workCase.id));
-      final closure = (await closureQuery.getSingleOrNull())?.toModel();
-      final relatedTasks = await _relatedTasks(workCase);
-      consumedTaskIds.addAll(relatedTasks.map((task) => task.id));
-      final milestone = await _caseMilestone(workCase);
-      if (milestone != null) {
+    final workCaseEntries = await _workCaseEntries(itemId: itemId);
+    entries.addAll(workCaseEntries);
+    for (final entry in workCaseEntries) {
+      consumedTaskIds.addAll(entry.relatedTasks.map((task) => task.id));
+      if (entry.milestone case final milestone?) {
         consumedMilestoneIds.add(milestone.id);
       }
-
-      final attachmentGroups = await Future.wait<List<Attachment>>([
-        for (final update in updates)
-          _attachments.listForOwner(
-            AttachmentOwnerType.workCaseUpdate,
-            update.id,
-          ),
-        if (closure != null)
-          _attachments.listForOwner(
-            AttachmentOwnerType.workCaseClosure,
-            closure.id,
-          ),
-      ]);
-      entries.add(
-        WorkCaseHistoryEntry(
-          workCase: workCase,
-          updates: updates,
-          closure: closure,
-          relatedTasks: relatedTasks,
-          milestone: milestone,
-          attachments: attachmentGroups.expand((group) => group).toList(),
-        ),
-      );
     }
 
     final recordQuery = _database.select(_database.maintenanceRecords)
@@ -186,6 +141,64 @@ class DriftHistoryProjectionRepository implements HistoryProjectionRepository {
         itemId,
       ),
     );
+  }
+
+  @override
+  Future<List<WorkCaseHistoryEntry>> projectGlobalWorkCaseEntries() =>
+      _workCaseEntries();
+
+  Future<List<WorkCaseHistoryEntry>> _workCaseEntries({String? itemId}) async {
+    final caseQuery = _database.select(_database.workCases)
+      ..where((table) {
+        final terminal = table.status.isIn([
+          WorkCaseStatus.completed.name,
+          WorkCaseStatus.canceled.name,
+        ]);
+        return itemId == null
+            ? terminal
+            : table.itemId.equals(itemId) & terminal;
+      });
+    final entries = <WorkCaseHistoryEntry>[];
+    for (final row in await caseQuery.get()) {
+      final workCase = row.toModel();
+      final updateQuery = _database.select(_database.workCaseUpdates)
+        ..where((table) => table.workCaseId.equals(workCase.id))
+        ..orderBy([
+          (table) => OrderingTerm.asc(table.occurredAt),
+          (table) => OrderingTerm.asc(table.createdAt),
+        ]);
+      final updates = (await updateQuery.get())
+          .map((update) => update.toModel())
+          .toList(growable: false);
+      final closureQuery = _database.select(_database.workCaseClosures)
+        ..where((table) => table.workCaseId.equals(workCase.id));
+      final closure = (await closureQuery.getSingleOrNull())?.toModel();
+      final relatedTasks = await _relatedTasks(workCase);
+      final milestone = await _caseMilestone(workCase);
+      final attachmentGroups = await Future.wait<List<Attachment>>([
+        for (final update in updates)
+          _attachments.listForOwner(
+            AttachmentOwnerType.workCaseUpdate,
+            update.id,
+          ),
+        if (closure != null)
+          _attachments.listForOwner(
+            AttachmentOwnerType.workCaseClosure,
+            closure.id,
+          ),
+      ]);
+      entries.add(
+        WorkCaseHistoryEntry(
+          workCase: workCase,
+          updates: updates,
+          closure: closure,
+          relatedTasks: relatedTasks,
+          milestone: milestone,
+          attachments: attachmentGroups.expand((group) => group).toList(),
+        ),
+      );
+    }
+    return entries;
   }
 
   @override
@@ -599,8 +612,14 @@ class DriftHistoryProjectionRepository implements HistoryProjectionRepository {
         return const [];
     }
     final rows = await query.get();
+    final itemId = workCase.itemId;
+    if (itemId == null) {
+      throw const RepositoryConstraintException(
+        'A sourced WorkCase must belong to an Item.',
+      );
+    }
     for (final row in rows) {
-      _requireProjectionItem('Task', row.id, workCase.itemId, row.itemId);
+      _requireProjectionItem('Task', row.id, itemId, row.itemId);
     }
     return rows.map(_taskSnapshot).toList(growable: false);
   }
@@ -612,10 +631,16 @@ class DriftHistoryProjectionRepository implements HistoryProjectionRepository {
     }
     final milestone = await _milestone(workCase.sourceId!);
     if (milestone != null) {
+      final itemId = workCase.itemId;
+      if (itemId == null) {
+        throw const RepositoryConstraintException(
+          'A sourced WorkCase must belong to an Item.',
+        );
+      }
       _requireProjectionItem(
         'Milestone',
         milestone.id,
-        workCase.itemId,
+        itemId,
         milestone.itemId,
       );
     }

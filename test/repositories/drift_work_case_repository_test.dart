@@ -51,7 +51,7 @@ void main() {
 
   WorkCase buildCase({
     String id = 'case-1',
-    String itemId = 'item-1',
+    String? itemId = 'item-1',
     DateTime? updatedAt,
   }) {
     final createdAt = DateTime.utc(2026, 7, 18, 8);
@@ -101,6 +101,39 @@ void main() {
     expect(restored!.toJson(), workCase.toJson());
   });
 
+  test('manual cases may be unlinked without inventing an Item', () async {
+    final itemCount = (await database.select(database.items).get()).length;
+    final workCase = buildCase(itemId: null);
+
+    await repository.saveCase(workCase);
+
+    expect((await repository.findCaseById(workCase.id))?.itemId, isNull);
+    expect((await database.select(database.items).get()).length, itemCount);
+    expect(await repository.listCasesForItem('item-1'), isEmpty);
+    expect(await repository.listAllCases(), hasLength(1));
+  });
+
+  test('manual linked cases still require an existing Item', () async {
+    await expectLater(
+      repository.saveCase(buildCase(itemId: 'missing-item')),
+      throwsA(isA<RepositoryConstraintException>()),
+    );
+    expect(await repository.listAllCases(), isEmpty);
+  });
+
+  test('sourced cases cannot be unlinked', () async {
+    await expectLater(
+      repository.saveCase(
+        buildCase(itemId: null).copyWith(
+          sourceType: WorkCaseSourceType.generalReminder,
+          sourceId: 'reminder-1',
+        ),
+      ),
+      throwsA(isA<RepositoryConstraintException>()),
+    );
+    expect(await repository.listAllCases(), isEmpty);
+  });
+
   test('saveCase updates an open case instead of duplicating it', () async {
     final workCase = buildCase();
     final updatedAt = DateTime.utc(2026, 7, 19, 17);
@@ -120,6 +153,28 @@ void main() {
     expect(rows, hasLength(1));
     expect(restored!.status, WorkCaseStatus.waiting);
     expect(restored.description, '等待零件到貨');
+  });
+
+  test('item identity remains immutable in every direction', () async {
+    for (final transition in <(String?, String?)>[
+      (null, 'item-1'),
+      ('item-1', 'item-2'),
+      ('item-1', null),
+    ]) {
+      final id = 'case-${transition.$1 ?? 'null'}-${transition.$2 ?? 'null'}';
+      final original = buildCase(id: id, itemId: transition.$1);
+      await repository.saveCase(original);
+      await expectLater(
+        repository.saveCase(
+          original.copyWith(
+            itemId: transition.$2,
+            updatedAt: original.updatedAt.add(const Duration(minutes: 1)),
+          ),
+        ),
+        throwsA(isA<RepositoryConstraintException>()),
+      );
+      expect((await repository.findCaseById(id))?.itemId, transition.$1);
+    }
   });
 
   test('rejects completion without a formal WorkCaseClosure', () async {

@@ -56,7 +56,7 @@ void main() {
     addTearDown(database.close);
     await database.customSelect('SELECT 1').get();
 
-    expect(database.schemaVersion, 10);
+    expect(database.schemaVersion, 11);
     expect(await database.select(database.items).get(), hasLength(1));
     final fixed = await database.select(database.itemManagementPeriods).get();
     expect(fixed, hasLength(1));

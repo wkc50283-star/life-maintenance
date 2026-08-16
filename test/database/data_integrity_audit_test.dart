@@ -129,7 +129,7 @@ void main() {
             .insert(
               WorkCasesCompanion.insert(
                 id: 'committed-case',
-                itemId: 'item-1',
+                itemId: const Value('item-1'),
                 sourceType: WorkCaseSourceType.manual,
                 caseType: WorkCaseType.other,
                 title: '已承接案件',
@@ -146,7 +146,7 @@ void main() {
               .insert(
                 WorkCasesCompanion.insert(
                   id: 'rolled-back-case',
-                  itemId: 'item-1',
+                  itemId: const Value('item-1'),
                   sourceType: WorkCaseSourceType.manual,
                   caseType: WorkCaseType.other,
                   title: '不得殘留案件',

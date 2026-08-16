@@ -38,6 +38,9 @@ class DriftWorkCaseRuntime implements WorkCaseRuntime {
   Future<WorkCase?> findCaseById(String id) => _workCases.findCaseById(id);
 
   @override
+  Future<List<WorkCase>> listAllCases() => _workCases.listAllCases();
+
+  @override
   Future<List<WorkCase>> listCasesForItem(String itemId) =>
       _workCases.listCasesForItem(itemId);
 
@@ -205,10 +208,16 @@ class DriftWorkCaseRuntime implements WorkCaseRuntime {
 
       final reminderId = closure.nextReminderTaskId;
       if (reminderId != null && nextReminderDueDate != null) {
+        final itemId = workCase.itemId;
+        if (itemId == null) {
+          throw const RepositoryConstraintException(
+            'An unlinked WorkCase cannot create an Item-scoped follow-up.',
+          );
+        }
         await _tasks.save(
           TaskRow(
             id: reminderId,
-            itemId: workCase.itemId,
+            itemId: itemId,
             sourceType: 'manual',
             title: '後續留意：${workCase.title}',
             dueDate: nextReminderDueDate,

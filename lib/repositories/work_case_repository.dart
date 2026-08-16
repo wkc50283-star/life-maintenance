@@ -5,6 +5,8 @@ import '../models/work_case_enums.dart';
 abstract interface class WorkCaseRepository {
   Future<WorkCase?> findCaseById(String id);
 
+  Future<List<WorkCase>> listAllCases();
+
   Future<List<WorkCase>> listCasesForItem(String itemId);
 
   Future<List<WorkCaseUpdate>> listUpdatesForCase(String workCaseId);

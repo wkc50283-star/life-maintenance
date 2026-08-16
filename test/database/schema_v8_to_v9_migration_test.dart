@@ -22,7 +22,7 @@ void main() {
       final database = AppDatabase(NativeDatabase(file));
       addTearDown(database.close);
       await database.customSelect('SELECT 1').get();
-      expect(database.schemaVersion, 10);
+      expect(database.schemaVersion, 11);
       expect(
         (await database.select(database.futureMatters).getSingle())
             .lifecycleStatus,
@@ -35,7 +35,7 @@ void main() {
     },
   );
 
-  test('fresh v10 and migrated v10 FutureMatter schema match', () async {
+  test('fresh v11 and migrated v11 FutureMatter schema match', () async {
     final directory = await Directory.systemTemp.createTemp('schema-v9-match-');
     addTearDown(() => directory.delete(recursive: true));
     final freshFile = File('${directory.path}/fresh.sqlite');

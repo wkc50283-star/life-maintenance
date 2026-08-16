@@ -41,7 +41,7 @@ void main() {
     await database.close();
   });
 
-  test('schema v10 creates the formal life-management tables', () async {
+  test('schema v11 creates the formal life-management tables', () async {
     final rows = await database
         .customSelect(
           "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name",
@@ -49,7 +49,7 @@ void main() {
         .get();
     final names = rows.map((row) => row.read<String>('name')).toSet();
 
-    expect(database.schemaVersion, 10);
+    expect(database.schemaVersion, 11);
     expect(
       names,
       containsAll(<String>{
@@ -94,7 +94,7 @@ void main() {
           .insert(
             WorkCasesCompanion.insert(
               id: 'case-1',
-              itemId: 'item-1',
+              itemId: const Value('item-1'),
               sourceType: WorkCaseSourceType.manual,
               caseType: WorkCaseType.repair,
               title: '冷氣異音檢查',
@@ -143,7 +143,7 @@ void main() {
         .insert(
           WorkCasesCompanion.insert(
             id: 'orphan-case',
-            itemId: 'missing-item',
+            itemId: const Value('missing-item'),
             sourceType: WorkCaseSourceType.manual,
             caseType: WorkCaseType.other,
             title: '不應寫入的孤兒案件',
@@ -180,7 +180,7 @@ void main() {
         .insert(
           WorkCasesCompanion.insert(
             id: 'case-protected',
-            itemId: 'item-1',
+            itemId: const Value('item-1'),
             sourceType: WorkCaseSourceType.manual,
             caseType: WorkCaseType.construction,
             title: '陽台修繕',
@@ -217,7 +217,7 @@ void main() {
         .insert(
           WorkCasesCompanion.insert(
             id: 'item-protected-case',
-            itemId: 'item-1',
+            itemId: const Value('item-1'),
             sourceType: WorkCaseSourceType.manual,
             caseType: WorkCaseType.repair,
             title: '保護生活項目',
@@ -247,7 +247,7 @@ void main() {
               .insert(
                 WorkCasesCompanion.insert(
                   id: 'case-rollback',
-                  itemId: 'item-1',
+                  itemId: const Value('item-1'),
                   sourceType: WorkCaseSourceType.manual,
                   caseType: WorkCaseType.other,
                   title: '回復測試',

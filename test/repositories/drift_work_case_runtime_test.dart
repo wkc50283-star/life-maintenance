@@ -202,7 +202,7 @@ void main() {
 
   WorkCase workCase({
     String id = 'case-1',
-    String itemId = 'item-1',
+    String? itemId = 'item-1',
     WorkCaseSourceType sourceType = WorkCaseSourceType.manual,
     String? sourceId,
   }) => WorkCase(
@@ -846,5 +846,111 @@ void main() {
       throwsA(isA<RepositoryConstraintException>()),
     );
     expect((await runtime.findCaseById('case-1'))?.itemId, 'item-1');
+  });
+
+  test(
+    'unlinked manual case keeps updates closure attachments and global history',
+    () async {
+      await runtime.createManual(
+        workCase(itemId: null),
+        initialUpdate: update(),
+      );
+      await repositories.attachments.create(
+        Attachment(
+          id: 'attachment-unlinked',
+          ownerType: AttachmentOwnerType.workCaseUpdate,
+          ownerId: 'update-1',
+          kind: AttachmentKind.document,
+          storageIdentifier: 'managed-unlinked-document',
+          originalFileName: '案件文件.pdf',
+          mimeType: 'application/pdf',
+          contentHash: 'sha256:unlinked-document',
+          createdAt: now,
+        ),
+      );
+      await runtime.appendUpdate(update(id: 'update-2'));
+      await runtime.close(closure());
+
+      final history = DriftHistoryProjectionRepository(
+        database: database,
+        attachments: repositories.attachments,
+      );
+      final global = await history.projectGlobalWorkCaseEntries();
+
+      expect((await runtime.listAllCases()).single.itemId, isNull);
+      expect(global, hasLength(1));
+      expect(global.single.updates, hasLength(2));
+      expect(global.single.closure, isNotNull);
+      expect(global.single.attachments, hasLength(1));
+      expect(
+        (await history.projectForItem(
+          'item-1',
+        )).entries.whereType<WorkCaseHistoryEntry>(),
+        isEmpty,
+      );
+      expect(
+        (await history.projectForItem(
+          'item-2',
+        )).entries.whereType<WorkCaseHistoryEntry>(),
+        isEmpty,
+      );
+    },
+  );
+
+  test('open unlinked case is excluded from global History', () async {
+    await runtime.createManual(workCase(itemId: null));
+
+    final global = await DriftHistoryProjectionRepository(
+      database: database,
+      attachments: repositories.attachments,
+    ).projectGlobalWorkCaseEntries();
+
+    expect(global, isEmpty);
+  });
+
+  test('unlinked manual case can be canceled', () async {
+    await runtime.createManual(workCase(itemId: null));
+
+    await runtime.cancel(closure(), cancellationReason: '不再處理');
+
+    expect(
+      (await runtime.findCaseById('case-1'))?.status,
+      WorkCaseStatus.canceled,
+    );
+  });
+
+  test('source Task cannot create an unlinked case', () async {
+    await expectLater(
+      runtime.createFromTask(
+        taskId: 'task-1',
+        workCase: workCase(itemId: null),
+      ),
+      throwsA(isA<RepositoryConstraintException>()),
+    );
+    expect(await runtime.listAllCases(), isEmpty);
+  });
+
+  test('unlinked case rejects Item-scoped follow-up atomically', () async {
+    await runtime.createManual(workCase(itemId: null));
+    final value = closure(
+      followUpType: WorkCaseFollowUpType.scheduleAndReminder,
+      nextScheduleId: 'schedule-1',
+      nextReminderTaskId: 'task-unlinked-follow-up',
+    );
+
+    await expectLater(
+      runtime.closeWithFollowUp(
+        value,
+        nextReminderDueDate: now.add(const Duration(days: 30)),
+      ),
+      throwsA(isA<RepositoryConstraintException>()),
+    );
+
+    expect(
+      await repositories.tasks.findById('task-unlinked-follow-up'),
+      isNull,
+    );
+    expect(await runtime.findClosureForCase('case-1'), isNull);
+    expect((await runtime.findCaseById('case-1'))?.isOpen, isTrue);
   });
 }

@@ -9,6 +9,9 @@ import 'package:life_maintenance/models/enums.dart';
 import 'package:life_maintenance/models/history_projection.dart';
 import 'package:life_maintenance/models/item.dart';
 import 'package:life_maintenance/models/maintenance_record.dart';
+import 'package:life_maintenance/models/work_case.dart';
+import 'package:life_maintenance/models/work_case_closure.dart';
+import 'package:life_maintenance/models/work_case_enums.dart';
 import 'package:life_maintenance/repositories/history_projection_repository.dart';
 import 'package:life_maintenance/repositories/item_read_repository.dart';
 import 'package:life_maintenance/screens/history_screen.dart';
@@ -97,6 +100,45 @@ void main() {
     );
 
     expect(find.text('目前還沒有履歷紀錄。'), findsOneWidget);
+  });
+
+  testWidgets('global history shows a completed unlinked WorkCase', (
+    tester,
+  ) async {
+    final root = AppCompositionRoot(
+      database: AppDatabase(NativeDatabase.memory()),
+    );
+    addTearDown(root.database.close);
+    final now = DateTime.utc(2026, 8, 17, 9);
+    await root.workCaseRuntime.createManual(
+      WorkCase(
+        id: 'case-unlinked',
+        itemId: null,
+        sourceType: WorkCaseSourceType.manual,
+        caseType: WorkCaseType.other,
+        title: '未關聯漏水處理',
+        status: WorkCaseStatus.inProgress,
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    await root.workCaseRuntime.close(
+      WorkCaseClosure(
+        id: 'closure-unlinked',
+        workCaseId: 'case-unlinked',
+        completedAt: now.add(const Duration(hours: 1)),
+        finalResult: '已處理',
+        completionSummary: '已完成現場處理',
+        totalCost: 0,
+        createdAt: now.add(const Duration(hours: 1)),
+      ),
+    );
+
+    await tester.pumpWidget(_historyApp(root));
+    await tester.pumpAndSettle();
+
+    expect(find.text('未關聯漏水處理'), findsOneWidget);
+    expect(find.text('未關聯生活項目'), findsOneWidget);
   });
 
   testWidgets('history keeps loading distinct from an empty projection', (
@@ -232,6 +274,13 @@ class _StaticHistoryRepository implements HistoryProjectionRepository {
       );
 
   @override
+  Future<List<WorkCaseHistoryEntry>> projectGlobalWorkCaseEntries() async =>
+      projections.values
+          .expand((projection) => projection.entries)
+          .whereType<WorkCaseHistoryEntry>()
+          .toList(growable: false);
+
+  @override
   Future<List<FutureMatterCreatedHistoryEntry>>
   projectGlobalFutureMatterCreatedEntries() async => const [];
 
@@ -258,6 +307,12 @@ class _RetryHistoryRepository implements HistoryProjectionRepository {
     }
     return projection;
   }
+
+  @override
+  Future<List<WorkCaseHistoryEntry>> projectGlobalWorkCaseEntries() async =>
+      projection.entries.whereType<WorkCaseHistoryEntry>().toList(
+        growable: false,
+      );
 
   @override
   Future<List<FutureMatterCreatedHistoryEntry>>
