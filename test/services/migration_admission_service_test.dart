@@ -194,7 +194,7 @@ void main() {
         .insert(
           WorkCasesCompanion.insert(
             id: 'case-1',
-            itemId: 'item-1',
+            itemId: const Value('item-1'),
             sourceType: WorkCaseSourceType.manual,
             caseType: WorkCaseType.repair,
             title: '既有案件',

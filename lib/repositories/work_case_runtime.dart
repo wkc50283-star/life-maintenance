@@ -10,6 +10,8 @@ import '../models/work_case_update.dart';
 abstract interface class WorkCaseRuntime {
   Future<WorkCase?> findCaseById(String id);
 
+  Future<List<WorkCase>> listAllCases();
+
   Future<List<WorkCase>> listCasesForItem(String itemId);
 
   Future<List<WorkCase>> listBySourceTaskId(String taskId);

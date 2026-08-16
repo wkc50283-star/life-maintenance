@@ -15,12 +15,14 @@ class WorkCases extends Table {
 
   TextColumn get id => text()();
 
-  TextColumn get itemId => text().references(
-    Items,
-    #id,
-    onUpdate: KeyAction.cascade,
-    onDelete: KeyAction.restrict,
-  )();
+  TextColumn get itemId => text()
+      .references(
+        Items,
+        #id,
+        onUpdate: KeyAction.cascade,
+        onDelete: KeyAction.restrict,
+      )
+      .nullable()();
 
   TextColumn get sourceType =>
       text().map(const WorkCaseSourceTypeSqlConverter())();
@@ -59,6 +61,7 @@ class WorkCases extends Table {
   @override
   List<String> get customConstraints => [
     "CHECK (trim(title) <> '')",
+    "CHECK (item_id IS NOT NULL OR source_type = 'manual')",
     "CHECK ((source_type IN ('maintenanceTask', 'generalReminder', 'milestone') AND source_id IS NOT NULL AND trim(source_id) <> '') OR (source_type IN ('manual', 'unknown') AND source_id IS NULL))",
   ];
 }

@@ -27,7 +27,7 @@ class WorkCase {
 
   final int schemaVersion;
   final String id;
-  final String itemId;
+  final String? itemId;
   final WorkCaseSourceType sourceType;
   final String? sourceId;
   final String? sourceTaskId;
@@ -55,7 +55,7 @@ class WorkCase {
     return WorkCase(
       schemaVersion: _readSchemaVersion(json['schemaVersion']),
       id: json['id'] as String,
-      itemId: json['itemId'] as String,
+      itemId: _readNullableString(json['itemId']),
       sourceType: _readEnum(
         WorkCaseSourceType.values,
         json['sourceType'],
@@ -112,7 +112,7 @@ class WorkCase {
   WorkCase copyWith({
     int? schemaVersion,
     String? id,
-    String? itemId,
+    Object? itemId = _notProvided,
     WorkCaseSourceType? sourceType,
     Object? sourceId = _notProvided,
     Object? sourceTaskId = _notProvided,
@@ -132,7 +132,7 @@ class WorkCase {
     return WorkCase(
       schemaVersion: schemaVersion ?? this.schemaVersion,
       id: id ?? this.id,
-      itemId: itemId ?? this.itemId,
+      itemId: identical(itemId, _notProvided) ? this.itemId : itemId as String?,
       sourceType: sourceType ?? this.sourceType,
       sourceId: identical(sourceId, _notProvided)
           ? this.sourceId

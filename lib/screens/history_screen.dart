@@ -31,6 +31,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   late ItemReadRepository _itemRepository;
   bool _dependenciesInitialized = false;
   List<HistoryProjection>? _projections;
+  List<WorkCaseHistoryEntry>? _globalWorkCaseEntries;
   List<Item>? _localItems;
   Object? _loadError;
 
@@ -64,9 +65,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
       final projections = await Future.wait([
         for (final item in items) _historyRepository.projectForItem(item.id),
       ]);
+      final globalWorkCaseEntries = await _historyRepository
+          .projectGlobalWorkCaseEntries();
       if (!mounted) return;
       setState(() {
         _projections = projections;
+        _globalWorkCaseEntries = globalWorkCaseEntries;
         _localItems = items;
         _loadError = null;
       });
@@ -81,12 +85,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
     if (_loadError != null) {
       return _HistoryLoadFailure(onRetry: _retry);
     }
-    if (_projections == null || _localItems == null) {
+    if (_projections == null ||
+        _globalWorkCaseEntries == null ||
+        _localItems == null) {
       return const Center(child: CircularProgressIndicator());
     }
     final projections = _projections ?? const <HistoryProjection>[];
     final items = _localItems ?? const <Item>[];
-    final sections = _historySectionsFrom(projections, items);
+    final sections = _historySectionsFrom(
+      projections,
+      items,
+      _globalWorkCaseEntries!,
+    );
 
     return ListView(
       padding: UiInsets.pageCompact,
@@ -209,15 +219,19 @@ class _HistoryEntryData {
 List<_HistoryMonthSection> _historySectionsFrom(
   List<HistoryProjection> projections,
   List<Item> items,
+  List<WorkCaseHistoryEntry> globalWorkCaseEntries,
 ) {
   final groupedRecords = <String, List<_HistoryEntryData>>{};
   final entries = <({DateTime occurredAt, Object entry})>[
     for (final projection in projections) ...[
       for (final entry in projection.entries)
-        (occurredAt: entry.occurredAt, entry: entry),
+        if (entry is! WorkCaseHistoryEntry)
+          (occurredAt: entry.occurredAt, entry: entry),
       for (final entry in projection.itemCreatedEntries)
         (occurredAt: entry.occurredAt, entry: entry),
     ],
+    for (final entry in globalWorkCaseEntries)
+      (occurredAt: entry.occurredAt, entry: entry),
   ]..sort((a, b) => b.occurredAt.compareTo(a.occurredAt));
 
   for (final wrapped in entries) {
@@ -427,15 +441,16 @@ Item? _itemForRecord(MaintenanceRecord record, List<Item> items) {
   return _itemById(record.itemId, items);
 }
 
-Item? _itemById(String itemId, List<Item> items) {
+Item? _itemById(String? itemId, List<Item> items) {
+  if (itemId == null) return null;
   for (final item in items) {
     if (item.id == itemId) return item;
   }
   return null;
 }
 
-String _itemName(String itemId, List<Item> items) =>
-    _itemById(itemId, items)?.name ?? '未命名生活項目';
+String _itemName(String? itemId, List<Item> items) =>
+    itemId == null ? '未關聯生活項目' : _itemById(itemId, items)?.name ?? '未命名生活項目';
 
 IconData _iconForItem(Item? item) {
   return switch (item?.category) {

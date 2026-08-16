@@ -4,6 +4,7 @@ import 'package:drift/drift.dart' hide isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_maintenance/database/app_database.dart';
+import 'package:life_maintenance/models/work_case_enums.dart';
 import 'package:life_maintenance/services/drift_database_backup_service.dart';
 import 'package:sqlite3/sqlite3.dart';
 
@@ -29,7 +30,7 @@ void main() {
     }
   });
 
-  test('creates and validates a complete schema v10 SQLite backup', () async {
+  test('creates and validates a complete schema v11 SQLite backup', () async {
     final service = DriftDatabaseBackupService();
 
     final validation = await service.createBackup(
@@ -37,7 +38,7 @@ void main() {
       destination: backup,
     );
 
-    expect(validation.formatVersion, 10);
+    expect(validation.formatVersion, 11);
     expect(validation.rowCounts['items'], 1);
     expect(validation.rowCounts['item_management_periods'], 1);
     expect(validation.rowCounts['item_lifecycle_events'], 1);
@@ -63,6 +64,81 @@ void main() {
     expect(await File('${backup.path}.restore-staging').exists(), isFalse);
   });
 
+  test('schema v11 backup round trips an unlinked WorkCase', () async {
+    final sourceDatabase = AppDatabase(NativeDatabase(source));
+    await sourceDatabase.customSelect('SELECT 1').get();
+    final now = DateTime.utc(2026, 8, 17);
+    await sourceDatabase
+        .into(sourceDatabase.workCases)
+        .insert(
+          WorkCasesCompanion.insert(
+            id: 'case-unlinked',
+            sourceType: WorkCaseSourceType.manual,
+            caseType: WorkCaseType.other,
+            title: '未關聯案件',
+            status: WorkCaseStatus.inProgress,
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+    await sourceDatabase.close();
+
+    final service = DriftDatabaseBackupService();
+    await service.createBackup(source: source, destination: backup);
+    await service.restore(backup: backup, destination: destination);
+    final restored = AppDatabase(NativeDatabase(destination));
+    addTearDown(restored.close);
+    await restored.customSelect('SELECT 1').get();
+
+    expect(restored.schemaVersion, 11);
+    expect(
+      (await restored.select(restored.workCases).getSingle()).itemId,
+      isNull,
+    );
+  });
+
+  test(
+    'schema v10 backup restores and migrates linked WorkCase to v11',
+    () async {
+      final sourceDatabase = AppDatabase(NativeDatabase(source));
+      await sourceDatabase.customSelect('SELECT 1').get();
+      final now = DateTime.utc(2026, 8, 17);
+      await sourceDatabase
+          .into(sourceDatabase.workCases)
+          .insert(
+            WorkCasesCompanion.insert(
+              id: 'case-linked',
+              itemId: const Value('source-item'),
+              sourceType: WorkCaseSourceType.manual,
+              caseType: WorkCaseType.other,
+              title: '既有案件',
+              status: WorkCaseStatus.inProgress,
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+      await sourceDatabase.close();
+      await _downgradeToSchemaV10(source);
+
+      final service = DriftDatabaseBackupService();
+      final validation = await service.createBackup(
+        source: source,
+        destination: backup,
+      );
+      expect(validation.formatVersion, 10);
+      await service.restore(backup: backup, destination: destination);
+      final restored = AppDatabase(NativeDatabase(destination));
+      addTearDown(restored.close);
+      await restored.customSelect('SELECT 1').get();
+
+      expect(restored.schemaVersion, 11);
+      expect(
+        (await restored.select(restored.workCases).getSingle()).itemId,
+        'source-item',
+      );
+    },
+  );
+
   test('restores a schema v4 backup that migrates cleanly to v9', () async {
     await _downgradeToSchemaV4(source);
     final service = DriftDatabaseBackupService();
@@ -80,7 +156,7 @@ void main() {
     final migrated = AppDatabase(NativeDatabase(destination));
     addTearDown(migrated.close);
     await migrated.customSelect('SELECT 1').get();
-    expect(migrated.schemaVersion, 10);
+    expect(migrated.schemaVersion, 11);
     expect(await migrated.select(migrated.items).get(), hasLength(1));
     expect(
       await migrated.select(migrated.itemCustomManagementPeriods).get(),
@@ -109,7 +185,7 @@ void main() {
     final migrated = AppDatabase(NativeDatabase(destination));
     addTearDown(migrated.close);
     await migrated.customSelect('SELECT 1').get();
-    expect(migrated.schemaVersion, 10);
+    expect(migrated.schemaVersion, 11);
     expect(await migrated.select(migrated.items).get(), hasLength(1));
     expect(
       await migrated.select(migrated.itemCustomManagementPeriods).get(),
@@ -135,7 +211,7 @@ void main() {
     final migrated = AppDatabase(NativeDatabase(destination));
     addTearDown(migrated.close);
     await migrated.customSelect('SELECT 1').get();
-    expect(migrated.schemaVersion, 10);
+    expect(migrated.schemaVersion, 11);
     expect(await migrated.select(migrated.items).get(), hasLength(1));
     expect(await migrated.select(migrated.futureMatters).get(), isEmpty);
     expect(
@@ -291,7 +367,7 @@ void main() {
 
     final migrated = AppDatabase(NativeDatabase(destination));
     await migrated.customSelect('SELECT 1').get();
-    expect(migrated.schemaVersion, 10);
+    expect(migrated.schemaVersion, 11);
     final matters = await migrated.select(migrated.futureMatters).get();
     expect(matters, isNotEmpty);
     expect(matters.every((row) => row.createdSource == null), isTrue);
@@ -303,7 +379,7 @@ void main() {
   });
 
   test(
-    'schema v10 backup round trips amendment structured snapshots',
+    'schema v11 backup round trips amendment structured snapshots',
     () async {
       final sourceDatabase = AppDatabase(NativeDatabase(source));
       await sourceDatabase.customSelect('SELECT 1').get();
@@ -418,7 +494,7 @@ void main() {
     final migrated = AppDatabase(NativeDatabase(destination));
     addTearDown(migrated.close);
     await migrated.customSelect('SELECT 1').get();
-    expect(migrated.schemaVersion, 10);
+    expect(migrated.schemaVersion, 11);
     expect(await migrated.select(migrated.futureMatters).get(), hasLength(3));
     expect(
       await migrated.select(migrated.futureMatterChangeEvents).get(),
@@ -442,7 +518,7 @@ void main() {
     final migrated = AppDatabase(NativeDatabase(destination));
     addTearDown(migrated.close);
     await migrated.customSelect('SELECT 1').get();
-    expect(migrated.schemaVersion, 10);
+    expect(migrated.schemaVersion, 11);
     expect(
       (await migrated.select(migrated.futureMatters).get()).every(
         (row) => row.lifecycleStatus == 'active',
@@ -925,6 +1001,40 @@ Future<void> _downgradeToSchemaV9(File file) async {
   final raw = sqlite3.open(file.path);
   _dropSchemaV10(raw);
   raw.execute('PRAGMA user_version = 9');
+  raw.close();
+}
+
+Future<void> _downgradeToSchemaV10(File file) async {
+  final raw = sqlite3.open(file.path);
+  raw.execute('PRAGMA foreign_keys = OFF');
+  raw.execute('PRAGMA legacy_alter_table = ON');
+  final currentSql =
+      raw
+              .select(
+                "SELECT sql FROM sqlite_schema WHERE type = 'table' AND name = 'work_cases'",
+              )
+              .single['sql']
+          as String;
+  final oldSql = currentSql
+      .replaceFirst('CREATE TABLE "work_cases"', 'CREATE TABLE work_cases_v10')
+      .replaceFirst('"item_id" TEXT NULL', '"item_id" TEXT NOT NULL')
+      .replaceFirst(
+        ', CHECK (item_id IS NOT NULL OR source_type = \'manual\')',
+        '',
+      );
+  raw.execute(oldSql);
+  raw.execute('INSERT INTO work_cases_v10 SELECT * FROM work_cases');
+  raw.execute('DROP TABLE work_cases');
+  raw.execute('ALTER TABLE work_cases_v10 RENAME TO work_cases');
+  for (final statement in const [
+    'CREATE INDEX work_cases_item_status_idx ON work_cases (item_id, status)',
+    'CREATE INDEX work_cases_source_idx ON work_cases (source_type, source_id)',
+    'CREATE INDEX work_cases_source_task_idx ON work_cases (source_task_id)',
+    'CREATE INDEX work_cases_updated_at_idx ON work_cases (updated_at)',
+  ]) {
+    raw.execute(statement);
+  }
+  raw.execute('PRAGMA user_version = 10');
   raw.close();
 }
 

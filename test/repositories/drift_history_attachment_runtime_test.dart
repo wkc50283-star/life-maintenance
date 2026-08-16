@@ -429,7 +429,7 @@ void main() {
           .insert(
             WorkCasesCompanion.insert(
               id: 'legacy-case',
-              itemId: 'item-1',
+              itemId: const Value('item-1'),
               sourceType: WorkCaseSourceType.unknown,
               caseType: WorkCaseType.other,
               title: '舊案件',

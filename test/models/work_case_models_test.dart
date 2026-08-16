@@ -61,6 +61,27 @@ void main() {
       expect(decoded.closedAt, isNull);
     });
 
+    test('unlinked manual case round trips and copyWith can clear itemId', () {
+      final now = DateTime.utc(2026, 8, 17);
+      final linked = WorkCase(
+        id: 'case-optional-item',
+        itemId: 'item-1',
+        sourceType: WorkCaseSourceType.manual,
+        caseType: WorkCaseType.other,
+        title: '未關聯案件',
+        status: WorkCaseStatus.inProgress,
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      final unlinked = linked.copyWith(itemId: null);
+      final decoded = WorkCase.fromJson(unlinked.toJson());
+
+      expect(unlinked.itemId, isNull);
+      expect(decoded.itemId, isNull);
+      expect(decoded.toJson()['itemId'], isNull);
+    });
+
     test('copyWith supports closure and explicit nullable field clearing', () {
       final createdAt = DateTime(2026, 7, 18, 8);
       final closedAt = DateTime(2026, 7, 19, 17);
@@ -147,27 +168,27 @@ void main() {
       expect(decoded.photoIdentifiers, ['photo-1', 'photo-2']);
       expect(decoded.waitingReason, '等待零件到貨');
       expect(decoded.nextAction, '零件到貨後安排更換');
-      expect(
-        () => decoded.partsOrItems.add('不應修改'),
-        throwsUnsupportedError,
-      );
+      expect(() => decoded.partsOrItems.add('不應修改'), throwsUnsupportedError);
     });
 
-    test('missing optional lists remain empty and numeric cost is normalized', () {
-      final decoded = WorkCaseUpdate.fromJson({
-        'id': 'update-legacy',
-        'workCaseId': 'case-1',
-        'occurredAt': '2026-07-18T15:00:00.000',
-        'description': '補充處理狀態',
-        'cost': 250.0,
-        'createdAt': '2026-07-18T15:05:00.000',
-      });
+    test(
+      'missing optional lists remain empty and numeric cost is normalized',
+      () {
+        final decoded = WorkCaseUpdate.fromJson({
+          'id': 'update-legacy',
+          'workCaseId': 'case-1',
+          'occurredAt': '2026-07-18T15:00:00.000',
+          'description': '補充處理狀態',
+          'cost': 250.0,
+          'createdAt': '2026-07-18T15:05:00.000',
+        });
 
-      expect(decoded.schemaVersion, WorkCaseUpdate.currentSchemaVersion);
-      expect(decoded.cost, 250);
-      expect(decoded.partsOrItems, isEmpty);
-      expect(decoded.photoIdentifiers, isEmpty);
-      expect(decoded.nextAction, isNull);
-    });
+        expect(decoded.schemaVersion, WorkCaseUpdate.currentSchemaVersion);
+        expect(decoded.cost, 250);
+        expect(decoded.partsOrItems, isEmpty);
+        expect(decoded.photoIdentifiers, isEmpty);
+        expect(decoded.nextAction, isNull);
+      },
+    );
   });
 }

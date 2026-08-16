@@ -21,6 +21,16 @@ class DriftWorkCaseRepository implements WorkCaseRepository {
   }
 
   @override
+  Future<List<WorkCase>> listAllCases() async {
+    final query = _database.select(_database.workCases)
+      ..orderBy([
+        (table) => OrderingTerm.desc(table.updatedAt),
+        (table) => OrderingTerm.desc(table.createdAt),
+      ]);
+    return (await query.get()).map((row) => row.toModel()).toList();
+  }
+
+  @override
   Future<List<WorkCase>> listCasesForItem(String itemId) async {
     final query = _database.select(_database.workCases)
       ..where((table) => table.itemId.equals(itemId))
@@ -206,11 +216,16 @@ class DriftWorkCaseRepository implements WorkCaseRepository {
   }
 
   Future<void> _validateSource(WorkCase workCase) async {
-    final itemQuery = _database.select(_database.items)
-      ..where((table) => table.id.equals(workCase.itemId));
-    if (await itemQuery.getSingleOrNull() == null) {
-      throw RepositoryConstraintException(
-        'Item ${workCase.itemId} does not exist.',
+    final itemId = workCase.itemId;
+    if (itemId != null) {
+      final itemQuery = _database.select(_database.items)
+        ..where((table) => table.id.equals(itemId));
+      if (await itemQuery.getSingleOrNull() == null) {
+        throw RepositoryConstraintException('Item $itemId does not exist.');
+      }
+    } else if (workCase.sourceType != WorkCaseSourceType.manual) {
+      throw const RepositoryConstraintException(
+        'A sourced WorkCase must belong to an Item.',
       );
     }
 
@@ -218,13 +233,14 @@ class DriftWorkCaseRepository implements WorkCaseRepository {
 
     switch (workCase.sourceType) {
       case WorkCaseSourceType.maintenanceTask:
+        final sourceItemId = workCase.itemId!;
         final taskQuery = _database.select(_database.tasks)
           ..where((table) => table.id.equals(workCase.sourceId ?? ''));
         final task = await taskQuery.getSingleOrNull();
         _requireSourceItem(
           'Task',
           workCase.sourceId,
-          workCase.itemId,
+          sourceItemId,
           task?.itemId,
         );
         if (task?.sourceType != 'scheduledMaintenance') {
@@ -233,23 +249,25 @@ class DriftWorkCaseRepository implements WorkCaseRepository {
           );
         }
       case WorkCaseSourceType.generalReminder:
+        final sourceItemId = workCase.itemId!;
         final reminderQuery = _database.select(_database.generalReminders)
           ..where((table) => table.id.equals(workCase.sourceId ?? ''));
         final reminder = await reminderQuery.getSingleOrNull();
         _requireSourceItem(
           'GeneralReminder',
           workCase.sourceId,
-          workCase.itemId,
+          sourceItemId,
           reminder?.itemId,
         );
       case WorkCaseSourceType.milestone:
+        final sourceItemId = workCase.itemId!;
         final milestoneQuery = _database.select(_database.milestones)
           ..where((table) => table.id.equals(workCase.sourceId ?? ''));
         final milestone = await milestoneQuery.getSingleOrNull();
         _requireSourceItem(
           'Milestone',
           workCase.sourceId,
-          workCase.itemId,
+          sourceItemId,
           milestone?.itemId,
         );
       case WorkCaseSourceType.manual:
@@ -274,7 +292,9 @@ class DriftWorkCaseRepository implements WorkCaseRepository {
     final taskQuery = _database.select(_database.tasks)
       ..where((table) => table.id.equals(sourceTaskId));
     final task = await taskQuery.getSingleOrNull();
-    if (task == null || task.itemId != workCase.itemId) {
+    if (task == null ||
+        workCase.itemId == null ||
+        task.itemId != workCase.itemId) {
       throw RepositoryConstraintException(
         'Source Task $sourceTaskId does not exist for this Item.',
       );

@@ -19,7 +19,7 @@ void main() {
     final items = await database.select(database.items).get();
     final categories = await database.select(database.itemCategories).get();
 
-    expect(database.schemaVersion, 10);
+    expect(database.schemaVersion, 11);
     expect(cases, hasLength(2));
     expect(updates, hasLength(2));
     expect(items, hasLength(2));
@@ -137,7 +137,7 @@ void main() {
       addTearDown(database.close);
 
       final existing = await database.select(database.workCases).getSingle();
-      expect(database.schemaVersion, 10);
+      expect(database.schemaVersion, 11);
       expect(existing.id, 'case-v2');
       expect(existing.title, '既有案件');
       expect(existing.sourceTaskId, isNull);
@@ -206,7 +206,7 @@ void main() {
   );
 
   test('blocks unsupported schema versions', () async {
-    final fixture = await _createEmptyFixture(11);
+    final fixture = await _createEmptyFixture(12);
     addTearDown(fixture.dispose);
     final database = AppDatabase(NativeDatabase(fixture.file));
 
@@ -216,7 +216,7 @@ void main() {
         isA<UnsupportedError>().having(
           (error) => error.message,
           'message',
-          contains('schema 11 to 10'),
+          contains('schema 12 to 11'),
         ),
       ),
     );
@@ -228,6 +228,44 @@ Future<_DatabaseFixture> _createSchemaV2Fixture() async {
   final fixture = await _createEmptyFixture(2);
   final executor = NativeDatabase(fixture.file);
   await executor.ensureOpen(const _FixtureDatabaseUser(2));
+  await executor.runCustom('''
+    CREATE TABLE item_categories (
+      id TEXT NOT NULL PRIMARY KEY,
+      system_code TEXT NULL,
+      display_name TEXT NOT NULL,
+      sort_order INTEGER NOT NULL,
+      status TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+  ''');
+  await executor.runCustom('''
+    CREATE TABLE items (
+      id TEXT NOT NULL PRIMARY KEY,
+      name TEXT NOT NULL,
+      category_id TEXT NOT NULL,
+      status TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY(category_id) REFERENCES item_categories(id)
+    )
+  ''');
+  await executor.runCustom('''
+    INSERT INTO item_categories (
+      id, display_name, sort_order, status, created_at, updated_at
+    ) VALUES (
+      'category-v2', '既有分類', 0, 'active',
+      '2026-07-18T00:00:00.000Z', '2026-07-18T00:00:00.000Z'
+    )
+  ''');
+  await executor.runCustom('''
+    INSERT INTO items (
+      id, name, category_id, status, created_at, updated_at
+    ) VALUES (
+      'item-v2', '既有生活項目', 'category-v2', 'active',
+      '2026-07-18T00:00:00.000Z', '2026-07-18T00:00:00.000Z'
+    )
+  ''');
   await executor.runCustom('''
     CREATE TABLE work_cases (
       schema_version INTEGER NOT NULL DEFAULT 1,
