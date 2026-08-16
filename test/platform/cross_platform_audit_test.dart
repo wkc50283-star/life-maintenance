@@ -7,7 +7,6 @@ import 'package:life_maintenance/app/app_composition_root.dart';
 import 'package:life_maintenance/app/app_shell.dart';
 import 'package:life_maintenance/database/app_database.dart';
 import 'package:life_maintenance/main.dart';
-import 'package:life_maintenance/repositories/formal_planning_editor.dart';
 
 void main() {
   testWidgets('formal shell is safe at phone, tablet and desktop sizes', (
@@ -75,13 +74,13 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('分類'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('add-entry')));
+      await tester.tap(
+        find.byKey(const ValueKey('manual-create-purpose-item')),
+      );
       await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.byKey(const ValueKey('category-name')),
+        find.byKey(const ValueKey('item-name')),
         '家中證件・跨平台',
       );
       tester.view.viewInsets = const FakeViewPadding(bottom: 280);
@@ -93,11 +92,9 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('save-form')));
       await tester.pumpAndSettle();
-      expect(find.text('家中證件・跨平台'), findsOneWidget);
+      expect(find.text('已建立生活項目'), findsOneWidget);
       expect(
-        (await FormalPlanningEditor.from(
-          root,
-        )!.loadCategories()).single.customName,
+        (await database.select(database.items).get()).single.name,
         '家中證件・跨平台',
       );
     },

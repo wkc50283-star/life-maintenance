@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../app/app_composition_root.dart';
 import '../app/ui_tokens.dart';
 import '../widgets/add_entry_card.dart';
 import '../widgets/add_item_preview_sheet.dart';
 import '../widgets/expiry_reminder_preview_sheet.dart';
-import '../widgets/maintenance_record_detail_sheet.dart';
 import '../widgets/maintenance_record_preview_sheet.dart';
 import '../widgets/reminder_list_sheet.dart';
 import '../widgets/ui_v2_components.dart';
@@ -30,7 +28,7 @@ class AddScreenState extends State<AddScreen> {
     final formalEditor = formalPlanningEditor(context);
 
     if (formalEditor != null) {
-      return const _FormalAddScreen();
+      return _FormalAddScreen(onOpenItemCreation: _openItemForm);
     }
 
     return SingleChildScrollView(
@@ -89,14 +87,26 @@ class AddScreenState extends State<AddScreen> {
 }
 
 class _FormalAddScreen extends StatelessWidget {
-  const _FormalAddScreen();
+  const _FormalAddScreen({required this.onOpenItemCreation});
+
+  final VoidCallback onOpenItemCreation;
 
   @override
   Widget build(BuildContext context) {
-    void open(Widget screen) {
-      Navigator.of(
-        context,
-      ).push(MaterialPageRoute<void>(builder: (_) => screen));
+    void openPurpose({
+      required String routeKey,
+      required String title,
+      required String message,
+    }) {
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => _ManualCreatePurposeRoute(
+            routeKey: routeKey,
+            title: title,
+            message: message,
+          ),
+        ),
+      );
     }
 
     return SingleChildScrollView(
@@ -107,167 +117,89 @@ class _FormalAddScreen extends StatelessWidget {
         children: [
           const UiCompactPageHeader(
             icon: Icons.add_rounded,
-            title: '現在需要記住或處理什麼？',
-            description: '選擇需要的建立方式。',
-          ),
-          const Text('更多建立方式', style: UiType.sectionTitle),
-          const SizedBox(height: UiSpace.xs),
-          AddEntryCard(
-            icon: Icons.category_outlined,
-            title: '分類',
-            description: '用自己熟悉的名稱整理生活項目。',
-            onTap: () => open(const CategoryManagementScreen()),
+            title: '你現在想做什麼？',
+            description: '選擇最接近目前目的的方式。',
           ),
           AddEntryCard(
-            icon: Icons.home_repair_service_outlined,
-            title: '保養項目與步驟',
-            description: '建立長期保養內容與標準步驟。',
-            onTap: () => open(
-              const PlanningContentScreen(
-                kind: PlanningContentKind.maintenancePlan,
-                handoffCreatedMaintenancePlan: true,
-              ),
+            key: const ValueKey('manual-create-purpose-item'),
+            icon: Icons.inventory_2_outlined,
+            title: '建立要長期管理的內容',
+            description: '例如家電、車輛、房屋、證件或其他生活項目。',
+            onTap: onOpenItemCreation,
+          ),
+          AddEntryCard(
+            key: const ValueKey('manual-create-purpose-future-matter'),
+            icon: Icons.event_note_outlined,
+            title: '安排未來要注意或處理的事情',
+            description: '例如之後再安排、指定日期、固定重複或達到條件。',
+            onTap: () => openPurpose(
+              routeKey: 'manual-create-future-matter-route',
+              title: '安排未來要注意或處理的事情',
+              message: '未來事項建立流程尚在準備中，目前不會建立任何資料。',
             ),
           ),
           AddEntryCard(
-            icon: Icons.notifications_none_rounded,
-            title: '一般提醒',
-            description: '管理保固、合約、證件、繳費或健康檢查等提醒。',
-            onTap: () => open(
-              const PlanningContentScreen(
-                kind: PlanningContentKind.reminder,
-                handoffCreatedReminder: true,
-              ),
-            ),
-          ),
-          AddEntryCard(
-            icon: Icons.flag_outlined,
-            title: '階段性重點',
-            description: '安排達到條件後才需要注意的事情。',
-            onTap: () => open(
-              const PlanningContentScreen(
-                kind: PlanningContentKind.milestone,
-                handoffCreatedMilestone: true,
-              ),
-            ),
-          ),
-          AddEntryCard(
-            icon: Icons.event_repeat_outlined,
-            title: '提醒排程',
-            description: '替既有內容設定週期、日期與重新計算方式。',
-            onTap: () => open(
-              const PlanningContentScreen(
-                kind: PlanningContentKind.schedule,
-                handoffCreatedSchedule: true,
-              ),
-            ),
-          ),
-          AddEntryCard(
+            key: const ValueKey('manual-create-purpose-work-case'),
             icon: Icons.handyman_outlined,
-            title: '突發事項／工程',
-            description: '建立仍在處理中的突發狀況、修繕或工程案件。',
-            onTap: () => _openManualWorkCase(context),
+            title: '記錄正在處理的事情',
+            description: '例如突發狀況、修繕、維修或仍在處理的問題。',
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const ManualWorkCaseFormScreen(),
+              ),
+            ),
           ),
           AddEntryCard(
+            key: const ValueKey('manual-create-purpose-completed'),
             icon: Icons.fact_check_outlined,
-            title: '補登完成紀錄',
-            description: '已完成的事情，可以補留下正式紀錄。',
-            onTap: () => _openManualMaintenanceRecord(context),
+            title: '補記已完成的事情',
+            description: '例如補記實際完成日期、結果或相關紀錄。',
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const ManualMaintenanceRecordFormScreen(),
+              ),
+            ),
           ),
         ],
       ),
     );
   }
+}
 
-  Future<void> _openManualMaintenanceRecord(BuildContext context) async {
-    final result = await Navigator.of(context)
-        .push<ManualMaintenanceRecordResult>(
-          MaterialPageRoute<ManualMaintenanceRecordResult>(
-            builder: (_) => const ManualMaintenanceRecordFormScreen(),
+class _ManualCreatePurposeRoute extends StatelessWidget {
+  const _ManualCreatePurposeRoute({
+    required this.routeKey,
+    required this.title,
+    required this.message,
+  });
+
+  final String routeKey;
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    key: ValueKey(routeKey),
+    appBar: AppBar(title: Text(title)),
+    body: SafeArea(
+      child: SingleChildScrollView(
+        padding: UiInsets.page,
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(UiSpace.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.info_outline_rounded),
+                const SizedBox(height: UiSpace.sm),
+                Text(title, style: UiType.cardTitle),
+                const SizedBox(height: UiSpace.xs),
+                Text(message, style: UiType.body),
+              ],
+            ),
           ),
-        );
-    if (!context.mounted || result == null) return;
-
-    try {
-      final repository = AppCompositionScope.of(
-        context,
-      ).maintenanceRecordRepository;
-      final record = await repository.findById(result.recordId);
-      if (!context.mounted) return;
-      if (record == null ||
-          record.id != result.recordId ||
-          record.itemId != result.itemId) {
-        _showMaintenanceRecordReadFailure(context);
-        return;
-      }
-      showMaintenanceRecordDetailSheet(
-        context,
-        data: MaintenanceRecordDetailData(
-          title: record.title,
-          recordType: '完成紀錄',
-          date: _formatRecordDate(record.date),
-          result: '已記錄',
-          rows: [
-            if (record.note case final note? when note.trim().isNotEmpty)
-              MaintenanceRecordDetailRow(label: '備註', value: note),
-          ],
         ),
-      );
-    } catch (_) {
-      if (context.mounted) _showMaintenanceRecordReadFailure(context);
-    }
-  }
-
-  Future<void> _openManualWorkCase(BuildContext context) async {
-    final createdCaseId = await Navigator.of(context).push<String>(
-      MaterialPageRoute<String>(
-        builder: (_) => const ManualWorkCaseFormScreen(),
       ),
-    );
-    if (!context.mounted || createdCaseId == null) return;
-
-    try {
-      final root = AppCompositionScope.of(context);
-      final runtime = root.workCaseRuntime;
-      if (runtime == null) throw StateError('正式案件服務目前無法使用。');
-      final createdCase = await runtime.findCaseById(createdCaseId);
-      if (createdCase == null || createdCase.id != createdCaseId) {
-        throw StateError('無法讀取剛建立的案件。');
-      }
-      final items = await root.itemReadRepository.loadItems();
-      final matchingItems = items.where(
-        (item) => item.id == createdCase.itemId,
-      );
-      if (!context.mounted) return;
-      if (matchingItems.length != 1) {
-        _showWorkCaseReadFailure(context);
-        return;
-      }
-      await Navigator.of(context).push<bool>(
-        MaterialPageRoute<bool>(
-          builder: (_) => WorkCaseDetailScreen(
-            workCaseId: createdCase.id,
-            itemName: matchingItems.single.name,
-          ),
-        ),
-      );
-    } catch (_) {
-      if (context.mounted) _showWorkCaseReadFailure(context);
-    }
-  }
-
-  void _showWorkCaseReadFailure(BuildContext context) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('暫時無法讀取剛建立的案件。')));
-  }
-
-  void _showMaintenanceRecordReadFailure(BuildContext context) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('無法讀取剛建立的紀錄。')));
-  }
-
-  String _formatRecordDate(DateTime value) =>
-      '${value.year}/${value.month.toString().padLeft(2, '0')}/${value.day.toString().padLeft(2, '0')}';
+    ),
+  );
 }

@@ -140,7 +140,7 @@ void main() {
     },
   );
 
-  testWidgets('formal Add screen exposes plain-language approved editors', (
+  testWidgets('formal Add screen exposes four approved life purposes only', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -151,18 +151,22 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('現在需要記住或處理什麼？'), findsOneWidget);
+    expect(find.text('你現在想做什麼？'), findsOneWidget);
     expect(find.byKey(const ValueKey('item-create-by-photo')), findsNothing);
     expect(find.byKey(const ValueKey('item-create-by-voice')), findsNothing);
     expect(find.byKey(const ValueKey('item-create-by-text')), findsNothing);
-    expect(find.text('更多建立方式'), findsOneWidget);
-    expect(find.text('分類'), findsOneWidget);
-    expect(find.text('保養項目與步驟'), findsOneWidget);
-    expect(find.text('一般提醒'), findsOneWidget);
-    expect(find.text('階段性重點'), findsOneWidget);
-    expect(find.text('提醒排程'), findsOneWidget);
-    expect(find.text('突發事項／工程'), findsOneWidget);
-    expect(find.text('補登完成紀錄'), findsOneWidget);
+    expect(find.text('建立要長期管理的內容'), findsOneWidget);
+    expect(find.text('安排未來要注意或處理的事情'), findsOneWidget);
+    expect(find.text('記錄正在處理的事情'), findsOneWidget);
+    expect(find.text('補記已完成的事情'), findsOneWidget);
+    expect(find.text('更多建立方式'), findsNothing);
+    expect(find.text('分類'), findsNothing);
+    expect(find.text('保養項目與步驟'), findsNothing);
+    expect(find.text('一般提醒'), findsNothing);
+    expect(find.text('階段性重點'), findsNothing);
+    expect(find.text('提醒排程'), findsNothing);
+    expect(find.text('突發事項／工程'), findsNothing);
+    expect(find.text('補登完成紀錄'), findsNothing);
     expect(find.textContaining('MaintenancePlan'), findsNothing);
     expect(find.textContaining('AnchorPolicy'), findsNothing);
   });
@@ -237,10 +241,8 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('manual-case-save')));
       await tester.pumpAndSettle();
 
-      expect(find.byType(WorkCaseDetailScreen), findsOneWidget);
-      expect(find.text('浴室防水修繕'), findsOneWidget);
-      expect(find.text('已確認牆角持續滲水'), findsOneWidget);
-      expect(find.text('既有案件'), findsNothing);
+      expect(find.byType(AddScreen), findsOneWidget);
+      expect(find.byType(WorkCaseDetailScreen), findsNothing);
       final targetCases = await root.workCaseRuntime.listCasesForItem(
         'item-target',
       );
@@ -263,10 +265,6 @@ void main() {
         )).entries,
         isEmpty,
       );
-
-      await tester.pageBack();
-      await tester.pumpAndSettle();
-      expect(find.byType(AddScreen), findsOneWidget);
     },
   );
 
@@ -1328,17 +1326,39 @@ Future<void> _selectMilestoneDate(WidgetTester tester) async {
 }
 
 Future<void> _openManualWorkCaseForm(WidgetTester tester) async {
-  await _openAdvancedEntry(tester, '突發事項／工程');
-}
-
-Future<void> _openAdvancedEntry(WidgetTester tester, String label) async {
-  final entry = find.text(label);
+  final entry = find.byKey(const ValueKey('manual-create-purpose-work-case'));
   await tester.scrollUntilVisible(
     entry,
     200,
     scrollable: find.byType(Scrollable).first,
   );
   await tester.tap(entry);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _openAdvancedEntry(WidgetTester tester, String label) async {
+  final screen = switch (label) {
+    '分類' => const CategoryManagementScreen(),
+    '保養項目與步驟' => const PlanningContentScreen(
+      kind: PlanningContentKind.maintenancePlan,
+      handoffCreatedMaintenancePlan: true,
+    ),
+    '一般提醒' => const PlanningContentScreen(
+      kind: PlanningContentKind.reminder,
+      handoffCreatedReminder: true,
+    ),
+    '階段性重點' => const PlanningContentScreen(
+      kind: PlanningContentKind.milestone,
+      handoffCreatedMilestone: true,
+    ),
+    '提醒排程' => const PlanningContentScreen(
+      kind: PlanningContentKind.schedule,
+      handoffCreatedSchedule: true,
+    ),
+    _ => throw ArgumentError.value(label, 'label'),
+  };
+  final navigator = tester.state<NavigatorState>(find.byType(Navigator).first);
+  navigator.push(MaterialPageRoute<void>(builder: (_) => screen));
   await tester.pumpAndSettle();
 }
 

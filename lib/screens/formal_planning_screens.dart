@@ -348,11 +348,24 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
                           ),
                           Align(
                             alignment: Alignment.centerRight,
-                            child: TextButton.icon(
-                              key: const ValueKey('create-item-category'),
-                              onPressed: archived ? null : _createCategory,
-                              icon: const Icon(Icons.add_rounded),
-                              label: const Text('新增分類'),
+                            child: Wrap(
+                              alignment: WrapAlignment.end,
+                              children: [
+                                TextButton.icon(
+                                  key: const ValueKey('manage-item-categories'),
+                                  onPressed: archived
+                                      ? null
+                                      : _manageCategories,
+                                  icon: const Icon(Icons.settings_outlined),
+                                  label: const Text('管理分類'),
+                                ),
+                                TextButton.icon(
+                                  key: const ValueKey('create-item-category'),
+                                  onPressed: archived ? null : _createCategory,
+                                  icon: const Icon(Icons.add_rounded),
+                                  label: const Text('新增分類'),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -463,11 +476,22 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
                 ),
                 Align(
                   alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    key: const ValueKey('create-item-category'),
-                    onPressed: _saving ? null : _createCategory,
-                    icon: const Icon(Icons.add_rounded),
-                    label: const Text('新增分類'),
+                  child: Wrap(
+                    alignment: WrapAlignment.end,
+                    children: [
+                      TextButton.icon(
+                        key: const ValueKey('manage-item-categories'),
+                        onPressed: _saving ? null : _manageCategories,
+                        icon: const Icon(Icons.settings_outlined),
+                        label: const Text('管理分類'),
+                      ),
+                      TextButton.icon(
+                        key: const ValueKey('create-item-category'),
+                        onPressed: _saving ? null : _createCategory,
+                        icon: const Icon(Icons.add_rounded),
+                        label: const Text('新增分類'),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: UiSpace.xs),
@@ -533,6 +557,14 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
       _categories = values;
       _categoryId = createdCategory!.id;
     });
+  }
+
+  Future<void> _manageCategories() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(builder: (_) => const CategoryManagementScreen()),
+    );
+    if (!mounted) return;
+    await _loadCategories();
   }
 
   Future<void> _save() async {

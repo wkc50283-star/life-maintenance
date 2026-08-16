@@ -45,11 +45,15 @@ void main() {
     expect(find.text('拍照'), findsNothing);
     expect(find.text('說一句'), findsNothing);
     expect(find.text('輸入'), findsNothing);
-    expect(find.text('現在需要記住或處理什麼？'), findsOneWidget);
-    expect(find.text('分類'), findsOneWidget);
-    expect(find.text('一般提醒'), findsOneWidget);
-    expect(find.text('突發事項／工程'), findsOneWidget);
-    expect(find.text('補登完成紀錄'), findsOneWidget);
+    expect(find.text('你現在想做什麼？'), findsOneWidget);
+    expect(find.text('建立要長期管理的內容'), findsOneWidget);
+    expect(find.text('安排未來要注意或處理的事情'), findsOneWidget);
+    expect(find.text('記錄正在處理的事情'), findsOneWidget);
+    expect(find.text('補記已完成的事情'), findsOneWidget);
+    expect(find.text('分類'), findsNothing);
+    expect(find.text('一般提醒'), findsNothing);
+    expect(find.text('突發事項／工程'), findsNothing);
+    expect(find.text('補登完成紀錄'), findsNothing);
     expect(await database.select(database.items).get(), isEmpty);
   });
 
