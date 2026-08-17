@@ -66,6 +66,11 @@ class DriftWorkCaseRuntime implements WorkCaseRuntime {
     required WorkCase workCase,
     WorkCaseUpdate? initialUpdate,
   }) async {
+    if (workCase.caseType == null) {
+      throw const RepositoryConstraintException(
+        'A sourced WorkCase must have a case type.',
+      );
+    }
     final query = _database.select(_database.tasks)
       ..where((table) => table.id.equals(taskId));
     final task = await query.getSingleOrNull();

@@ -8,24 +8,23 @@ import 'package:sqlite3/sqlite3.dart' as sqlite;
 
 void main() {
   test(
-    'v10 to v11 preserves linked cases and permits an unlinked case',
+    'v11 to v12 preserves existing types and permits null for manual',
     () async {
       final directory = await Directory.systemTemp.createTemp(
-        'schema-v10-v11-',
+        'schema-v11-v12-',
       );
       addTearDown(() => directory.delete(recursive: true));
       final file = File('${directory.path}/fixture.sqlite');
-      await _createV10Fixture(file);
+      await _createV11Fixture(file);
 
       final database = AppDatabase(NativeDatabase(file));
       addTearDown(database.close);
       await database.customSelect('SELECT 1').get();
 
       expect(database.schemaVersion, 12);
-      expect(
-        (await database.select(database.workCases).getSingle()).itemId,
-        'item-1',
-      );
+      final existing = await database.select(database.workCases).getSingle();
+      expect(existing.caseType, WorkCaseType.repair);
+
       await database.customStatement('''
       INSERT INTO work_cases (
         schema_version, id, item_id, source_type, source_id, source_task_id,
@@ -33,17 +32,31 @@ void main() {
         created_at, updated_at, closed_at, canceled_at, close_result,
         cancellation_reason
       ) VALUES (
-        1, 'case-unlinked', NULL, 'manual', NULL, NULL,
-        'other', '未關聯案件', NULL, NULL, NULL, 'inProgress',
-        '2026-08-17T00:00:00.000Z', '2026-08-17T00:00:00.000Z',
+        1, 'case-untyped', NULL, 'manual', NULL, NULL,
+        NULL, '未提供類型', NULL, NULL, NULL, 'inProgress',
+        '2026-08-18T00:00:00.000Z', '2026-08-18T00:00:00.000Z',
         NULL, NULL, NULL, NULL
       )
     ''');
       expect(
         (await database.select(database.workCases).get())
-            .singleWhere((row) => row.id == 'case-unlinked')
-            .itemId,
+            .singleWhere((row) => row.id == 'case-untyped')
+            .caseType,
         isNull,
+      );
+
+      await expectLater(
+        database.customStatement('''
+        INSERT INTO work_cases (
+          schema_version, id, item_id, source_type, source_id, source_task_id,
+          case_type, title, status, created_at, updated_at
+        ) VALUES (
+          1, 'case-invalid-source', 'item-1', 'generalReminder',
+          'reminder-1', NULL, NULL, '來源案件', 'inProgress',
+          '2026-08-18T00:00:00.000Z', '2026-08-18T00:00:00.000Z'
+        )
+      '''),
+        throwsA(anything),
       );
       expect(
         await database.customSelect('PRAGMA foreign_key_check').get(),
@@ -52,9 +65,9 @@ void main() {
     },
   );
 
-  test('fresh v11 and migrated v11 WorkCase schema match', () async {
+  test('fresh v12 and migrated v12 WorkCase schema match', () async {
     final directory = await Directory.systemTemp.createTemp(
-      'schema-v11-match-',
+      'schema-v12-match-',
     );
     addTearDown(() => directory.delete(recursive: true));
     final freshFile = File('${directory.path}/fresh.sqlite');
@@ -63,7 +76,7 @@ void main() {
     final fresh = AppDatabase(NativeDatabase(freshFile));
     await fresh.customSelect('SELECT 1').get();
     await fresh.close();
-    await _createV10Fixture(migratedFile);
+    await _createV11Fixture(migratedFile);
     final migrated = AppDatabase(NativeDatabase(migratedFile));
     await migrated.customSelect('SELECT 1').get();
     await migrated.close();
@@ -72,7 +85,7 @@ void main() {
   });
 }
 
-Future<void> _createV10Fixture(File file) async {
+Future<void> _createV11Fixture(File file) async {
   final database = AppDatabase(NativeDatabase(file));
   await database.customSelect('SELECT 1').get();
   await database.close();
@@ -91,17 +104,17 @@ Future<void> _createV10Fixture(File file) async {
     final oldSql = currentSql
         .replaceFirst(
           'CREATE TABLE "work_cases"',
-          'CREATE TABLE work_cases_v10',
+          'CREATE TABLE work_cases_v11',
         )
-        .replaceFirst('"item_id" TEXT NULL', '"item_id" TEXT NOT NULL')
+        .replaceFirst('"case_type" TEXT NULL', '"case_type" TEXT NOT NULL')
         .replaceFirst(
-          ', CHECK (item_id IS NOT NULL OR source_type = \'manual\')',
+          ", CHECK (case_type IS NOT NULL OR source_type = 'manual')",
           '',
         );
     raw.execute(oldSql);
-    raw.execute('INSERT INTO work_cases_v10 SELECT * FROM work_cases');
+    raw.execute('INSERT INTO work_cases_v11 SELECT * FROM work_cases');
     raw.execute('DROP TABLE work_cases');
-    raw.execute('ALTER TABLE work_cases_v10 RENAME TO work_cases');
+    raw.execute('ALTER TABLE work_cases_v11 RENAME TO work_cases');
     for (final statement in const [
       'CREATE INDEX work_cases_item_status_idx ON work_cases (item_id, status)',
       'CREATE INDEX work_cases_source_idx ON work_cases (source_type, source_id)',
@@ -116,7 +129,7 @@ Future<void> _createV10Fixture(File file) async {
         created_at, updated_at, archived_at
       ) VALUES (
         'category-1', 'other', NULL, '其他', 0, 'active',
-        '2026-08-17T00:00:00.000Z', '2026-08-17T00:00:00.000Z', NULL
+        '2026-08-18T00:00:00.000Z', '2026-08-18T00:00:00.000Z', NULL
       )
     ''');
     raw.execute('''
@@ -126,25 +139,21 @@ Future<void> _createV10Fixture(File file) async {
         archived_at
       ) VALUES (
         'item-1', '既有項目', 'category-1',
-        '2026-08-17T00:00:00.000Z', '2026-08-17T00:00:00.000Z',
+        '2026-08-18T00:00:00.000Z', '2026-08-18T00:00:00.000Z',
         NULL, NULL, NULL, NULL, NULL, 'active', NULL
       )
     ''');
     raw.execute('''
       INSERT INTO work_cases (
         schema_version, id, item_id, source_type, source_id, source_task_id,
-        case_type, title, description, occurred_at, started_at, status,
-        created_at, updated_at, closed_at, canceled_at, close_result,
-        cancellation_reason
+        case_type, title, status, created_at, updated_at
       ) VALUES (
         1, 'case-linked', 'item-1', 'manual', NULL, NULL,
-        '${WorkCaseType.other.name}', '既有案件', NULL, NULL, NULL,
-        '${WorkCaseStatus.inProgress.name}',
-        '2026-08-17T00:00:00.000Z', '2026-08-17T00:00:00.000Z',
-        NULL, NULL, NULL, NULL
+        '${WorkCaseType.repair.name}', '既有案件', 'inProgress',
+        '2026-08-18T00:00:00.000Z', '2026-08-18T00:00:00.000Z'
       )
     ''');
-    raw.execute('PRAGMA user_version = 10');
+    raw.execute('PRAGMA user_version = 11');
   } finally {
     raw.close();
   }

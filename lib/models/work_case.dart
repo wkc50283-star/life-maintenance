@@ -31,7 +31,7 @@ class WorkCase {
   final WorkCaseSourceType sourceType;
   final String? sourceId;
   final String? sourceTaskId;
-  final WorkCaseType caseType;
+  final WorkCaseType? caseType;
   final String title;
   final String? description;
   final DateTime? occurredAt;
@@ -63,11 +63,7 @@ class WorkCase {
       ),
       sourceId: _readNullableString(json['sourceId']),
       sourceTaskId: _readNullableString(json['sourceTaskId']),
-      caseType: _readEnum(
-        WorkCaseType.values,
-        json['caseType'],
-        WorkCaseType.other,
-      ),
+      caseType: _readNullableEnum(WorkCaseType.values, json['caseType']),
       title: json['title'] as String,
       description: _readNullableString(json['description']),
       occurredAt: _readNullableDate(json['occurredAt']),
@@ -94,7 +90,7 @@ class WorkCase {
       'sourceType': sourceType.name,
       'sourceId': sourceId,
       'sourceTaskId': sourceTaskId,
-      'caseType': caseType.name,
+      'caseType': caseType?.name,
       'title': title,
       'description': description,
       'occurredAt': occurredAt?.toIso8601String(),
@@ -116,7 +112,7 @@ class WorkCase {
     WorkCaseSourceType? sourceType,
     Object? sourceId = _notProvided,
     Object? sourceTaskId = _notProvided,
-    WorkCaseType? caseType,
+    Object? caseType = _notProvided,
     String? title,
     Object? description = _notProvided,
     Object? occurredAt = _notProvided,
@@ -140,7 +136,9 @@ class WorkCase {
       sourceTaskId: identical(sourceTaskId, _notProvided)
           ? this.sourceTaskId
           : sourceTaskId as String?,
-      caseType: caseType ?? this.caseType,
+      caseType: identical(caseType, _notProvided)
+          ? this.caseType
+          : caseType as WorkCaseType?,
       title: title ?? this.title,
       description: identical(description, _notProvided)
           ? this.description
@@ -189,6 +187,15 @@ T _readEnum<T extends Enum>(List<T> values, Object? value, T fallback) {
     }
   }
   return fallback;
+}
+
+T? _readNullableEnum<T extends Enum>(List<T> values, Object? value) {
+  if (value is String) {
+    for (final candidate in values) {
+      if (candidate.name == value) return candidate;
+    }
+  }
+  return null;
 }
 
 String? _readNullableString(Object? value) {

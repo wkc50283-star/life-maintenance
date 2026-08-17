@@ -295,6 +295,43 @@ void main() {
     expect(find.text('目前無法完成這個動作，請稍後再試。'), findsOneWidget);
     expect(find.text('建立案件'), findsOneWidget);
   });
+
+  testWidgets('detail labels a null case type without inventing other', (
+    tester,
+  ) async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final root = AppCompositionRoot(database: database);
+    final now = DateTime.utc(2026, 8, 18);
+    await root.workCaseRuntime.createManual(
+      WorkCase(
+        id: 'case-untyped',
+        itemId: null,
+        sourceType: WorkCaseSourceType.manual,
+        caseType: null,
+        title: '未提供類型的事情',
+        status: WorkCaseStatus.inProgress,
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+
+    await tester.pumpWidget(
+      AppCompositionScope(
+        root: root,
+        child: const MaterialApp(
+          home: WorkCaseDetailScreen(
+            workCaseId: 'case-untyped',
+            itemName: '未關聯生活項目',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('未設定類型'), findsOneWidget);
+    expect(find.text('其他生活事項'), findsNothing);
+  });
 }
 
 Widget _app(AppCompositionRoot root) => AppCompositionScope(

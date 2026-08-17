@@ -149,7 +149,7 @@ void main() {
             id: 'case-1',
             itemId: const Value('item-1'),
             sourceType: WorkCaseSourceType.manual,
-            caseType: WorkCaseType.repair,
+            caseType: const Value(WorkCaseType.repair),
             title: '冷氣維修',
             status: WorkCaseStatus.inProgress,
             createdAt: DateTime.utc(2026, 7, 18),

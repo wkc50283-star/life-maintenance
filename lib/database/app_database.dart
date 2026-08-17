@@ -95,7 +95,7 @@ class AppDatabase extends _$AppDatabase {
       );
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -120,7 +120,8 @@ class AppDatabase extends _$AppDatabase {
               to == 8 ||
               to == 9 ||
               to == 10 ||
-              to == 11)) {
+              to == 11 ||
+              to == 12)) {
         await customStatement('PRAGMA foreign_keys = OFF');
         await transaction(() async {
           await _migrateV1ToV2(migrator);
@@ -136,7 +137,8 @@ class AppDatabase extends _$AppDatabase {
           }
           if (to >= 9) await _createSchemaV9(migrator);
           if (to >= 10) await _createSchemaV10(migrator);
-          if (to == 11) await _createSchemaV11(migrator);
+          if (to >= 11) await _createSchemaV11(migrator);
+          if (to == 12) await _createSchemaV12(migrator);
           await _ensureUnclassifiedCategory();
           await _throwIfForeignKeyViolations();
         });
@@ -151,7 +153,8 @@ class AppDatabase extends _$AppDatabase {
               to == 8 ||
               to == 9 ||
               to == 10 ||
-              to == 11)) {
+              to == 11 ||
+              to == 12)) {
         await transaction(() async {
           await migrator.addColumn(workCases, workCases.sourceTaskId);
           await customStatement(
@@ -181,7 +184,8 @@ class AppDatabase extends _$AppDatabase {
           }
           if (to >= 9) await _createSchemaV9(migrator);
           if (to >= 10) await _createSchemaV10(migrator);
-          if (to == 11) await _createSchemaV11(migrator);
+          if (to >= 11) await _createSchemaV11(migrator);
+          if (to == 12) await _createSchemaV12(migrator);
           await _throwIfForeignKeyViolations();
         });
         return;
@@ -194,7 +198,8 @@ class AppDatabase extends _$AppDatabase {
               to == 8 ||
               to == 9 ||
               to == 10 ||
-              to == 11)) {
+              to == 11 ||
+              to == 12)) {
         await transaction(() async {
           await _createSchemaV4(migrator);
           await _createSchemaV4ImmutabilityTriggers();
@@ -216,7 +221,8 @@ class AppDatabase extends _$AppDatabase {
           }
           if (to >= 9) await _createSchemaV9(migrator);
           if (to >= 10) await _createSchemaV10(migrator);
-          if (to == 11) await _createSchemaV11(migrator);
+          if (to >= 11) await _createSchemaV11(migrator);
+          if (to == 12) await _createSchemaV12(migrator);
           await _ensureUnclassifiedCategory();
           await _throwIfForeignKeyViolations();
         });
@@ -229,7 +235,8 @@ class AppDatabase extends _$AppDatabase {
               to == 8 ||
               to == 9 ||
               to == 10 ||
-              to == 11)) {
+              to == 11 ||
+              to == 12)) {
         await transaction(() async {
           await _createSchemaV5(migrator);
           await _createSchemaV5ProtectionTriggers();
@@ -247,13 +254,20 @@ class AppDatabase extends _$AppDatabase {
           }
           if (to >= 9) await _createSchemaV9(migrator);
           if (to >= 10) await _createSchemaV10(migrator);
-          if (to == 11) await _createSchemaV11(migrator);
+          if (to >= 11) await _createSchemaV11(migrator);
+          if (to == 12) await _createSchemaV12(migrator);
           await _throwIfForeignKeyViolations();
         });
         return;
       }
       if (from == 5 &&
-          (to == 6 || to == 7 || to == 8 || to == 9 || to == 10 || to == 11)) {
+          (to == 6 ||
+              to == 7 ||
+              to == 8 ||
+              to == 9 ||
+              to == 10 ||
+              to == 11 ||
+              to == 12)) {
         await transaction(() async {
           await _createSchemaV6(migrator);
           await _createSchemaV6ProtectionTriggers();
@@ -267,13 +281,14 @@ class AppDatabase extends _$AppDatabase {
           }
           if (to >= 9) await _createSchemaV9(migrator);
           if (to >= 10) await _createSchemaV10(migrator);
-          if (to == 11) await _createSchemaV11(migrator);
+          if (to >= 11) await _createSchemaV11(migrator);
+          if (to == 12) await _createSchemaV12(migrator);
           await _throwIfForeignKeyViolations();
         });
         return;
       }
       if (from == 6 &&
-          (to == 7 || to == 8 || to == 9 || to == 10 || to == 11)) {
+          (to == 7 || to == 8 || to == 9 || to == 10 || to == 11 || to == 12)) {
         await transaction(() async {
           await _createSchemaV7(migrator);
           await _createSchemaV7ProtectionTriggers();
@@ -283,42 +298,55 @@ class AppDatabase extends _$AppDatabase {
           }
           if (to >= 9) await _createSchemaV9(migrator);
           if (to >= 10) await _createSchemaV10(migrator);
-          if (to == 11) await _createSchemaV11(migrator);
+          if (to >= 11) await _createSchemaV11(migrator);
+          if (to == 12) await _createSchemaV12(migrator);
           await _throwIfForeignKeyViolations();
         });
         return;
       }
-      if (from == 7 && (to == 8 || to == 9 || to == 10 || to == 11)) {
+      if (from == 7 &&
+          (to == 8 || to == 9 || to == 10 || to == 11 || to == 12)) {
         await transaction(() async {
           await _createSchemaV8(migrator);
           await _createSchemaV8ProtectionTriggers();
           if (to >= 9) await _createSchemaV9(migrator);
           if (to >= 10) await _createSchemaV10(migrator);
-          if (to == 11) await _createSchemaV11(migrator);
+          if (to >= 11) await _createSchemaV11(migrator);
+          if (to == 12) await _createSchemaV12(migrator);
           await _throwIfForeignKeyViolations();
         });
         return;
       }
-      if (from == 8 && (to == 9 || to == 10 || to == 11)) {
+      if (from == 8 && (to == 9 || to == 10 || to == 11 || to == 12)) {
         await transaction(() async {
           await _createSchemaV9(migrator);
           if (to >= 10) await _createSchemaV10(migrator);
-          if (to == 11) await _createSchemaV11(migrator);
+          if (to >= 11) await _createSchemaV11(migrator);
+          if (to == 12) await _createSchemaV12(migrator);
           await _throwIfForeignKeyViolations();
         });
         return;
       }
-      if (from == 9 && (to == 10 || to == 11)) {
+      if (from == 9 && (to == 10 || to == 11 || to == 12)) {
         await transaction(() async {
           await _createSchemaV10(migrator);
-          if (to == 11) await _createSchemaV11(migrator);
+          if (to >= 11) await _createSchemaV11(migrator);
+          if (to == 12) await _createSchemaV12(migrator);
           await _throwIfForeignKeyViolations();
         });
         return;
       }
-      if (from == 10 && to == 11) {
+      if (from == 10 && (to == 11 || to == 12)) {
         await transaction(() async {
           await _createSchemaV11(migrator);
+          if (to == 12) await _createSchemaV12(migrator);
+          await _throwIfForeignKeyViolations();
+        });
+        return;
+      }
+      if (from == 11 && to == 12) {
+        await transaction(() async {
+          await _createSchemaV12(migrator);
           await _throwIfForeignKeyViolations();
         });
         return;
@@ -560,6 +588,14 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> _createSchemaV11(Migrator migrator) async {
+    final existing = await customSelect(
+      "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'work_cases'",
+    ).get();
+    if (existing.isEmpty) return;
+    await migrator.alterTable(TableMigration(workCases));
+  }
+
+  Future<void> _createSchemaV12(Migrator migrator) async {
     final existing = await customSelect(
       "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'work_cases'",
     ).get();

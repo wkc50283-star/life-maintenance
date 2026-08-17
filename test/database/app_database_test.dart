@@ -41,7 +41,7 @@ void main() {
     await database.close();
   });
 
-  test('schema v11 creates the formal life-management tables', () async {
+  test('schema v12 creates the formal life-management tables', () async {
     final rows = await database
         .customSelect(
           "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name",
@@ -49,7 +49,7 @@ void main() {
         .get();
     final names = rows.map((row) => row.read<String>('name')).toSet();
 
-    expect(database.schemaVersion, 11);
+    expect(database.schemaVersion, 12);
     expect(
       names,
       containsAll(<String>{
@@ -96,7 +96,7 @@ void main() {
               id: 'case-1',
               itemId: const Value('item-1'),
               sourceType: WorkCaseSourceType.manual,
-              caseType: WorkCaseType.repair,
+              caseType: const Value(WorkCaseType.repair),
               title: '冷氣異音檢查',
               status: WorkCaseStatus.inProgress,
               createdAt: createdAt,
@@ -145,7 +145,7 @@ void main() {
             id: 'orphan-case',
             itemId: const Value('missing-item'),
             sourceType: WorkCaseSourceType.manual,
-            caseType: WorkCaseType.other,
+            caseType: const Value(WorkCaseType.other),
             title: '不應寫入的孤兒案件',
             status: WorkCaseStatus.notStarted,
             createdAt: now,
@@ -182,7 +182,7 @@ void main() {
             id: 'case-protected',
             itemId: const Value('item-1'),
             sourceType: WorkCaseSourceType.manual,
-            caseType: WorkCaseType.construction,
+            caseType: const Value(WorkCaseType.construction),
             title: '陽台修繕',
             status: WorkCaseStatus.waiting,
             createdAt: now,
@@ -219,7 +219,7 @@ void main() {
             id: 'item-protected-case',
             itemId: const Value('item-1'),
             sourceType: WorkCaseSourceType.manual,
-            caseType: WorkCaseType.repair,
+            caseType: const Value(WorkCaseType.repair),
             title: '保護生活項目',
             status: WorkCaseStatus.inProgress,
             createdAt: now,
@@ -249,7 +249,7 @@ void main() {
                   id: 'case-rollback',
                   itemId: const Value('item-1'),
                   sourceType: WorkCaseSourceType.manual,
-                  caseType: WorkCaseType.other,
+                  caseType: const Value(WorkCaseType.other),
                   title: '回復測試',
                   status: WorkCaseStatus.notStarted,
                   createdAt: now,

@@ -205,12 +205,13 @@ void main() {
     String? itemId = 'item-1',
     WorkCaseSourceType sourceType = WorkCaseSourceType.manual,
     String? sourceId,
+    WorkCaseType? caseType = WorkCaseType.administrative,
   }) => WorkCase(
     id: id,
     itemId: itemId,
     sourceType: sourceType,
     sourceId: sourceId,
-    caseType: WorkCaseType.administrative,
+    caseType: caseType,
     title: '辦理租約續約',
     status: WorkCaseStatus.inProgress,
     createdAt: now,
@@ -260,6 +261,25 @@ void main() {
     expect(created.sourceTaskId, 'task-1');
     expect(await runtime.listUpdatesForCase(created.id), hasLength(1));
     expect((await repositories.tasks.findById('task-1'))?.status, 'pending');
+  });
+
+  test('manual creation preserves a null case type', () async {
+    await runtime.createManual(workCase(itemId: null, caseType: null));
+
+    final created = await runtime.findCaseById('case-1');
+    expect(created?.caseType, isNull);
+    expect(created?.sourceType, WorkCaseSourceType.manual);
+  });
+
+  test('task-backed creation still rejects a null case type', () async {
+    await expectLater(
+      runtime.createFromTask(
+        taskId: 'task-1',
+        workCase: workCase(caseType: null),
+      ),
+      throwsA(isA<RepositoryConstraintException>()),
+    );
+    expect(await runtime.findCaseById('case-1'), isNull);
   });
 
   test(
