@@ -30,7 +30,7 @@ void main() {
     }
   });
 
-  test('creates and validates a complete schema v11 SQLite backup', () async {
+  test('creates and validates a complete schema v12 SQLite backup', () async {
     final service = DriftDatabaseBackupService();
 
     final validation = await service.createBackup(
@@ -38,7 +38,7 @@ void main() {
       destination: backup,
     );
 
-    expect(validation.formatVersion, 11);
+    expect(validation.formatVersion, 12);
     expect(validation.rowCounts['items'], 1);
     expect(validation.rowCounts['item_management_periods'], 1);
     expect(validation.rowCounts['item_lifecycle_events'], 1);
@@ -64,7 +64,7 @@ void main() {
     expect(await File('${backup.path}.restore-staging').exists(), isFalse);
   });
 
-  test('schema v11 backup round trips an unlinked WorkCase', () async {
+  test('schema v12 backup round trips an unlinked WorkCase', () async {
     final sourceDatabase = AppDatabase(NativeDatabase(source));
     await sourceDatabase.customSelect('SELECT 1').get();
     final now = DateTime.utc(2026, 8, 17);
@@ -74,7 +74,6 @@ void main() {
           WorkCasesCompanion.insert(
             id: 'case-unlinked',
             sourceType: WorkCaseSourceType.manual,
-            caseType: WorkCaseType.other,
             title: '未關聯案件',
             status: WorkCaseStatus.inProgress,
             createdAt: now,
@@ -90,15 +89,19 @@ void main() {
     addTearDown(restored.close);
     await restored.customSelect('SELECT 1').get();
 
-    expect(restored.schemaVersion, 11);
+    expect(restored.schemaVersion, 12);
     expect(
       (await restored.select(restored.workCases).getSingle()).itemId,
+      isNull,
+    );
+    expect(
+      (await restored.select(restored.workCases).getSingle()).caseType,
       isNull,
     );
   });
 
   test(
-    'schema v10 backup restores and migrates linked WorkCase to v11',
+    'schema v10 backup restores and migrates linked WorkCase to v12',
     () async {
       final sourceDatabase = AppDatabase(NativeDatabase(source));
       await sourceDatabase.customSelect('SELECT 1').get();
@@ -110,7 +113,7 @@ void main() {
               id: 'case-linked',
               itemId: const Value('source-item'),
               sourceType: WorkCaseSourceType.manual,
-              caseType: WorkCaseType.other,
+              caseType: const Value(WorkCaseType.other),
               title: '既有案件',
               status: WorkCaseStatus.inProgress,
               createdAt: now,
@@ -131,10 +134,52 @@ void main() {
       addTearDown(restored.close);
       await restored.customSelect('SELECT 1').get();
 
-      expect(restored.schemaVersion, 11);
+      expect(restored.schemaVersion, 12);
       expect(
         (await restored.select(restored.workCases).getSingle()).itemId,
         'source-item',
+      );
+    },
+  );
+
+  test(
+    'schema v11 backup restores and preserves WorkCase type in v12',
+    () async {
+      final sourceDatabase = AppDatabase(NativeDatabase(source));
+      await sourceDatabase.customSelect('SELECT 1').get();
+      final now = DateTime.utc(2026, 8, 18);
+      await sourceDatabase
+          .into(sourceDatabase.workCases)
+          .insert(
+            WorkCasesCompanion.insert(
+              id: 'case-v11',
+              itemId: const Value('source-item'),
+              sourceType: WorkCaseSourceType.manual,
+              caseType: const Value(WorkCaseType.repair),
+              title: '舊版案件',
+              status: WorkCaseStatus.inProgress,
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+      await sourceDatabase.close();
+      await _downgradeToSchemaV11(source);
+
+      final service = DriftDatabaseBackupService();
+      final validation = await service.createBackup(
+        source: source,
+        destination: backup,
+      );
+      expect(validation.formatVersion, 11);
+      await service.restore(backup: backup, destination: destination);
+      final restored = AppDatabase(NativeDatabase(destination));
+      addTearDown(restored.close);
+      await restored.customSelect('SELECT 1').get();
+
+      expect(restored.schemaVersion, 12);
+      expect(
+        (await restored.select(restored.workCases).getSingle()).caseType,
+        WorkCaseType.repair,
       );
     },
   );
@@ -156,7 +201,7 @@ void main() {
     final migrated = AppDatabase(NativeDatabase(destination));
     addTearDown(migrated.close);
     await migrated.customSelect('SELECT 1').get();
-    expect(migrated.schemaVersion, 11);
+    expect(migrated.schemaVersion, 12);
     expect(await migrated.select(migrated.items).get(), hasLength(1));
     expect(
       await migrated.select(migrated.itemCustomManagementPeriods).get(),
@@ -185,7 +230,7 @@ void main() {
     final migrated = AppDatabase(NativeDatabase(destination));
     addTearDown(migrated.close);
     await migrated.customSelect('SELECT 1').get();
-    expect(migrated.schemaVersion, 11);
+    expect(migrated.schemaVersion, 12);
     expect(await migrated.select(migrated.items).get(), hasLength(1));
     expect(
       await migrated.select(migrated.itemCustomManagementPeriods).get(),
@@ -211,7 +256,7 @@ void main() {
     final migrated = AppDatabase(NativeDatabase(destination));
     addTearDown(migrated.close);
     await migrated.customSelect('SELECT 1').get();
-    expect(migrated.schemaVersion, 11);
+    expect(migrated.schemaVersion, 12);
     expect(await migrated.select(migrated.items).get(), hasLength(1));
     expect(await migrated.select(migrated.futureMatters).get(), isEmpty);
     expect(
@@ -367,7 +412,7 @@ void main() {
 
     final migrated = AppDatabase(NativeDatabase(destination));
     await migrated.customSelect('SELECT 1').get();
-    expect(migrated.schemaVersion, 11);
+    expect(migrated.schemaVersion, 12);
     final matters = await migrated.select(migrated.futureMatters).get();
     expect(matters, isNotEmpty);
     expect(matters.every((row) => row.createdSource == null), isTrue);
@@ -379,7 +424,7 @@ void main() {
   });
 
   test(
-    'schema v11 backup round trips amendment structured snapshots',
+    'schema v12 backup round trips amendment structured snapshots',
     () async {
       final sourceDatabase = AppDatabase(NativeDatabase(source));
       await sourceDatabase.customSelect('SELECT 1').get();
@@ -494,7 +539,7 @@ void main() {
     final migrated = AppDatabase(NativeDatabase(destination));
     addTearDown(migrated.close);
     await migrated.customSelect('SELECT 1').get();
-    expect(migrated.schemaVersion, 11);
+    expect(migrated.schemaVersion, 12);
     expect(await migrated.select(migrated.futureMatters).get(), hasLength(3));
     expect(
       await migrated.select(migrated.futureMatterChangeEvents).get(),
@@ -518,7 +563,7 @@ void main() {
     final migrated = AppDatabase(NativeDatabase(destination));
     addTearDown(migrated.close);
     await migrated.customSelect('SELECT 1').get();
-    expect(migrated.schemaVersion, 11);
+    expect(migrated.schemaVersion, 12);
     expect(
       (await migrated.select(migrated.futureMatters).get()).every(
         (row) => row.lifecycleStatus == 'active',
@@ -1035,6 +1080,40 @@ Future<void> _downgradeToSchemaV10(File file) async {
     raw.execute(statement);
   }
   raw.execute('PRAGMA user_version = 10');
+  raw.close();
+}
+
+Future<void> _downgradeToSchemaV11(File file) async {
+  final raw = sqlite3.open(file.path);
+  raw.execute('PRAGMA foreign_keys = OFF');
+  raw.execute('PRAGMA legacy_alter_table = ON');
+  final currentSql =
+      raw
+              .select(
+                "SELECT sql FROM sqlite_schema WHERE type = 'table' AND name = 'work_cases'",
+              )
+              .single['sql']
+          as String;
+  final oldSql = currentSql
+      .replaceFirst('CREATE TABLE "work_cases"', 'CREATE TABLE work_cases_v11')
+      .replaceFirst('"case_type" TEXT NULL', '"case_type" TEXT NOT NULL')
+      .replaceFirst(
+        ", CHECK (case_type IS NOT NULL OR source_type = 'manual')",
+        '',
+      );
+  raw.execute(oldSql);
+  raw.execute('INSERT INTO work_cases_v11 SELECT * FROM work_cases');
+  raw.execute('DROP TABLE work_cases');
+  raw.execute('ALTER TABLE work_cases_v11 RENAME TO work_cases');
+  for (final statement in const [
+    'CREATE INDEX work_cases_item_status_idx ON work_cases (item_id, status)',
+    'CREATE INDEX work_cases_source_idx ON work_cases (source_type, source_id)',
+    'CREATE INDEX work_cases_source_task_idx ON work_cases (source_task_id)',
+    'CREATE INDEX work_cases_updated_at_idx ON work_cases (updated_at)',
+  ]) {
+    raw.execute(statement);
+  }
+  raw.execute('PRAGMA user_version = 11');
   raw.close();
 }
 

@@ -31,7 +31,8 @@ class WorkCases extends Table {
 
   TextColumn get sourceTaskId => text().nullable()();
 
-  TextColumn get caseType => text().map(const WorkCaseTypeSqlConverter())();
+  TextColumn get caseType =>
+      text().map(const WorkCaseTypeSqlConverter()).nullable()();
 
   TextColumn get title => text()();
 
@@ -62,6 +63,7 @@ class WorkCases extends Table {
   List<String> get customConstraints => [
     "CHECK (trim(title) <> '')",
     "CHECK (item_id IS NOT NULL OR source_type = 'manual')",
+    "CHECK (case_type IS NOT NULL OR source_type = 'manual')",
     "CHECK ((source_type IN ('maintenanceTask', 'generalReminder', 'milestone') AND source_id IS NOT NULL AND trim(source_id) <> '') OR (source_type IN ('manual', 'unknown') AND source_id IS NULL))",
   ];
 }

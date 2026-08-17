@@ -431,7 +431,7 @@ void main() {
               id: 'legacy-case',
               itemId: const Value('item-1'),
               sourceType: WorkCaseSourceType.unknown,
-              caseType: WorkCaseType.other,
+              caseType: const Value(WorkCaseType.other),
               title: '舊案件',
               status: WorkCaseStatus.completed,
               createdAt: now,

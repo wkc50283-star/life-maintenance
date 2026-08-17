@@ -1176,7 +1176,8 @@ String _milestoneStatusLabel(MilestoneStatus status) => switch (status) {
   MilestoneStatus.archived => '已封存',
 };
 
-String _workCaseTypeLabel(WorkCaseType type) => switch (type) {
+String _workCaseTypeLabel(WorkCaseType? type) => switch (type) {
+  null => '未設定類型',
   WorkCaseType.maintenance => '保養案件',
   WorkCaseType.repair => '修理案件',
   WorkCaseType.construction => '工程案件',

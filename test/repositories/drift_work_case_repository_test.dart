@@ -52,6 +52,7 @@ void main() {
   WorkCase buildCase({
     String id = 'case-1',
     String? itemId = 'item-1',
+    WorkCaseType? caseType = WorkCaseType.repair,
     DateTime? updatedAt,
   }) {
     final createdAt = DateTime.utc(2026, 7, 18, 8);
@@ -59,7 +60,7 @@ void main() {
       id: id,
       itemId: itemId,
       sourceType: WorkCaseSourceType.manual,
-      caseType: WorkCaseType.repair,
+      caseType: caseType,
       title: '冷氣異音',
       status: WorkCaseStatus.inProgress,
       createdAt: createdAt,
@@ -111,6 +112,42 @@ void main() {
     expect((await database.select(database.items).get()).length, itemCount);
     expect(await repository.listCasesForItem('item-1'), isEmpty);
     expect(await repository.listAllCases(), hasLength(1));
+  });
+
+  test('manual cases preserve a null type without inventing other', () async {
+    await repository.saveCase(buildCase(caseType: null));
+
+    final restored = await repository.findCaseById('case-1');
+    expect(restored?.caseType, isNull);
+    expect(restored?.toJson()['caseType'], isNull);
+  });
+
+  test('sourced cases still require a case type', () async {
+    await expectLater(
+      repository.saveCase(
+        buildCase(caseType: null).copyWith(
+          sourceType: WorkCaseSourceType.generalReminder,
+          sourceId: 'reminder-1',
+        ),
+      ),
+      throwsA(isA<RepositoryConstraintException>()),
+    );
+    expect(await repository.listAllCases(), isEmpty);
+  });
+
+  test('case type remains immutable after creation', () async {
+    await repository.saveCase(buildCase(caseType: null));
+    await expectLater(
+      repository.saveCase(
+        buildCase(
+          caseType: WorkCaseType.repair,
+          updatedAt: DateTime.utc(2026, 7, 18, 9),
+        ),
+      ),
+      throwsA(isA<RepositoryConstraintException>()),
+    );
+
+    expect((await repository.findCaseById('case-1'))?.caseType, isNull);
   });
 
   test('manual linked cases still require an existing Item', () async {

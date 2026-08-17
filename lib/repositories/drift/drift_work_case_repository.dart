@@ -200,12 +200,13 @@ class DriftWorkCaseRepository implements WorkCaseRepository {
 
   void _validateIdentity(WorkCase existing, WorkCase updated) {
     if (existing.itemId != updated.itemId ||
+        existing.caseType != updated.caseType ||
         existing.sourceType != updated.sourceType ||
         existing.sourceId != updated.sourceId ||
         existing.sourceTaskId != updated.sourceTaskId ||
         existing.createdAt != updated.createdAt) {
       throw const RepositoryConstraintException(
-        'WorkCase Item, source, and creation identity are immutable.',
+        'WorkCase Item, type, source, and creation identity are immutable.',
       );
     }
     if (updated.updatedAt.isBefore(existing.updatedAt)) {
@@ -216,6 +217,12 @@ class DriftWorkCaseRepository implements WorkCaseRepository {
   }
 
   Future<void> _validateSource(WorkCase workCase) async {
+    if (workCase.sourceType != WorkCaseSourceType.manual &&
+        workCase.caseType == null) {
+      throw const RepositoryConstraintException(
+        'A sourced WorkCase must have a case type.',
+      );
+    }
     final itemId = workCase.itemId;
     if (itemId != null) {
       final itemQuery = _database.select(_database.items)

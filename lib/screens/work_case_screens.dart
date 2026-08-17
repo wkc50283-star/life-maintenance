@@ -1648,7 +1648,8 @@ String _statusLabel(WorkCaseStatus status) => switch (status) {
   WorkCaseStatus.canceled => '已取消',
 };
 
-String _caseTypeLabel(WorkCaseType type) => switch (type) {
+String _caseTypeLabel(WorkCaseType? type) => switch (type) {
+  null => '未設定類型',
   WorkCaseType.maintenance => '保養處理',
   WorkCaseType.repair => '維修處理',
   WorkCaseType.construction => '施工處理',

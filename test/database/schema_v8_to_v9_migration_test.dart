@@ -22,7 +22,7 @@ void main() {
       final database = AppDatabase(NativeDatabase(file));
       addTearDown(database.close);
       await database.customSelect('SELECT 1').get();
-      expect(database.schemaVersion, 11);
+      expect(database.schemaVersion, 12);
       expect(
         (await database.select(database.futureMatters).getSingle())
             .lifecycleStatus,

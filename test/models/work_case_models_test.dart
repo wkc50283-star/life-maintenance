@@ -54,7 +54,7 @@ void main() {
 
       expect(decoded.schemaVersion, WorkCase.currentSchemaVersion);
       expect(decoded.sourceType, WorkCaseSourceType.unknown);
-      expect(decoded.caseType, WorkCaseType.other);
+      expect(decoded.caseType, isNull);
       expect(decoded.status, WorkCaseStatus.notStarted);
       expect(decoded.updatedAt, createdAt);
       expect(decoded.sourceId, isNull);
@@ -80,6 +80,27 @@ void main() {
       expect(unlinked.itemId, isNull);
       expect(decoded.itemId, isNull);
       expect(decoded.toJson()['itemId'], isNull);
+    });
+
+    test('manual case preserves an absent type without inventing other', () {
+      final now = DateTime.utc(2026, 8, 18);
+      final typed = WorkCase(
+        id: 'case-optional-type',
+        itemId: null,
+        sourceType: WorkCaseSourceType.manual,
+        caseType: WorkCaseType.repair,
+        title: '未提供類型的案件',
+        status: WorkCaseStatus.inProgress,
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      final untyped = typed.copyWith(caseType: null);
+      final decoded = WorkCase.fromJson(untyped.toJson());
+
+      expect(untyped.caseType, isNull);
+      expect(decoded.caseType, isNull);
+      expect(decoded.toJson()['caseType'], isNull);
     });
 
     test('copyWith supports closure and explicit nullable field clearing', () {
