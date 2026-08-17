@@ -267,12 +267,12 @@ void main() {
     await tester.pumpAndSettle();
 
     tester
-        .widget<DropdownButtonFormField<String>>(
+        .widget<DropdownButtonFormField<String?>>(
           find.byKey(const ValueKey('manual-case-item')),
         )
         .onChanged!('item-1');
     tester
-        .widget<DropdownButtonFormField<WorkCaseType>>(
+        .widget<DropdownButtonFormField<WorkCaseType?>>(
           find.byKey(const ValueKey('manual-case-type')),
         )
         .onChanged!(WorkCaseType.repair);
@@ -332,6 +332,83 @@ void main() {
     expect(find.text('未設定類型'), findsOneWidget);
     expect(find.text('其他生活事項'), findsNothing);
   });
+
+  testWidgets('unlinked untyped case is visible and opens from case list', (
+    tester,
+  ) async {
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    final root = AppCompositionRoot(database: database);
+    final now = DateTime.utc(2026, 8, 18);
+    await root.workCaseRuntime.createManual(
+      WorkCase(
+        id: 'case-list-unlinked',
+        itemId: null,
+        sourceType: WorkCaseSourceType.manual,
+        caseType: null,
+        title: '臨時窗戶漏水',
+        status: WorkCaseStatus.inProgress,
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+
+    await tester.pumpWidget(
+      AppCompositionScope(
+        root: root,
+        child: const MaterialApp(home: WorkCaseListScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('臨時窗戶漏水'), findsOneWidget);
+    expect(find.text('未關聯生活項目 · 未設定類型'), findsOneWidget);
+    await tester.tap(find.text('臨時窗戶漏水'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(WorkCaseDetailScreen), findsOneWidget);
+    expect(find.text('未關聯生活項目'), findsOneWidget);
+    expect(find.text('未設定類型'), findsOneWidget);
+  });
+
+  testWidgets(
+    'title-only form stays operable on a small phone at 200 percent',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(320, 568);
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final root = AppCompositionRoot(database: database);
+
+      await tester.pumpWidget(
+        AppCompositionScope(
+          root: root,
+          child: const MaterialApp(home: ManualWorkCaseFormScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('manual-case-title')),
+        '臨時處理事項',
+      );
+      final save = find.byKey(const ValueKey('manual-case-save'));
+      await tester.scrollUntilVisible(
+        save,
+        250,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(tester.takeException(), isNull);
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+
+      expect(await root.workCaseRuntime.listAllCases(), hasLength(1));
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
 
 Widget _app(AppCompositionRoot root) => AppCompositionScope(

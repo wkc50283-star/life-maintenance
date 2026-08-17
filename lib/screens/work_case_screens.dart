@@ -68,14 +68,6 @@ class _ManualWorkCaseFormScreenState extends State<ManualWorkCaseFormScreen> {
       body: switch ((_items, _loadError)) {
         (null, null) => const Center(child: CircularProgressIndicator()),
         (null, _) => _LoadFailure(onRetry: _retry),
-        (final items?, _) when items.isEmpty => const Padding(
-          padding: UiInsets.page,
-          child: UiEmptyState(
-            icon: Icons.inventory_2_outlined,
-            title: '目前還沒有生活項目',
-            description: '請先建立生活項目，才能新增突發事項或工程案件。',
-          ),
-        ),
         (final items?, _) => Form(
           key: _formKey,
           child: ListView(
@@ -83,25 +75,29 @@ class _ManualWorkCaseFormScreenState extends State<ManualWorkCaseFormScreen> {
             children: [
               const _FormIntro(
                 title: '建立正在處理的案件',
-                description: '選擇所屬生活項目，後續可持續補充進度、等待狀況與結果。',
+                description: '建立後可持續補充進度、等待狀況與結果。',
               ),
               _FormSection(
                 title: '案件資料',
                 icon: Icons.handyman_outlined,
                 children: [
-                  DropdownButtonFormField<String>(
+                  DropdownButtonFormField<String?>(
                     key: const ValueKey('manual-case-item'),
                     initialValue: _itemId,
-                    decoration: const InputDecoration(labelText: '所屬生活項目'),
-                    hint: const Text('請選擇生活項目'),
+                    isExpanded: true,
+                    decoration: const InputDecoration(labelText: '所屬生活項目（選填）'),
+                    hint: const Text('未關聯生活項目'),
                     items: [
+                      const DropdownMenuItem<String?>(
+                        value: null,
+                        child: Text('未關聯生活項目'),
+                      ),
                       for (final item in items)
-                        DropdownMenuItem(
+                        DropdownMenuItem<String?>(
                           value: item.id,
                           child: Text(item.name),
                         ),
                     ],
-                    validator: (value) => value == null ? '請選擇生活項目' : null,
                     onChanged: _saving
                         ? null
                         : (value) => setState(() => _itemId = value),
@@ -115,19 +111,23 @@ class _ManualWorkCaseFormScreenState extends State<ManualWorkCaseFormScreen> {
                         _text(value) == null ? '請填寫案件標題' : null,
                   ),
                   const SizedBox(height: UiSpace.md),
-                  DropdownButtonFormField<WorkCaseType>(
+                  DropdownButtonFormField<WorkCaseType?>(
                     key: const ValueKey('manual-case-type'),
                     initialValue: _caseType,
-                    decoration: const InputDecoration(labelText: '案件類型'),
-                    hint: const Text('請選擇案件類型'),
+                    isExpanded: true,
+                    decoration: const InputDecoration(labelText: '案件類型（選填）'),
+                    hint: const Text('未設定類型'),
                     items: [
+                      const DropdownMenuItem<WorkCaseType?>(
+                        value: null,
+                        child: Text('未設定類型'),
+                      ),
                       for (final type in WorkCaseType.values)
-                        DropdownMenuItem(
+                        DropdownMenuItem<WorkCaseType?>(
                           value: type,
                           child: Text(_caseTypeLabel(type)),
                         ),
                     ],
-                    validator: (value) => value == null ? '請選擇案件類型' : null,
                     onChanged: _saving
                         ? null
                         : (value) => setState(() => _caseType = value),
@@ -171,19 +171,15 @@ class _ManualWorkCaseFormScreenState extends State<ManualWorkCaseFormScreen> {
       _showError(context, StateError('正式案件服務目前無法使用。'));
       return;
     }
-    final itemId = _itemId;
-    final caseType = _caseType;
-    if (itemId == null || caseType == null) return;
-
     setState(() => _saving = true);
     final now = DateTime.now();
     final workCaseId = 'case-${now.microsecondsSinceEpoch}';
     final initialDescription = _text(_initialUpdate.text);
     final workCase = WorkCase(
       id: workCaseId,
-      itemId: itemId,
+      itemId: _itemId,
       sourceType: WorkCaseSourceType.manual,
-      caseType: caseType,
+      caseType: _caseType,
       title: _title.text.trim(),
       occurredAt: now,
       startedAt: now,
@@ -237,13 +233,17 @@ class _WorkCaseListScreenState extends State<WorkCaseListScreen> {
     }
     try {
       final items = await root.itemReadRepository.loadItems();
-      final entries = <_WorkCaseListEntry>[];
-      for (final item in items) {
-        final cases = await runtime.listCasesForItem(item.id);
-        entries.addAll(
-          cases.map((workCase) => _WorkCaseListEntry(workCase, item)),
-        );
-      }
+      final itemNames = {for (final item in items) item.id: item.name};
+      final entries = (await runtime.listAllCases())
+          .map(
+            (workCase) => _WorkCaseListEntry(
+              workCase,
+              workCase.itemId == null
+                  ? '未關聯生活項目'
+                  : itemNames[workCase.itemId] ?? '未命名生活項目',
+            ),
+          )
+          .toList();
       entries.sort(
         (left, right) =>
             right.workCase.updatedAt.compareTo(left.workCase.updatedAt),
@@ -325,7 +325,7 @@ class WorkCaseDetailScreen extends StatefulWidget {
   });
 
   final String workCaseId;
-  final String itemName;
+  final String? itemName;
 
   @override
   State<WorkCaseDetailScreen> createState() => _WorkCaseDetailScreenState();
@@ -399,7 +399,9 @@ class _WorkCaseDetailScreenState extends State<WorkCaseDetailScreen> {
           (null, _) => _LoadFailure(onRetry: _retry),
           (final snapshot?, _) => _WorkCaseBody(
             snapshot: snapshot,
-            itemName: widget.itemName,
+            itemName: snapshot.workCase.itemId == null
+                ? '未關聯生活項目'
+                : _text(widget.itemName) ?? '未命名生活項目',
             onAddUpdate: () => _openUpdate(snapshot),
             onClose: () => _openClosure(snapshot),
             onCancel: () => _openCancel(snapshot),
@@ -1147,7 +1149,7 @@ class _CaseListCard extends StatelessWidget {
             MaterialPageRoute(
               builder: (_) => WorkCaseDetailScreen(
                 workCaseId: entry.workCase.id,
-                itemName: entry.item.name,
+                itemName: entry.itemName,
               ),
             ),
           );
@@ -1176,7 +1178,7 @@ class _CaseListCard extends StatelessWidget {
                   Text(entry.workCase.title, style: UiType.cardTitle),
                   const SizedBox(height: UiSpace.xxs),
                   Text(
-                    '${entry.item.name} · ${_caseTypeLabel(entry.workCase.caseType)}',
+                    '${entry.itemName} · ${_caseTypeLabel(entry.workCase.caseType)}',
                     style: UiType.body,
                   ),
                   const SizedBox(height: UiSpace.xs),
@@ -1613,10 +1615,10 @@ class _LoadFailure extends StatelessWidget {
 }
 
 class _WorkCaseListEntry {
-  const _WorkCaseListEntry(this.workCase, this.item);
+  const _WorkCaseListEntry(this.workCase, this.itemName);
 
   final WorkCase workCase;
-  final Item item;
+  final String itemName;
 }
 
 class _WorkCaseSnapshot {
