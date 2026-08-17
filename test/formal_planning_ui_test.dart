@@ -171,7 +171,7 @@ void main() {
     expect(find.textContaining('AnchorPolicy'), findsNothing);
   });
 
-  testWidgets('manual WorkCase entry refuses to create without an Item', (
+  testWidgets('manual WorkCase creates with only a title and no Item or type', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -185,8 +185,23 @@ void main() {
     await _openManualWorkCaseForm(tester);
 
     expect(find.byType(ManualWorkCaseFormScreen), findsOneWidget);
-    expect(find.text('目前還沒有生活項目'), findsOneWidget);
-    expect(find.byKey(const ValueKey('manual-case-save')), findsNothing);
+    expect(find.text('未關聯生活項目'), findsOneWidget);
+    expect(find.text('未設定類型'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey('manual-case-title')),
+      '臨時漏水處理',
+    );
+    await _tapManualWorkCaseSave(tester);
+
+    final cases = await root.workCaseRuntime.listAllCases();
+    expect(cases, hasLength(1));
+    expect(cases.single.itemId, isNull);
+    expect(cases.single.caseType, isNull);
+    expect(
+      await root.workCaseRuntime.listUpdatesForCase(cases.single.id),
+      isEmpty,
+    );
+    expect(await root.itemReadRepository.loadItems(), isEmpty);
   });
 
   testWidgets(
@@ -220,12 +235,12 @@ void main() {
 
       await _openManualWorkCaseForm(tester);
       tester
-          .widget<DropdownButtonFormField<String>>(
+          .widget<DropdownButtonFormField<String?>>(
             find.byKey(const ValueKey('manual-case-item')),
           )
           .onChanged!('item-target');
       tester
-          .widget<DropdownButtonFormField<WorkCaseType>>(
+          .widget<DropdownButtonFormField<WorkCaseType?>>(
             find.byKey(const ValueKey('manual-case-type')),
           )
           .onChanged!(WorkCaseType.construction);
@@ -282,12 +297,12 @@ void main() {
     await _openManualWorkCaseForm(tester);
 
     tester
-        .widget<DropdownButtonFormField<String>>(
+        .widget<DropdownButtonFormField<String?>>(
           find.byKey(const ValueKey('manual-case-item')),
         )
         .onChanged!('item-target');
     tester
-        .widget<DropdownButtonFormField<WorkCaseType>>(
+        .widget<DropdownButtonFormField<WorkCaseType?>>(
           find.byKey(const ValueKey('manual-case-type')),
         )
         .onChanged!(WorkCaseType.repair);
@@ -336,7 +351,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(AddScreen), findsOneWidget);
-    expect(await root.workCaseRuntime.listCasesForItem('item-target'), isEmpty);
+    expect(await root.workCaseRuntime.listAllCases(), isEmpty);
   });
 
   testWidgets('category create form writes through the formal repository', (
